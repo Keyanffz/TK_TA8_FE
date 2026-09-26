@@ -1,0 +1,36 @@
+"use client";
+
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+
+import { Button } from "@/components/ui/button";
+import { errorDariResponse, pesanError } from "@/lib/api/errors";
+
+async function keluar(): Promise<void> {
+  const response = await fetch("/api/auth/logout", { method: "POST" });
+  if (!response.ok) {
+    throw await errorDariResponse(response);
+  }
+}
+
+export function TombolKeluar() {
+  const router = useRouter();
+  const queryClient = useQueryClient();
+  const mutation = useMutation({
+    mutationFn: keluar,
+    onSettled: () => {
+      // Cookie sesi sudah dihapus route handler, termasuk saat backend gagal dihubungi.
+      queryClient.clear();
+      router.replace("/login");
+      router.refresh();
+    },
+    onError: (error) => toast.error(pesanError(error)),
+  });
+
+  return (
+    <Button variant="outline" onClick={() => mutation.mutate()} disabled={mutation.isPending}>
+      Keluar
+    </Button>
+  );
+}
