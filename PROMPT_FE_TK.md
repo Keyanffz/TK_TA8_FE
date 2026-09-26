@@ -665,6 +665,8 @@ Simpan per tab lewat `PUT /pengaturan`, upload gambar lewat `POST /pengaturan/up
 
 Landing page berisi: navbar, hero, sambutan kepala sekolah, visi-misi, program, keunggulan, fasilitas, guru (`/public/guru`), galeri terbaru, pengumuman publik terbaru, agenda publik, banner PPDB (jika dibuka), kontak + peta, footer.
 
+**Section yang datanya kosong disembunyikan otomatis.** Data nyata sekolah (NPSN, alamat, kontak, peta, sejarah, sambutan, fasilitas, keunggulan) diisi Kepala Sekolah lewat CMS dan bisa masih kosong. Selama kosong, section itu (atau baris kontak yang kosong) tidak dirender sama sekali: tidak ada placeholder, teks contoh, atau pesan "belum diisi" yang tampil ke publik.
+
 ## B8. Desain visual
 
 - **Identitas hijau dominan** sesuai branding sekolah (tanyakan kode warna logo di Fase 0; jika belum ada, usulkan palet hijau dengan aksen kuning hangat yang cocok untuk TK). Definisikan sebagai CSS variable/token Tailwind, jangan hardcode warna di komponen.
