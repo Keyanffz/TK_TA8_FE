@@ -503,7 +503,7 @@ Untuk W: `"wali_murid": { "id": 5, "profil_lengkap": true, "anak": [{ "id": 9, "
 - `GET /elemen-penilaian` — SA, G. `POST|PUT|DELETE` — SA
 - `GET /rapor?filter[kelas_id]=&filter[semester]=&filter[status]=` — SA, G(scoped), W(anak, hanya terbit)
 - `GET /rapor/{id}` — sama
-- `POST /rapor` — G(scoped) — `{ murid_id, semester }` → buat draft dengan baris detail kosong per elemen aktif
+- `POST /rapor` — G, SA (hanya murid di kelas yang diampu sebagai wali kelas / pendamping di TA aktif) — `{ murid_id, semester }` → buat draft dengan baris detail kosong per elemen aktif
 - `PUT /rapor/{id}` — G(pembuat, hanya status draft/revisi) — `{ tinggi_badan, berat_badan, catatan_guru, detail: [{ elemen_penilaian_id, deskripsi }] }`
 - `POST /rapor/{id}/detail/{detail_id}/foto` — G(pembuat)
 - `POST /rapor/{id}/ajukan` — G
@@ -520,7 +520,7 @@ Untuk W: `"wali_murid": { "id": 5, "profil_lengkap": true, "anak": [{ "id": 9, "
 **Bentuk notifikasi:** `{ id, jenis, judul, pesan, url (path FE tujuan, misal "/dashboard/tagihan/12"), dibaca_at, created_at }`. Jenis: `tagihan_baru`, `tagihan_tertunda` (ke Kepsek: generate terjadwal dilewati karena bulan di luar tahun ajaran aktif), `pengingat_tagihan`, `tagihan_terlambat`, `pembayaran_masuk`, `pembayaran_diterima`, `pembayaran_ditolak`, `guru_baru`, `rapor_diajukan`, `rapor_revisi`, `rapor_terbit`, `pengumuman_baru`, `pendaftaran_baru`, `pendaftaran_diproses`, `anak_tertaut`.
 
 ### PPDB
-- `POST /pendaftaran` — W — multipart (data + `hubungan` + dokumen). Tahun ajaran diambil dari `ppdb.tahun_ajaran_id`. Tolak jika PPDB tutup / kuota penuh
+- `POST /pendaftaran` — W — multipart (data + `hubungan` + dokumen). Tahun ajaran diambil dari `ppdb.tahun_ajaran_id`. Tolak jika PPDB tutup / kuota penuh / NIK anak sudah punya pendaftaran selain `ditolak` atau sudah menjadi murid (pendaftar yang pernah ditolak boleh daftar ulang)
 - `GET /pendaftaran` — SA (semua), W (miliknya)
 - `GET /pendaftaran/{id}` — SA, W(miliknya)
 - `POST /pendaftaran/{id}/verifikasi` — SA
@@ -532,7 +532,8 @@ Untuk W: `"wali_murid": { "id": 5, "profil_lengkap": true, "anak": [{ "id": 9, "
 - `PUT /pengaturan` — SA — `{ items: { "profil.visi": "…", "landing.program": [ … ] } }` (validasi per kunci). `ppdb.dibuka = true` ditolak kalau `ppdb.tahun_ajaran_id` kosong atau tahun ajarannya tidak ada
 - `POST /pengaturan/upload` — SA — gambar → `{ path, url }`
 - Field gambar di pengaturan disimpan sebagai path. Di respons `GET /pengaturan` dan `GET /public/profil`, setiap field gambar mendapat pasangan `*_url`: kunci `profil.logo` disertai kunci `profil.logo_url`; `landing.hero` → `{ judul, subjudul, gambar, gambar_url, cta_teks }`; `landing.fasilitas[]` → `{ nama, deskripsi, gambar, gambar_url }`. Saat `PUT /pengaturan`, field `*_url` diabaikan.
-- `GET|POST /galeri-album`, `PUT|DELETE /galeri-album/{id}` — SA
+- `GET|POST /galeri-album`, `PUT|DELETE /galeri-album/{id}` — SA. `GET /galeri-album` berisi `cover_url` dan `jumlah_foto` tanpa daftar foto
+- `GET /galeri-album/{id}` — SA — album + semua foto (termasuk album yang belum publik)
 - `POST /galeri-album/{id}/foto` — SA — `foto[]`
 - `PUT|DELETE /galeri-foto/{id}` — SA
 - `GET /log-aktivitas` — SA — filter user, jenis, tanggal
