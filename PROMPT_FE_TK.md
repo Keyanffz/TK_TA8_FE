@@ -51,10 +51,10 @@ Sistem Informasi Sekolah **TK Tarbiyathul Athfal 8** berbasis web (dan nanti mob
 1. **Login:**
    - Kepala Sekolah & Guru → email + password.
    - Wali Murid → Google Sign-In saja (daftar sendiri otomatis saat pertama login).
-   - Akun Kepala Sekolah dibuat lewat seeder (hanya 1 akun `super_admin` aktif).
+   - Akun Kepala Sekolah dibuat lewat seeder (hanya 1 akun `super_admin` aktif), sekaligus profil `guru` miliknya (jabatan "Kepala Sekolah") supaya Kepala Sekolah bisa mencatat kegiatan kelas, menjadi wali kelas bila perlu, dan tampil di daftar guru landing. Profil guru ini tidak muncul di `GET /guru`, tidak bisa dinonaktifkan, dan tidak dihitung sebagai guru di statistik dashboard.
    - Guru bisa daftar sendiri → status `pending` → harus **disetujui Kepala Sekolah** baru bisa login. Kepala Sekolah juga bisa membuat akun guru langsung (status langsung `aktif`).
 2. **Menautkan anak ke wali:** sekolah (super admin) generate **kode tautan** per murid (8 karakter, berlaku 14 hari). Wali memasukkan kode + tanggal lahir anak → langsung tertaut. Kode bisa dipakai lebih dari 1 wali (ayah & ibu) selama belum kedaluwarsa. Super admin bisa melepas tautan.
-3. **PPDB online:** wali bisa mendaftarkan anak baru lewat dashboard saat PPDB dibuka. Kalau diterima, sistem otomatis membuat data murid dan menautkannya ke wali tersebut.
+3. **PPDB online:** wali bisa mendaftarkan anak baru lewat dashboard saat PPDB dibuka. Pendaftaran selalu untuk tahun ajaran di pengaturan `ppdb.tahun_ajaran_id` (biasanya tahun ajaran berikutnya, bukan yang sedang aktif). PPDB tidak bisa dibuka (`ppdb.dibuka = true` ditolak) kalau `ppdb.tahun_ajaran_id` belum diisi atau tahun ajarannya tidak ada. Kalau diterima, sistem otomatis membuat data murid dan menautkannya ke wali tersebut.
 4. **Tagihan (SPP) otomatis:** scheduler membuat tagihan bulanan tiap tanggal 1 untuk semua murid aktif, berdasarkan `jenis_tagihan` berperiode `bulanan` yang aktif di tahun ajaran aktif. Idempoten (tidak dobel, dijaga unique index). Potongan dari tabel `keringanan` otomatis diterapkan.
 5. **Pembayaran:** transfer manual ke rekening sekolah + upload bukti oleh wali → diverifikasi. Pembayaran tunai dicatat langsung oleh petugas keuangan (otomatis diterima). **Tidak ada cicilan** (1 tagihan dibayar penuh). Payment gateway (Midtrans) = pengembangan nanti, bukan sekarang.
 6. **Petugas keuangan:** super admin, ditambah guru yang diberi izin `bisa_kelola_keuangan = true` oleh super admin (untuk guru yang merangkap bendahara).
@@ -223,7 +223,7 @@ Semua tabel punya `id` (bigint PK) dan `created_at/updated_at` kecuali pivot yan
 - **elemen_penilaian**: kode, nama, deskripsi, urutan, is_aktif
 - **rapor**: murid_id, kelas_id, tahun_ajaran_id, semester (1/2), tinggi_badan (decimal nullable, cm), berat_badan (decimal nullable, kg), catatan_guru, status (enum StatusRapor), catatan_revisi (nullable), dibuat_oleh (FK guru), diajukan_at, disetujui_oleh (FK users nullable), terbit_at. Unique (murid_id, tahun_ajaran_id, semester)
 - **rapor_detail**: rapor_id, elemen_penilaian_id, deskripsi (text), foto_path (nullable, private). Unique (rapor_id, elemen_penilaian_id)
-- **pendaftaran**: kode (unique, `PPDB-YYYY-XXXX`), wali_murid_id, tahun_ajaran_id, tingkat_tujuan, nama_lengkap, nama_panggilan, jenis_kelamin, tempat_lahir, tanggal_lahir, nik, agama, alamat, nama_ayah, pekerjaan_ayah, nama_ibu, pekerjaan_ibu, no_hp, status (enum StatusPendaftaran), catatan (nullable), diproses_oleh (nullable), diproses_at, murid_id (nullable, terisi saat diterima)
+- **pendaftaran**: kode (unique, `PPDB-YYYY-XXXX`), wali_murid_id, hubungan (enum Hubungan; hubungan wali pendaftar dengan anak, dipakai saat menautkan ketika diterima), tahun_ajaran_id (diisi dari `ppdb.tahun_ajaran_id` saat mendaftar), tingkat_tujuan, nama_lengkap, nama_panggilan, jenis_kelamin, tempat_lahir, tanggal_lahir, nik, agama, alamat, nama_ayah, pekerjaan_ayah, nama_ibu, pekerjaan_ibu, no_hp, status (enum StatusPendaftaran), catatan (nullable), diproses_oleh (nullable), diproses_at, murid_id (nullable, terisi saat diterima)
 - **pendaftaran_dokumen**: pendaftaran_id, jenis (enum JenisDokumen), path (private)
 - **galeri_album**: judul, slug, deskripsi, cover_path, tanggal, is_publik. **galeri_foto**: galeri_album_id, path (public), caption, urutan
 - **pengaturan**: kunci (unique), nilai (json), grup (string: profil | landing | keuangan | ppdb)
@@ -248,6 +248,7 @@ Semua tabel punya `id` (bigint PK) dan `created_at/updated_at` kecuali pivot yan
 | `keuangan.hari_pengingat` | int (default 3, H-3 sebelum jatuh tempo) |
 | `ppdb.dibuka` | bool |
 | `ppdb.tanggal_buka`, `ppdb.tanggal_tutup` | date |
+| `ppdb.tahun_ajaran_id` | int (id tahun ajaran tujuan PPDB; wajib terisi dengan tahun ajaran yang ada sebelum `ppdb.dibuka` bisa `true`) |
 | `ppdb.kuota` | int |
 | `ppdb.info` | string (HTML: syarat, biaya, alur) |
 
@@ -388,6 +389,8 @@ flowchart TD
 ```
 Kode error: `UNAUTHENTICATED` (401), `FORBIDDEN` (403), `ACCOUNT_PENDING` (403), `ACCOUNT_REJECTED` (403), `ACCOUNT_INACTIVE` (403), `NOT_FOUND` (404), `VALIDATION_ERROR` (422), `BUSINESS_RULE` (422, pelanggaran aturan bisnis), `TOO_MANY_REQUESTS` (429), `SERVER_ERROR` (500).
 
+Untuk `ACCOUNT_REJECTED` saat login, alasan penolakan disertakan di `message` (contoh: `"Pendaftaran akun Anda ditolak. Alasan: …"`), tanpa field tambahan.
+
 **Konvensi query list:** `?search=`, `?sort=nama` / `?sort=-created_at`, `?filter[status]=aktif`, `?filter[kelas_id]=3`. Tanggal format `YYYY-MM-DD`, datetime ISO 8601 dengan offset `+07:00`. Uang = integer rupiah.
 
 **Singkatan role:** SA = super_admin, G = guru, K = petugas keuangan (SA atau guru `bisa_kelola_keuangan`), W = wali_murid, Pub = publik.
@@ -405,8 +408,9 @@ Kode error: `UNAUTHENTICATED` (401), `FORBIDDEN` (403), `ACCOUNT_PENDING` (403),
 - `GET /public/ppdb` — Pub — status buka, tanggal, kuota, sisa kuota, info
 
 ### Auth
-- `POST /auth/login` — Pub — `{ email, password }` → `{ token, user }`. Rate limit 5/menit per IP+email
-- `POST /auth/google` — Pub — `{ id_token }` → `{ token, user, is_new }`
+- `POST /auth/login` — Pub — `{ email, password, perangkat? }` → `{ token, user }`. Rate limit 5/menit per IP+email
+- `POST /auth/google` — Pub — `{ id_token, perangkat? }` → `{ token, user, is_new }`
+- `perangkat`: `web` | `mobile`, opsional, default `web`; dipakai sebagai nama token Sanctum.
 - `POST /auth/register-guru` — Pub — `{ name, email, password, password_confirmation, no_hp, jenis_kelamin }` → 201, pesan menunggu persetujuan
 - `POST /auth/forgot-password` — Pub — `{ email }` (hanya akun email+password)
 - `POST /auth/reset-password` — Pub — `{ token, email, password, password_confirmation }`
@@ -429,18 +433,18 @@ Untuk W: `"wali_murid": { "id": 5, "profil_lengkap": true, "anak": [{ "id": 9, "
 
 ### Dashboard
 - `GET /dashboard` — semua — payload sesuai role; W bisa kirim `?murid_id=`
-  - SA: `{ statistik: { murid_aktif, guru_aktif, kelas, wali_murid }, keuangan_bulan_ini: { total_tagihan, terbayar, belum_terbayar, persen_lunas }, grafik_pemasukan: [{ bulan: "2026-01", total }] (12 bulan), tertunda: { guru_pending, pembayaran_menunggu, rapor_diajukan, pendaftaran_baru }, pengumuman_terbaru[], agenda_mendatang[] }`
-  - G: `{ kelas_saya[] (id, nama, jumlah_murid), progres_rapor: { total, draft, diajukan, revisi, terbit }, kegiatan_terbaru[], pengumuman_terbaru[], agenda_mendatang[], keuangan_kelas: { lunas, belum } }`
+  - SA: `{ statistik: { murid_aktif, guru_aktif, kelas, wali_murid }, keuangan_bulan_ini: { total_tagihan, terbayar, belum_terbayar, persen_lunas }, grafik_pemasukan: [{ bulan: "2026-01", total }] (12 bulan), tertunda: { guru_pending, pembayaran_menunggu, rapor_diajukan, pendaftaran_baru }, pengumuman_terbaru[], agenda_mendatang[] }`. `guru_aktif` tidak menghitung profil guru milik Kepala Sekolah.
+  - G: `{ kelas_saya[] (id, nama, jumlah_murid), progres_rapor: { total, draft, diajukan, revisi, terbit }, kegiatan_terbaru[], pengumuman_terbaru[], agenda_mendatang[], keuangan_kelas: { lunas, belum }, pembayaran_menunggu }`. `pembayaran_menunggu` = jumlah pembayaran berstatus `menunggu` (int) untuk guru `bisa_kelola_keuangan`, `null` untuk guru lain.
   - W: `{ anak: {…}, tagihan_aktif[] , total_belum_bayar, kegiatan_terbaru[], pengumuman_terbaru[], agenda_mendatang[], rapor_terbaru }`
 
 ### Guru (manajemen)
-- `GET /guru` — SA — filter status, search
+- `GET /guru` — SA — filter status, search. Tidak termasuk profil guru milik Kepala Sekolah
 - `GET /guru/{id}` — SA
-- `POST /guru` — SA — buat akun guru langsung aktif (password awal dikirim/ditampilkan sekali)
+- `POST /guru` — SA — buat akun guru langsung aktif → 201, data guru + `password_awal`. `password_awal` hanya muncul di respons ini, tidak dikirim lewat email, dan tidak disimpan sebagai teks biasa
 - `PUT /guru/{id}` — SA — termasuk `bisa_kelola_keuangan`, `tampil_di_landing`
 - `POST /guru/{id}/setujui` — SA
 - `POST /guru/{id}/tolak` — SA — `{ alasan }`
-- `PATCH /guru/{id}/status` — SA — `{ status: aktif|nonaktif }` (nonaktif = cabut semua token)
+- `PATCH /guru/{id}/status` — SA — `{ status: aktif|nonaktif }` (nonaktif = cabut semua token). Profil guru milik Kepala Sekolah tidak bisa dinonaktifkan
 
 ### Tahun ajaran & kelas
 - `GET|POST /tahun-ajaran`, `PUT|DELETE /tahun-ajaran/{id}` — SA (GET: SA, G)
@@ -470,7 +474,7 @@ Untuk W: `"wali_murid": { "id": 5, "profil_lengkap": true, "anak": [{ "id": 9, "
 - `GET|POST /keringanan`, `PUT|DELETE /keringanan/{id}` — K
 - `GET /tagihan` — K, G(scoped, read-only), W(anak sendiri) — filter status, periode (YYYY-MM), kelas_id, murid_id, jenis_tagihan_id
 - `GET /tagihan/{id}` — K, G(scoped), W(anak sendiri) — termasuk riwayat pembayaran + rekening sekolah
-- `POST /tagihan` — K — tagihan sekali: `{ jenis_tagihan_id, murid_ids?: [], kelas_id?: , jatuh_tempo }`
+- `POST /tagihan` — K — tagihan sekali: `{ jenis_tagihan_id, murid_ids?: [], kelas_id?: , jatuh_tempo }` → `{ dibuat, dilewati }`. Murid yang sudah punya tagihan jenis itu (selain `dibatalkan`) dilewati
 - `POST /tagihan/generate` — SA — `{ periode: "YYYY-MM" }` → `{ dibuat, dilewati }` (idempoten)
 - `PATCH /tagihan/{id}/batalkan` — SA — `{ alasan }`
 - `POST /tagihan/{id}/pembayaran` — W (multipart: bukti wajib, tanggal_bayar, bank_pengirim, nama_pengirim) / K (metode tunai → langsung diterima)
@@ -511,7 +515,7 @@ Untuk W: `"wali_murid": { "id": 5, "profil_lengkap": true, "anak": [{ "id": 9, "
 **Bentuk notifikasi:** `{ id, jenis, judul, pesan, url (path FE tujuan, misal "/dashboard/tagihan/12"), dibaca_at, created_at }`. Jenis: `tagihan_baru`, `pengingat_tagihan`, `tagihan_terlambat`, `pembayaran_masuk`, `pembayaran_diterima`, `pembayaran_ditolak`, `guru_baru`, `rapor_diajukan`, `rapor_revisi`, `rapor_terbit`, `pengumuman_baru`, `pendaftaran_baru`, `pendaftaran_diproses`, `anak_tertaut`.
 
 ### PPDB
-- `POST /pendaftaran` — W — multipart (data + dokumen). Tolak jika PPDB tutup / kuota penuh
+- `POST /pendaftaran` — W — multipart (data + `hubungan` + dokumen). Tahun ajaran diambil dari `ppdb.tahun_ajaran_id`. Tolak jika PPDB tutup / kuota penuh
 - `GET /pendaftaran` — SA (semua), W (miliknya)
 - `GET /pendaftaran/{id}` — SA, W(miliknya)
 - `POST /pendaftaran/{id}/verifikasi` — SA
@@ -520,8 +524,9 @@ Untuk W: `"wali_murid": { "id": 5, "profil_lengkap": true, "anak": [{ "id": 9, "
 
 ### CMS & pengaturan
 - `GET /pengaturan?grup=` — SA (K boleh baca grup keuangan)
-- `PUT /pengaturan` — SA — `{ items: { "profil.visi": "…", "landing.program": [ … ] } }` (validasi per kunci)
+- `PUT /pengaturan` — SA — `{ items: { "profil.visi": "…", "landing.program": [ … ] } }` (validasi per kunci). `ppdb.dibuka = true` ditolak kalau `ppdb.tahun_ajaran_id` kosong atau tahun ajarannya tidak ada
 - `POST /pengaturan/upload` — SA — gambar → `{ path, url }`
+- Field gambar di pengaturan disimpan sebagai path. Di respons `GET /pengaturan` dan `GET /public/profil`, setiap field gambar mendapat pasangan `*_url`: kunci `profil.logo` disertai kunci `profil.logo_url`; `landing.hero` → `{ judul, subjudul, gambar, gambar_url, cta_teks }`; `landing.fasilitas[]` → `{ nama, deskripsi, gambar, gambar_url }`. Saat `PUT /pengaturan`, field `*_url` diabaikan.
 - `GET|POST /galeri-album`, `PUT|DELETE /galeri-album/{id}` — SA
 - `POST /galeri-album/{id}/foto` — SA — `foto[]`
 - `PUT|DELETE /galeri-foto/{id}` — SA
