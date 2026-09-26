@@ -1,0 +1,167 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary-strong: var(--primary-strong);
+  --color-primary-soft: var(--primary-soft);
+  --color-primary-soft-strong: var(--primary-soft-strong);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-highlight: var(--highlight);
+  --color-highlight-foreground: var(--highlight-foreground);
+  --color-highlight-soft: var(--highlight-soft);
+  --color-highlight-strong: var(--highlight-strong);
+  --color-destructive: var(--destructive);
+  --color-destructive-strong: var(--destructive-strong);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --color-status-sukses: var(--status-sukses);
+  --color-status-sukses-soft: var(--status-sukses-soft);
+  --color-status-menunggu: var(--status-menunggu);
+  --color-status-menunggu-soft: var(--status-menunggu-soft);
+  --color-status-bahaya: var(--status-bahaya);
+  --color-status-bahaya-soft: var(--status-bahaya-soft);
+  --color-status-proses: var(--status-proses);
+  --color-status-proses-soft: var(--status-proses-soft);
+  --color-status-netral: var(--status-netral);
+  --color-status-netral-soft: var(--status-netral-soft);
+
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+
+  --font-sans: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
+  --font-heading: var(--font-fraunces), ui-serif, Georgia, serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  /* Skala tipografi dibatasi 6 ukuran (C7). */
+  --text-*: initial;
+  --text-xs: 0.75rem;
+  --text-xs--line-height: 1rem;
+  --text-sm: 0.875rem;
+  --text-sm--line-height: 1.25rem;
+  --text-base: 1rem;
+  --text-base--line-height: 1.5rem;
+  --text-lg: 1.25rem;
+  --text-lg--line-height: 1.75rem;
+  --text-xl: 1.75rem;
+  --text-xl--line-height: 2.25rem;
+  --text-2xl: 2.5rem;
+  --text-2xl--line-height: 3rem;
+
+  --radius-sm: calc(var(--radius) * 0.5);
+  --radius-md: calc(var(--radius) * 0.84);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.34);
+
+  /* Dua tingkat elevasi saja (C7). */
+  --shadow-*: initial;
+  --shadow-sm: 0 1px 2px rgb(31 42 36 / 0.06);
+  --shadow-md: 0 4px 12px rgb(31 42 36 / 0.08);
+}
+
+:root {
+  /* Hijau dan kuning diturunkan dari logo sekolah (#0D8905, #FFF001),
+     digelapkan seperlunya supaya teks putih di atas hijau memenuhi AA. */
+  --background: #fbf8f1;
+  --foreground: #1f2a24;
+  --card: #ffffff;
+  --card-foreground: #1f2a24;
+  --popover: #ffffff;
+  --popover-foreground: #1f2a24;
+  --primary: #0a7a0a;
+  --primary-foreground: #ffffff;
+  --primary-strong: #075f0b;
+  --primary-soft: #e7f3e4;
+  --primary-soft-strong: #d8ecd3;
+  --secondary: #f3efe6;
+  --secondary-foreground: #1f2a24;
+  --muted: #f3efe6;
+  --muted-foreground: #5f6b63;
+  --accent: #e7f3e4;
+  --accent-foreground: #075f0b;
+  --highlight: #f9d923;
+  --highlight-foreground: #3a3000;
+  --highlight-soft: #fff7cc;
+  --highlight-strong: #ecc812;
+  --destructive: #b42318;
+  --destructive-strong: #962016;
+  --border: #e4dfd3;
+  --input: #d6d0c2;
+  --ring: #0a7a0a;
+
+  --status-sukses: #075f0b;
+  --status-sukses-soft: #e7f3e4;
+  --status-menunggu: #8a5a00;
+  --status-menunggu-soft: #fdf1d3;
+  --status-bahaya: #b42318;
+  --status-bahaya-soft: #fde8e6;
+  --status-proses: #3e5c76;
+  --status-proses-soft: #e6edf3;
+  --status-netral: #5f6b63;
+  --status-netral-soft: #eeede8;
+
+  --chart-1: #0a7a0a;
+  --chart-2: #e0b800;
+  --chart-3: #3e5c76;
+  --chart-4: #8a5a00;
+  --chart-5: #5f6b63;
+
+  --radius: 0.75rem;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  html {
+    @apply font-sans;
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+  }
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-heading);
+    font-variation-settings: "SOFT" 100;
+    text-wrap: balance;
+  }
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
