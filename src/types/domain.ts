@@ -28,6 +28,12 @@ export type Agenda = Schemas["AgendaResource"];
 export type GaleriAlbum = Schemas["GaleriAlbumResource"];
 export type GuruPublik = Schemas["GuruPublikResource"];
 export type PengumumanPublik = Schemas["PengumumanPublikResource"];
+export type Pengumuman = Schemas["PengumumanResource"];
+export type Notifikasi = Schemas["NotifikasiResource"];
+export type AnakWali = Schemas["AnakWaliResource"];
+export type Tagihan = Schemas["TagihanResource"];
+export type KegiatanKelas = Schemas["KegiatanKelasResource"];
+export type Rapor = Schemas["RaporResource"];
 
 export type KodeError =
   | "UNAUTHENTICATED"
