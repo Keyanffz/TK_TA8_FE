@@ -9,7 +9,7 @@ Website publik dan dashboard sistem informasi TK Tarbiyathul Athfal 8 (TK Muslim
 | 0. Analisis | Selesai, rencana disetujui (Arah desain A "Buku Cerita") |
 | 1. Fondasi | Selesai |
 | 2. Publik & auth | Selesai; revisi setelah review (login terpisah, warna, font, gerak) menunggu review |
-| 3. Shell dashboard | Belum |
+| 3. Shell dashboard | Selesai, menunggu review desain beranda (C7) |
 | 4. Master data | Belum |
 | 5. Keuangan | Belum |
 | 6. Akademik & komunikasi | Belum |
@@ -130,6 +130,63 @@ Request dari Server Component ke endpoint publik (landing, ISR) tidak membawa `X
 - Validasi form di browser mengikuti aturan backend (`src/lib/auth/skema.ts`): password minimal 8 karakter berisi huruf dan angka, nomor HP diawali 08 dengan 10–15 angka. Backend tetap pemeriksa akhir.
 - Pendaftaran guru, lupa password, dan reset password memanggil backend lewat `/api/proxy` (endpoint publik tanpa token).
 
+## Keputusan Fase 3
+
+- **Kerangka** (`src/components/layout/dashboard/`): sidebar hijau di desktop untuk semua role (bisa diciutkan, pilihan disimpan di cookie `tk_sidebar` dan dibaca server supaya tidak berkedip), sheet menu di HP untuk SA/G, bottom nav di HP untuk wali (Beranda, Tagihan, Kegiatan, Pengumuman, Lainnya). Topbar hijau di HP dan putih di desktop: pemilih anak (W), lonceng notifikasi, menu akun (Profil Saya, Keluar).
+- **Menu** dari satu konfigurasi `MENU` di `src/lib/navigation.ts` (grup Utama, Akademik, Keuangan, Sekolah, Website & Pengaturan). Item tampil kalau role cocok atau (untuk item `keuangan`) guru punya `kelola_keuangan`. Item aktif = yang href-nya paling panjang cocok dengan path.
+- **Penjaga onboarding di server**: `proxy.ts` menaruh path yang dibuka di header `x-tk-path` untuk semua `/dashboard/*`, lalu layout dashboard mengarahkan wali dengan `profil_lengkap = false` ke `/dashboard/onboarding` sebelum halaman apa pun dirender. Halaman onboarding tampil tanpa menu.
+- **Akses per role**: `wajibAkses()` (`src/lib/auth/akses.ts`) di halaman server; yang tidak berhak diarahkan ke `/dashboard?akses=ditolak` lalu `PesanAksesDitolak` menampilkan toast "Anda tidak punya akses ke halaman itu." dan membersihkan URL. Sesi yang ditolak backend diarahkan ke `/api/auth/sesi-habis?next=<path sekarang>`.
+- **Anak aktif**: cookie `tk_anak` (ditulis dari browser), dibaca layout server sebagai nilai awal, disimpan di konteks `AnakAktifProvider`. Id yang tidak ada di daftar anak sesi diganti anak pertama. Beranda wali memanggil `GET /dashboard?murid_id=` dengan query key `["dashboard", muridId]`, jadi ganti anak tidak perlu memuat ulang halaman.
+- **Data dashboard** diambil di browser lewat React Query (`src/lib/api/dashboard.ts`), dengan kerangka skeleton saat memuat dan `GalatMuat` (pesan + Muat Ulang) saat gagal. Bentuk `data` (anyOf tiga bentuk) dipastikan lewat kunci khas: `statistik` (SA), `kelas_saya` (G), `tagihan_aktif` (W).
+- **Notifikasi**: badge `GET /notifikasi/belum-dibaca` diperbarui tiap 60 detik (React Query tidak menjalankan interval di tab latar belakang); popover memuat 6 notifikasi terbaru hanya saat dibuka. Klik notifikasi menandai dibaca lalu membuka `url` dari backend.
+- **Query string**: `serialisasiQuery()` (`src/lib/api/query-string.ts`) dipakai client browser dan server. Boolean dikirim `1`/`0` karena validasi `boolean` Laravel menolak `true`/`false` di query string (lihat temuan backend).
+- **Beranda wali**: satu hal terpenting adalah kartu tagihan (total belum dibayar besar, tombol "Bayar Sekarang" ke detail tagihan kalau hanya satu, ke daftar kalau lebih). Kartu memerah dengan judul "Ada tagihan yang lewat jatuh tempo" kalau ada status `terlambat`; tagihan `menunggu_verifikasi` diberi catatan bahwa bukti sedang diperiksa. Tanpa tagihan aktif tampil "Semua tagihan ... sudah lunas". Wali tanpa anak tertaut melihat ajakan Tautkan Anak / Daftar PPDB. Di desktop agenda mengisi kolom samping tagihan; di HP agenda paling bawah (urutan B5).
+- **Beranda guru**: kartu kelas diampu (jumlah murid menghitung naik) dan kartu "Verifikasi Pembayaran" untuk guru petugas keuangan (`pembayaran_menunggu` bukan null). Progres rapor satu batang per status terhadap `total` (murid aktif), ditambah jumlah yang belum dibuat. "Tagihan Jatuh Tempo Bulan Ini" menampilkan persen lunas dari `keuangan_kelas` (jumlah tagihan, bukan rupiah; hanya dilihat).
+- **Beranda Kepala Sekolah**: panel "Perlu Tindakan" di blok hijau (kartu kuning untuk yang jumlahnya lebih dari 0, tautan ke halaman terkait), empat angka statistik, keuangan bulan ini dengan batang persen lunas, grafik pemasukan 12 bulan (Recharts, satu seri berwarna `primary`, tooltip per batang, tabel tersembunyi untuk pembaca layar), pengumuman dan agenda.
+- Sapaan beranda memakai "Assalamu'alaikum, {nama}" dan tanggal hari ini (Asia/Jakarta), sesuai sekolah Muslimat NU.
+- Foto murid dan foto kegiatan berupa signed URL yang kedaluwarsa, jadi ditampilkan lewat `next/image` dengan `unoptimized` (`FotoProfil`, `KartuAnak`, `KegiatanRingkas`).
+- Foto profil dikompres di browser (`browser-image-compression`, maks 1 MB dan sisi 1600 px) lalu dikirim sebagai multipart `PUT /auth/profil` lewat `bodySerializer` openapi-fetch.
+- Komponen shadcn `dropdown-menu`, `popover`, `textarea` ditulis manual mengikuti pola shadcn karena `ui.shadcn.com` diblokir kebijakan jaringan container (403).
+- `EmptyState` sekarang memakai ilustrasi perisai logo dengan bintang melayang; `StatusBadge`, `KepalaHalaman` (PageHeader), `GalatMuat`, `HalamanKosong` (404/error di dashboard) ditambahkan sebagai komponen bersama.
+
+## Audit data dashboard wali (revisi poin 4)
+
+Setiap data yang tampil ke wali dan halaman Kepala Sekolah yang mengelolanya:
+
+| Data yang dilihat wali | Sumber | Halaman kelola Kepala Sekolah | Fase | Status |
+|---|---|---|---|---|
+| Nama dan logo sekolah (topbar, sidebar, onboarding) | `profil.nama_sekolah`, `profil.logo` | `/dashboard/website` tab Profil Sekolah | 7 | Endpoint ada |
+| Kartu anak: nama lengkap, panggilan, foto, NIS, tanggal lahir, jenis kelamin | `murid` | `/dashboard/murid/[id]` (edit + foto) | 4 | Endpoint ada |
+| Kelas anak | `kelas`, `kelas_murid` | `/dashboard/kelas/[id]` (penempatan), `/dashboard/tahun-ajaran` (kenaikan) | 4 | Endpoint ada |
+| Hubungan wali dengan anak, kontak utama | `murid_wali` | `/dashboard/murid/[id]` bagian wali | 4 | **Kurang**: SA hanya bisa melepas tautan; hubungan dan kontak utama tidak bisa diubah |
+| Tagihan aktif, total belum dibayar, status, jatuh tempo | `tagihan` | `/dashboard/tagihan` (tagihan sekali, generate, batalkan), `/dashboard/keuangan/jenis-tagihan`, `/dashboard/keuangan/keringanan` | 5 | **Kurang**: tagihan tidak bisa diubah; tagihan bulanan yang dibatalkan tidak bisa dibuat ulang untuk bulan yang sama |
+| Rekening sekolah di detail tagihan | `keuangan.rekening` | `/dashboard/pengaturan` tab Rekening | 7 | Endpoint ada |
+| Riwayat pembayaran, kwitansi | `pembayaran` | `/dashboard/pembayaran` (verifikasi, catat tunai) | 5 | Endpoint ada |
+| Kegiatan kelas: judul, tema, deskripsi, tanggal, foto | `kegiatan_kelas`, `kegiatan_foto` | `/dashboard/kegiatan/[id]` (SA boleh mengubah semua) | 6 | **Kurang**: caption dan urutan foto tidak bisa diubah lewat API |
+| Pengumuman | `pengumuman` | `/dashboard/pengumuman` (SA semua target, pin, draft) | 6 | Endpoint ada; lampiran belum bisa diunggah (sudah dicatat BE) |
+| Agenda sekolah | `agenda` | `/dashboard/agenda` | 6 | Endpoint ada |
+| Rapor terbaru dan PDF | `rapor`, `rapor_detail`, `elemen_penilaian` | `/dashboard/rapor` (review, terbitkan, minta revisi), `/dashboard/pengaturan` tab Elemen Penilaian | 6, 7 | **Kurang**: SA tidak bisa mengubah isi rapor buatan guru dan rapor terbit tidak bisa ditarik untuk dibetulkan |
+| Info dan status PPDB | `ppdb.*`, `pendaftaran` | `/dashboard/pengaturan` tab PPDB, `/dashboard/ppdb` | 7 | Endpoint ada |
+| Notifikasi | dibuat sistem dari aksi di atas | tidak dikelola langsung | | Sesuai desain |
+| Banner / teks info khusus di beranda wali | tidak ada | usulan: `/dashboard/website` tab Beranda Wali | 7 | **Butuh endpoint baru** |
+| Data wali (alamat, pekerjaan, NIK) | `wali_murid` | `/dashboard/wali-murid` (lihat + status) | 4 | **Kurang**: tidak ada di `GET /auth/me`, jadi wali tidak bisa melihat atau mengubahnya setelah onboarding; SA juga tidak bisa mengubahnya |
+
+Usulan endpoint untuk backend (belum dikerjakan; FE tidak mengubah BE):
+
+1. **Info beranda wali**: kunci pengaturan baru `beranda.info_wali` = `{ aktif: bool, judul: string, isi: string (maks ±500 karakter), nada: "info" | "penting", berlaku_sampai: date | null }`, disimpan lewat `PUT /pengaturan` (grup baru `beranda`), dan ikut di respons `GET /dashboard` wali sebagai `info_sekolah: { judul, isi, nada } | null` (null kalau tidak aktif atau lewat `berlaku_sampai`). Wali tidak perlu akses ke `/pengaturan`.
+2. **Ubah tagihan**: `PUT /tagihan/{id}` (K atau SA) `{ jatuh_tempo?, potongan?, catatan? }` untuk status `belum_bayar`/`terlambat`, menghitung ulang `total` dan status terlambat. Atau: `generate` dan `POST /tagihan` membuat ulang tagihan yang sebelumnya `dibatalkan` untuk periode yang sama (unique index `murid_id, jenis_tagihan_id, periode` perlu disesuaikan).
+3. **Caption dan urutan foto kegiatan**: `PUT /kegiatan-foto/{id}` `{ caption?, urutan? }` (pembuat, SA), seperti `PUT /galeri-foto/{id}`.
+4. **Rapor**: `PUT /rapor/{id}` juga untuk SA saat status `diajukan`, dan `POST /rapor/{id}/tarik` (SA) `{ catatan }` untuk mengembalikan rapor `terbit` ke `revisi` (wali tidak lagi melihatnya sampai terbit ulang).
+5. **Tautan wali**: `PATCH /murid/{id}/wali/{wali_murid_id}` (SA) `{ hubungan?, is_kontak_utama? }`.
+6. **Data wali**: `GET /auth/me` untuk wali menyertakan `wali_murid.alamat`, `pekerjaan`, `nik`; `PUT /wali/profil` menerima perubahan sebagian; `PUT /wali-murid/{id}` (SA) untuk koreksi data.
+
+## Temuan backend dari Fase 3
+
+- `GET /notifikasi?filter[dibaca]=true|false` ditolak 422 ("Filter.dibaca harus bernilai true atau false."), padahal OpenAPI menulis parameternya `boolean`. Hanya `1`/`0` yang diterima. FE mengirim `1`/`0` lewat `serialisasiQuery()`.
+- Di `api.json`, item array yang memakai Resource lewat `allOf` (misalnya `pengumuman_terbaru`, `kegiatan_terbaru`, `tagihan_aktif` di `GET /dashboard`, dan data banyak endpoint daftar) ditulis sebagai `Resource & Record<string, never>` oleh openapi-typescript, sehingga semua field bertipe `never` kalau dibaca dari tipe `operations`. Tipe yang dikembalikan openapi-fetch tidak terpengaruh, jadi FE mengambil tipe dari hasil pemanggilan. Sebaiknya skema tambahan kosong di `allOf` dihapus di Scramble.
+- Tiga wali pendaftar PPDB demo memakai email domain sungguhan (`@gmail.com`, `@gmail.co.id`, `@yahoo.co.id`) dari `UserFactory::freeEmail()`, sedangkan wali demo lain memakai `@wali.tkta8.test`. Kalau mailer diaktifkan, email bisa terkirim ke alamat nyata.
+- Pesan validasi `current_password` di `PUT /auth/password` berbunyi "Kata sandi salah.", sedangkan label lain di UI dan pesan backend lain memakai "password".
+
 ## Temuan kontrak dari `api.json`
 
 Sudah diperbaiki backend (branch `be/fix-openapi`) dan dipakai lewat `npm run gen:api`: tipe `meta` paginasi, bentuk `GET /public/profil`, `kelas.id` number, `MuridResource.wali[]`, dan `rekening` di detail tagihan. `normalisasiMeta()` dan validasi zod profil publik sudah dihapus.
@@ -205,13 +262,18 @@ Andika hanya punya bobot 400 dan 700, jadi `font-semibold` tampil sebagai 700.
 | `/login/wali` | publik (sudah masuk → `/dashboard`) | Login Google wali murid |
 | `/login/guru` | publik (sudah masuk → `/dashboard`) | Email + password, tautan daftar guru dan lupa password |
 | `/daftar-guru`, `/lupa-password`, `/reset-password?token=&email=`, `/menunggu-persetujuan` | publik | Alur akun guru/Kepala Sekolah |
-| `/dashboard` | SA, G, W | Fase 1: sapaan + tombol keluar; beranda per role di Fase 3 |
+| `/dashboard` | SA, G, W | Beranda per role (B5): SA panel Perlu Tindakan, statistik, keuangan bulan ini, grafik pemasukan; G kelas diampu, progres rapor, tagihan kelas; W kartu anak, kartu tagihan, rapor terbaru, kegiatan, pengumuman, agenda |
+| `/dashboard/onboarding` | W (profil belum lengkap) | Lengkapi nomor HP, alamat, pekerjaan, NIK opsional. Tanpa menu; wali yang sudah lengkap diarahkan ke beranda |
+| `/dashboard/anak` | W | Kartu anak tertaut + form tautkan anak (kode, tanggal lahir, hubungan) |
+| `/dashboard/notifikasi` | SA, G, W | Semua notifikasi berpaginasi (`?page=`), saring belum dibaca (`?belum=true`), tandai semua dibaca |
+| `/dashboard/profil` | SA, G, W | Nama, nomor HP, foto profil; ganti password (SA, G) |
+| `/dashboard/*` lain | | 404 di dalam kerangka dashboard (`[...lainnya]`); halamannya dibuat di Fase 4–7 |
 | `/api/auth/login`, `/api/auth/google`, `/api/auth/logout`, `/api/auth/sesi-habis` | route handler | BFF sesi |
 | `/api/proxy/[...path]` | route handler | Proxy ke backend |
 
 Route lain mengikuti B4 dan ditambahkan per fase. `/api/auth/me` tidak dibuat (disetujui di Fase 0): sesi dibaca lewat `/api/proxy/auth/me`. `/api/revalidate` (disetujui di Fase 0) dibuat di Fase 7 bersama penyimpanan CMS; tag cache publik sudah disiapkan di `TAG_PUBLIK` (`src/lib/constants/sekolah.ts`).
 
-Wali yang `profil_lengkap = false` diarahkan ke `/dashboard/onboarding` setelah login Google; halaman itu dibuat di Fase 3.
+Menu sidebar untuk semua route B4 sudah ada sejak Fase 3 (`src/lib/navigation.ts`); tautan ke halaman fase berikutnya menampilkan 404 di dalam dashboard sampai halamannya dibuat.
 
 ## Deploy
 
@@ -224,6 +286,39 @@ Tempat deploy belum ditentukan. Syarat yang sudah pasti:
 5. Batas body di reverse proxy minimal 55 MB (unggahan kegiatan 10 foto × 5 MB), sama dengan `post_max_size` backend.
 
 ## Changelog
+
+### Fase 3
+
+File baru:
+
+- `src/lib/navigation.ts`: menu per role (B4) dan urutan bottom nav wali.
+- `src/lib/auth/{akses,path,anak-aktif}.ts`: `wajibSesi()`, `wajibAkses()`, header path dari proxy, pemilihan anak aktif.
+- `src/lib/api/{dashboard,notifikasi,query-string}.ts`, `src/lib/{tagihan,gambar}.ts`, `src/lib/constants/notifikasi.ts`.
+- `src/components/layout/dashboard/{shell-dashboard,sidebar,daftar-menu,menu-hp,bottom-nav-wali,menu-pengguna,anak-switcher,anak-aktif,notifikasi-bell,pesan-akses-ditolak}.tsx`.
+- `src/components/features/beranda/`: `sapaan-beranda`, `panel-beranda`, `daftar-ringkas`, `kegiatan-ringkas`, `kartu-angka`, `wali/{beranda-wali,kartu-anak,kartu-tagihan,kartu-rapor}`, `guru/{beranda-guru,progres-rapor}`, `kepala-sekolah/{beranda-kepala-sekolah,perlu-tindakan,grafik-pemasukan}`.
+- `src/components/features/wali/{form-onboarding,form-tautkan-anak,daftar-anak}.tsx`, `src/components/features/profil/{form-profil,form-ganti-password}.tsx`, `src/components/features/notifikasi/{item-notifikasi,daftar-notifikasi}.tsx`, `src/components/features/auth/use-keluar.ts` (pengganti `tombol-keluar.tsx`).
+- `src/components/shared/{kepala-halaman,status-badge,galat-muat,foto-profil,halaman-kosong}.tsx`.
+- `src/components/ui/{dropdown-menu,popover,textarea}.tsx`: ditulis manual mengikuti pola shadcn.
+- `src/app/dashboard/{onboarding,anak,notifikasi,profil}/page.tsx`, `[...lainnya]/page.tsx`, `not-found.tsx`, `error.tsx`, `loading.tsx`.
+- `docs/review/fase-3/*.png`: screenshot beranda wali (HP viewport, HP penuh, desktop, tanpa anak), guru (desktop, HP), Kepala Sekolah (desktop, HP), Anak Saya, Notifikasi.
+
+File yang diubah:
+
+- `src/proxy.ts`: header `x-tk-path` untuk `/dashboard/*`.
+- `src/app/dashboard/layout.tsx`: sesi, penjaga onboarding, cookie sidebar dan anak aktif, kerangka dashboard. `src/app/dashboard/page.tsx`: beranda per role.
+- `src/lib/api/{client,server}.ts`: `querySerializer`. `src/lib/api/query-keys.ts`: key dashboard, anak wali, notifikasi. `src/lib/auth/cookies.ts`: `tk_sidebar` dan penulis cookie preferensi. `src/lib/auth/skema.ts`: NIK opsional. `src/types/domain.ts`: alias Resource yang dipakai.
+- `src/components/shared/{empty-state,kolom-teks}.tsx`: ilustrasi keadaan kosong, `KolomArea`. `src/app/globals.css`: animasi batang `gerak-tumbuh`.
+
+Pengujian Fase 3 (dev server lalu `next start` ke backend lokal, Chromium headless lewat Playwright; token Kepala Sekolah dan guru dari `POST /auth/login`, token wali dari Tinker):
+
+- `lint`, `typecheck`, `build`, `check:slop` bersih.
+- Menu sidebar yang tampil: Kepala Sekolah 22 item (semua grup); guru petugas keuangan: Beranda, Notifikasi, Kelas, Murid, Kegiatan Kelas, Rapor, Pengumuman, Agenda, Tagihan, Pembayaran, Keringanan, Laporan Keuangan, Tunggakan; guru biasa: sampai Tagihan saja; wali: Beranda, Anak Saya, Notifikasi, Kegiatan Kelas, Rapor, Pengumuman, Agenda, Tagihan, Pembayaran, PPDB.
+- Onboarding: wali `profil_lengkap = false` yang membuka `/dashboard/tagihan` diarahkan ke `/dashboard/onboarding`; kirim kosong → "Alamat wajib diisi.", "Pekerjaan wajib diisi."; NIK 5 angka → pesan NIK; data benar → toast "Profil tersimpan. Selamat datang!" dan pindah ke beranda.
+- Tautkan anak (kode demo): kode salah → "Kode tautan tidak ditemukan..." dari backend di field kode; tanggal lahir salah → "Tanggal lahir tidak cocok..." di field tanggal; data benar → toast, kartu anak muncul, beranda langsung menampilkan anak itu, dan Kepala Sekolah menerima notifikasi "Wali murid baru tertaut" (badge 1, muncul di popover dan halaman notifikasi).
+- Ganti anak aktif lewat pemilih di topbar: beranda berganti dari Prakosa ke Ika tanpa muat ulang, dan tetap Ika setelah halaman dimuat ulang (cookie).
+- Profil: nomor HP salah → pesan field; simpan → toast, foto profil (JPEG dikompres) terunggah (`avatar_url` baru) dan langsung tampil di form dan topbar. Ganti password dengan password lama salah → pesan backend di field password lama.
+- Kepala Sekolah membuka `/dashboard/anak` → kembali ke `/dashboard` dengan toast "Anda tidak punya akses ke halaman itu."; `/dashboard/tidak-ada` → 404 di dalam kerangka dashboard.
+- Belum diuji: login Google sungguhan (tanpa `GOOGLE_CLIENT_ID`), notifikasi di wali/guru (data demo tidak punya notifikasi untuk mereka), ganti password yang berhasil (sengaja tidak dijalankan supaya akun demo tetap `guru2026`), tampilan dengan foto murid (data demo tanpa foto), pembaca layar, Safari/Firefox. Tautan kartu ke halaman fase 4–7 (kegiatan, pengumuman, tagihan, rapor) masih 404.
 
 ### Revisi setelah review Fase 1–2
 
