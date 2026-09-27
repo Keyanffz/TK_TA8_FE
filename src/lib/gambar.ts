@@ -10,6 +10,13 @@ export function tipeGambarDiterima(file: File): boolean {
   return TIPE_GAMBAR_DITERIMA.some((tipe) => tipe === file.type);
 }
 
-export function kompresGambar(file: File): Promise<File> {
-  return imageCompression(file, { maxSizeMB: UKURAN_MAKS_MB, maxWidthOrHeight: SISI_MAKS_PX, useWebWorker: true });
+// Batas backend untuk semua unggahan (MediaService::UKURAN_MAKSIMAL_KB).
+export const UKURAN_MAKS_UNGGAH_BYTE = 5 * 1024 * 1024;
+export const TIPE_PDF = "application/pdf";
+
+// Hasil imageCompression kadang Blob biasa (bernama, tapi bukan File), jadi
+// dibungkus ulang supaya nama file terkirim dan validasi `instanceof File` lolos.
+export async function kompresGambar(file: File): Promise<File> {
+  const hasil: Blob = await imageCompression(file, { maxSizeMB: UKURAN_MAKS_MB, maxWidthOrHeight: SISI_MAKS_PX, useWebWorker: true });
+  return hasil instanceof File ? hasil : new File([hasil], file.name, { type: hasil.type, lastModified: Date.now() });
 }

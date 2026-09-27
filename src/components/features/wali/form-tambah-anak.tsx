@@ -8,16 +8,16 @@ import { toast } from "sonner";
 import { z } from "zod";
 
 import { useAnakAktif } from "@/components/layout/dashboard/anak-aktif";
+import { KolomRadio } from "@/components/shared/kolom-radio";
 import { KolomTeks } from "@/components/shared/kolom-teks";
 import { KotakPesan } from "@/components/shared/kotak-pesan";
 import { Button } from "@/components/ui/button";
-import { Field, FieldError, FieldGroup, FieldLabel, FieldLegend, FieldSet } from "@/components/ui/field";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { FieldGroup } from "@/components/ui/field";
 import { ambilData } from "@/lib/api/ambil-data";
 import { api } from "@/lib/api/client";
 import { ApiError, pesanError, terapkanErrorValidasi } from "@/lib/api/errors";
 import { queryKeys } from "@/lib/api/query-keys";
-import { HUBUNGAN, LABEL_HUBUNGAN } from "@/lib/constants/label";
+import { HUBUNGAN, OPSI_HUBUNGAN } from "@/lib/constants/label";
 import { hariIniJakarta } from "@/lib/tanggal";
 
 const skemaTambahAnak = z.object({
@@ -95,26 +95,13 @@ export function FormTambahAnak() {
           error={errors.tanggal_lahir?.message}
           {...form.register("tanggal_lahir")}
         />
-        <FieldSet data-invalid={errors.hubungan ? true : undefined}>
-          <FieldLegend variant="label">Anda sebagai</FieldLegend>
-          <Controller
-            control={form.control}
-            name="hubungan"
-            render={({ field }) => (
-              <RadioGroup value={field.value ?? ""} onValueChange={field.onChange} className="flex flex-wrap gap-6">
-                {HUBUNGAN.map((nilai) => (
-                  <Field key={nilai} orientation="horizontal" className="w-auto">
-                    <RadioGroupItem value={nilai} id={`hubungan-${nilai}`} />
-                    <FieldLabel htmlFor={`hubungan-${nilai}`} className="font-normal">
-                      {LABEL_HUBUNGAN[nilai]}
-                    </FieldLabel>
-                  </Field>
-                ))}
-              </RadioGroup>
-            )}
-          />
-          {errors.hubungan ? <FieldError>{errors.hubungan.message}</FieldError> : null}
-        </FieldSet>
+        <Controller
+          control={form.control}
+          name="hubungan"
+          render={({ field }) => (
+            <KolomRadio label="Anda sebagai" opsi={OPSI_HUBUNGAN} nilai={field.value} onUbah={field.onChange} error={errors.hubungan?.message} />
+          )}
+        />
         <Button type="submit" size="lg" disabled={mutation.isPending}>
           {mutation.isPending ? "Memeriksa data..." : "Tambah Anak"}
         </Button>

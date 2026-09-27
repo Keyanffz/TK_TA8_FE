@@ -84,3 +84,34 @@ export function KolomArea({ label, error, deskripsi, id, ...props }: KolomAreaPr
     </Field>
   );
 }
+
+type KolomPilihProps = ComponentProps<"select"> & { label: string; error?: string; deskripsi?: string };
+
+/** Select bawaan browser dengan gaya Input; di HP membuka pemilih sistem yang mudah disentuh. */
+export function KolomPilih({ label, error, deskripsi, id, className, children, ...props }: KolomPilihProps) {
+  const idCadangan = useId();
+  const idInput = id ?? idCadangan;
+  const idDeskripsi = `${idInput}-deskripsi`;
+  const idError = `${idInput}-error`;
+  const describedBy = [deskripsi ? idDeskripsi : null, error ? idError : null].filter(Boolean).join(" ");
+
+  return (
+    <Field data-invalid={error ? true : undefined}>
+      <FieldLabel htmlFor={idInput}>{label}</FieldLabel>
+      <select
+        id={idInput}
+        aria-invalid={error ? true : undefined}
+        aria-describedby={describedBy || undefined}
+        className={cn(
+          "h-11 w-full rounded-md border border-input bg-card px-3 text-base outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/40 disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-2 aria-invalid:ring-destructive/20 md:text-sm",
+          className,
+        )}
+        {...props}
+      >
+        {children}
+      </select>
+      {deskripsi ? <FieldDescription id={idDeskripsi}>{deskripsi}</FieldDescription> : null}
+      {error ? <FieldError id={idError}>{error}</FieldError> : null}
+    </Field>
+  );
+}

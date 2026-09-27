@@ -8,11 +8,8 @@ import { KotakPesan } from "@/components/shared/kotak-pesan";
 import { buttonVariants } from "@/components/ui/button";
 import { ambilPpdbPublik } from "@/lib/api/publik";
 import { formatTanggal } from "@/lib/format";
-import { RUTE_LOGIN, urlLogin } from "@/lib/auth/rute-login";
 
 export const metadata: Metadata = { title: "Info PPDB" };
-
-const TUJUAN_PENDAFTARAN = urlLogin(RUTE_LOGIN.wali, "/dashboard/ppdb");
 
 export default async function PpdbPage() {
   const ppdb = await ambilPpdbPublik();
@@ -48,12 +45,10 @@ export default async function PpdbPage() {
               </dl>
               {ppdb.sisa_kuota > 0 ? (
                 <>
-                  <Link href={TUJUAN_PENDAFTARAN} className={buttonVariants({ size: "lg", className: "mt-6 w-full" })}>
-                    Daftarkan Anak
+                  <Link href="/ppdb/daftar" className={buttonVariants({ size: "lg", className: "mt-6 w-full" })}>
+                    Isi Formulir Pendaftaran
                   </Link>
-                  <p className="mt-3 text-sm text-muted-foreground">
-                    Pendaftaran diisi wali murid di dashboard setelah masuk dengan akun Google.
-                  </p>
+                  <p className="mt-3 text-sm text-muted-foreground">Bisa diisi tanpa akun. Anda akan mendapat kode pendaftaran.</p>
                 </>
               ) : (
                 <KotakPesan nada="menunggu" className="mt-6">
@@ -69,6 +64,12 @@ export default async function PpdbPage() {
               </p>
             </>
           )}
+          <p className="mt-6 border-t border-border pt-4 text-sm">
+            Sudah mendaftar?{" "}
+            <Link href="/ppdb/status" className="font-bold text-primary-strong hover:underline">
+              Cek status pendaftaran
+            </Link>
+          </p>
         </aside>
       </div>
     </>

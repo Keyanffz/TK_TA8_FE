@@ -56,6 +56,8 @@ export type Pembayaran = Schemas["PembayaranResource"];
 export type RiwayatPembayaran = Schemas["RiwayatPembayaranResource"];
 export type KegiatanKelas = Schemas["KegiatanKelasResource"];
 export type Rapor = Schemas["RaporResource"];
+export type Pendaftaran = Schemas["PendaftaranResource"];
+export type PendaftaranPublik = Schemas["PendaftaranPublikResource"];
 
 export type Dashboard = DataRespons<"dashboard.dashboard">;
 export type LaporanKeuangan = DataRespons<"laporan.keuangan">;

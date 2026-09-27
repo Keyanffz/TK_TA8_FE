@@ -46,6 +46,8 @@ export const LABEL_HUBUNGAN: Record<Hubungan, string> = {
   wali: "Wali",
 };
 
+export const OPSI_HUBUNGAN = HUBUNGAN.map((nilai) => ({ nilai, label: LABEL_HUBUNGAN[nilai] }));
+
 export const LABEL_TINGKAT: Record<Tingkat, string> = {
   A: "Kelompok A",
   B: "Kelompok B",
@@ -55,6 +57,11 @@ export const LABEL_JENIS_KELAMIN: Record<JenisKelamin, string> = {
   L: "Laki-laki",
   P: "Perempuan",
 };
+
+export const OPSI_JENIS_KELAMIN = (["L", "P"] as const).map((nilai) => ({ nilai, label: LABEL_JENIS_KELAMIN[nilai] }));
+
+// Enam agama yang diakui di data kependudukan; backend menyimpannya sebagai teks (maks 20).
+export const AGAMA = ["Islam", "Kristen", "Katolik", "Hindu", "Buddha", "Konghucu"] as const;
 
 export const LABEL_STATUS_KELAS_MURID: Record<StatusKelasMurid, string> = {
   aktif: "Aktif",
