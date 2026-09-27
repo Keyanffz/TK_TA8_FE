@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
 import { DetailMurid } from "@/components/features/murid/detail-murid";
+import { TagihanMurid } from "@/components/features/tagihan/tagihan-murid";
 import { wajibAkses } from "@/lib/auth/akses";
 import { idDariParam } from "@/lib/halaman";
 
@@ -12,7 +13,7 @@ export default async function DetailMuridPage({ params }: PageProps<"/dashboard/
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
-      <DetailMurid id={id} bisaKelola={user.role === "super_admin"} />
+      <DetailMurid id={id} bisaKelola={user.role === "super_admin"} tagihan={<TagihanMurid muridId={id} />} />
     </div>
   );
 }

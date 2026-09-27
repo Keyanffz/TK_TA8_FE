@@ -12,7 +12,7 @@ type Tertunda = DashboardKepalaSekolah["tertunda"];
 const TINDAKAN: readonly { kunci: keyof Tertunda; label: string; href: string; ikon: LucideIcon }[] = [
   { kunci: "pembayaran_menunggu", label: "Pembayaran menunggu verifikasi", href: "/dashboard/pembayaran", ikon: Wallet },
   { kunci: "rapor_diajukan", label: "Rapor menunggu review", href: "/dashboard/rapor", ikon: BookOpenText },
-  { kunci: "guru_pending", label: "Guru menunggu persetujuan", href: "/dashboard/guru", ikon: GraduationCap },
+  { kunci: "guru_pending", label: "Guru menunggu persetujuan", href: "/dashboard/guru?status=pending", ikon: GraduationCap },
   { kunci: "pendaftaran_baru", label: "Pendaftar PPDB baru", href: "/dashboard/ppdb", ikon: UserPlus },
 ];
 
