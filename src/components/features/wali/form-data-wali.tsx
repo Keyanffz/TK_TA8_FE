@@ -14,6 +14,7 @@ import { api } from "@/lib/api/client";
 import { pesanError, terapkanErrorValidasi } from "@/lib/api/errors";
 import { queryKeys } from "@/lib/api/query-keys";
 import { nikAtauNull, skemaAlamat, skemaNikOpsional, skemaPekerjaan } from "@/lib/auth/skema";
+import { useSession } from "@/lib/auth/use-session";
 
 const skemaDataWali = z.object({ alamat: skemaAlamat, pekerjaan: skemaPekerjaan, nik: skemaNikOpsional });
 
@@ -22,9 +23,14 @@ const FIELD = ["alamat", "pekerjaan", "nik"] as const;
 
 type FormDataWaliProps = { alamat: string | null; pekerjaan: string | null; nik: string | null };
 
-/** Alamat, pekerjaan, dan NIK wali setelah onboarding (`PUT /wali/profil`, boleh sebagian). */
+/**
+ * Alamat, pekerjaan, dan NIK wali setelah onboarding. `PUT /wali/profil` wajib
+ * membawa nama dan nomor HP, jadi keduanya diambil dari sesi (diubah lewat
+ * form data diri).
+ */
 export function FormDataWali({ alamat, pekerjaan, nik }: FormDataWaliProps) {
   const queryClient = useQueryClient();
+  const { user } = useSession();
   const form = useForm<NilaiDataWali>({
     resolver: zodResolver(skemaDataWali),
     defaultValues: { alamat: alamat ?? "", pekerjaan: pekerjaan ?? "", nik: nik ?? "" },
@@ -33,7 +39,11 @@ export function FormDataWali({ alamat, pekerjaan, nik }: FormDataWaliProps) {
 
   const mutation = useMutation({
     mutationFn: (nilai: NilaiDataWali) =>
-      ambilData(api.PUT("/wali/profil", { body: { ...nilai, nik: nikAtauNull(nilai.nik) } })),
+      ambilData(
+        api.PUT("/wali/profil", {
+          body: { ...nilai, nama: user?.name ?? "", no_hp: user?.no_hp ?? "", nik: nikAtauNull(nilai.nik) },
+        }),
+      ),
     onSuccess: (hasil) => {
       queryClient.setQueryData(queryKeys.me, hasil.data);
       const wali = hasil.data.wali_murid;

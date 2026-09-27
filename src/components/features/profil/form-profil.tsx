@@ -16,13 +16,13 @@ import { ambilData } from "@/lib/api/ambil-data";
 import { api } from "@/lib/api/client";
 import { pesanError, terapkanErrorValidasi } from "@/lib/api/errors";
 import { queryKeys } from "@/lib/api/query-keys";
-import { skemaNomorHp } from "@/lib/auth/skema";
+import { skemaNama, skemaNomorHp } from "@/lib/auth/skema";
 import { useSession } from "@/lib/auth/use-session";
 import { kompresGambar, TIPE_GAMBAR_DITERIMA, tipeGambarDiterima } from "@/lib/gambar";
 import type { User } from "@/types/domain";
 
 const skemaProfil = z.object({
-  name: z.string().trim().min(1, "Nama wajib diisi.").max(255, "Nama terlalu panjang."),
+  name: skemaNama,
   no_hp: z.union([z.literal(""), skemaNomorHp]),
 });
 
@@ -118,7 +118,23 @@ export function FormProfil({ user: userAwal }: { user: User }) {
           </div>
         </div>
         <KolomTeks label="Nama" autoComplete="name" error={errors.name?.message} {...form.register("name")} />
-        <KolomTeks label="Email" value={user.email} readOnly disabled deskripsi="Email dipakai untuk masuk dan tidak bisa diubah di sini." />
+        {user.username ? (
+          <KolomTeks
+            label="Username (NIS anak)"
+            value={user.username}
+            readOnly
+            disabled
+            deskripsi="Dipakai untuk masuk dan tidak bisa diubah."
+          />
+        ) : (
+          <KolomTeks
+            label="Email"
+            value={user.email ?? ""}
+            readOnly
+            disabled
+            deskripsi="Email dipakai untuk masuk dan tidak bisa diubah di sini."
+          />
+        )}
         <KolomTeks
           label="Nomor HP"
           type="tel"

@@ -24,6 +24,8 @@ export const skemaNikOpsional = z
   .trim()
   .regex(/^(\d{16})?$/, "NIK berisi 16 angka sesuai KTP. Boleh dikosongkan.");
 
+export const skemaNama = z.string().trim().min(1, "Nama wajib diisi.").max(255, "Nama terlalu panjang.");
+
 export const skemaAlamat = z.string().trim().min(1, "Alamat wajib diisi.").max(500, "Alamat maksimal 500 karakter.");
 
 export const skemaPekerjaan = z.string().trim().min(1, "Pekerjaan wajib diisi.").max(100, "Pekerjaan maksimal 100 karakter.");

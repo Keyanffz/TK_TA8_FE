@@ -48,7 +48,7 @@ export function AnakSwitcher() {
         <DropdownMenuItem asChild>
           <Link href="/dashboard/anak">
             <Plus aria-hidden="true" />
-            Tautkan anak lain
+            Tambah kakak/adik
           </Link>
         </DropdownMenuItem>
       </DropdownMenuContent>

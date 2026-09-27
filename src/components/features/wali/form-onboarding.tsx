@@ -14,9 +14,10 @@ import { ambilData } from "@/lib/api/ambil-data";
 import { api } from "@/lib/api/client";
 import { pesanError, terapkanErrorValidasi } from "@/lib/api/errors";
 import { queryKeys } from "@/lib/api/query-keys";
-import { nikAtauNull, skemaAlamat, skemaNikOpsional, skemaNomorHp, skemaPekerjaan } from "@/lib/auth/skema";
+import { nikAtauNull, skemaAlamat, skemaNama, skemaNikOpsional, skemaNomorHp, skemaPekerjaan } from "@/lib/auth/skema";
 
 const skemaOnboarding = z.object({
+  nama: skemaNama,
   no_hp: skemaNomorHp,
   alamat: skemaAlamat,
   pekerjaan: skemaPekerjaan,
@@ -24,14 +25,15 @@ const skemaOnboarding = z.object({
 });
 
 type NilaiOnboarding = z.infer<typeof skemaOnboarding>;
-const FIELD = ["no_hp", "alamat", "pekerjaan", "nik"] as const;
+const FIELD = ["nama", "no_hp", "alamat", "pekerjaan", "nik"] as const;
 
-export function FormOnboarding({ noHpAwal }: { noHpAwal: string }) {
+/** `PUT /wali/profil` wajib mengirim nama dan nomor HP di setiap permintaan (A7). */
+export function FormOnboarding({ namaAwal, noHpAwal }: { namaAwal: string; noHpAwal: string }) {
   const router = useRouter();
   const queryClient = useQueryClient();
   const form = useForm<NilaiOnboarding>({
     resolver: zodResolver(skemaOnboarding),
-    defaultValues: { no_hp: noHpAwal, alamat: "", pekerjaan: "", nik: "" },
+    defaultValues: { nama: namaAwal, no_hp: noHpAwal, alamat: "", pekerjaan: "", nik: "" },
   });
   const { errors } = form.formState;
 
@@ -52,6 +54,13 @@ export function FormOnboarding({ noHpAwal }: { noHpAwal: string }) {
   return (
     <form noValidate onSubmit={form.handleSubmit((nilai) => mutation.mutate(nilai))}>
       <FieldGroup>
+        <KolomTeks
+          label="Nama Anda"
+          autoComplete="name"
+          deskripsi="Nama dari sekolah masih sementara. Ganti dengan nama lengkap Anda, misalnya Budi Santoso."
+          error={errors.nama?.message}
+          {...form.register("nama")}
+        />
         <KolomTeks
           label="Nomor HP (WhatsApp)"
           type="tel"

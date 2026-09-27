@@ -38,6 +38,8 @@ export const LABEL_STATUS_MURID: Record<StatusMurid, string> = {
   keluar: "Keluar",
 };
 
+export const HUBUNGAN = ["ayah", "ibu", "wali"] as const satisfies readonly Hubungan[];
+
 export const LABEL_HUBUNGAN: Record<Hubungan, string> = {
   ayah: "Ayah",
   ibu: "Ibu",

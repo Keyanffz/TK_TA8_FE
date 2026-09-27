@@ -32,7 +32,7 @@ export function DaftarAnak() {
     return (
       <EmptyState
         judul="Belum ada anak yang tertaut."
-        deskripsi="Masukkan kode tautan dari sekolah di formulir, atau daftarkan anak baru lewat PPDB."
+        deskripsi="Tambahkan anak dengan NIS dan tanggal lahirnya di formulir, atau daftarkan anak baru lewat PPDB."
         aksi={
           <Link href="/dashboard/ppdb" className={buttonVariants({ variant: "outline" })}>
             Daftar PPDB

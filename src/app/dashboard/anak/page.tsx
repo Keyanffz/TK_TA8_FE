@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 
 import { DaftarAnak } from "@/components/features/wali/daftar-anak";
-import { FormTautkanAnak } from "@/components/features/wali/form-tautkan-anak";
+import { FormTambahAnak } from "@/components/features/wali/form-tambah-anak";
 import { KepalaHalaman } from "@/components/shared/kepala-halaman";
 import { wajibAkses } from "@/lib/auth/akses";
 
@@ -15,15 +16,19 @@ export default async function AnakPage() {
       <KepalaHalaman judul="Anak Saya" deskripsi="Anak yang sudah tertaut dengan akun Anda." />
       <div className="grid gap-8 lg:grid-cols-[1.5fr_1fr] lg:items-start">
         <DaftarAnak />
-        <section aria-labelledby="judul-tautkan" className="rounded-xl bg-card p-5 shadow-sm ring-2 ring-highlight">
-          <h2 id="judul-tautkan" className="text-lg font-extrabold">
-            Tautkan anak
+        <section aria-labelledby="judul-tambah-anak" className="rounded-xl bg-card p-5 shadow-sm ring-2 ring-highlight">
+          <h2 id="judul-tambah-anak" className="text-lg font-extrabold">
+            Tambah kakak atau adik
           </h2>
           <p className="mt-1 mb-5 text-sm text-muted-foreground">
-            Kode yang sama bisa dipakai ayah dan ibu selama belum kedaluwarsa. Belum punya kode? Minta ke guru kelas atau
-            tata usaha sekolah.
+            Untuk anak yang sudah bersekolah di sini. Setelah ditambahkan, semua anak bisa dilihat dari akun ini. Anak yang
+            belum terdaftar bisa didaftarkan lewat{" "}
+            <Link href="/dashboard/ppdb" className="font-bold text-primary-strong hover:underline">
+              PPDB
+            </Link>
+            .
           </p>
-          <FormTautkanAnak />
+          <FormTambahAnak />
         </section>
       </div>
     </div>

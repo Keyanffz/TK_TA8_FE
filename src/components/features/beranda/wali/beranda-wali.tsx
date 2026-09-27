@@ -86,7 +86,7 @@ function BerandaAnak({ namaWali, anak }: { namaWali: string; anak: AnakRingkas }
   );
 }
 
-/** Wali yang belum menautkan anak (A6): tautkan dengan kode atau daftar PPDB. */
+/** Wali tanpa anak tertaut (misalnya tautannya dilepas Kepala Sekolah): tambah anak atau daftar PPDB. */
 function BelumAdaAnak({ namaWali }: { namaWali: string }) {
   return (
     <>
@@ -97,12 +97,12 @@ function BelumAdaAnak({ namaWali }: { namaWali: string }) {
           <div>
             <h2 className="text-lg font-extrabold">Hubungkan akun dengan anak Anda</h2>
             <p className="mt-1 text-muted-foreground">
-              Kalau anak sudah bersekolah di sini, minta kode tautan ke sekolah lalu masukkan bersama tanggal lahir anak.
-              Kalau anak belum terdaftar, daftarkan lewat PPDB.
+              Kalau anak sudah bersekolah di sini, tambahkan dengan NIS dan tanggal lahir anak. Kalau anak belum terdaftar,
+              daftarkan lewat PPDB.
             </p>
             <div className="mt-4 flex flex-wrap gap-2">
               <Link href="/dashboard/anak" className={buttonVariants({ size: "lg" })}>
-                Tautkan Anak
+                Tambah Anak
               </Link>
               <Link href="/dashboard/ppdb" className={buttonVariants({ size: "lg", variant: "outline" })}>
                 Daftar PPDB

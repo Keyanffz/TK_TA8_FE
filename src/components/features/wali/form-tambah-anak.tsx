@@ -17,43 +17,39 @@ import { ambilData } from "@/lib/api/ambil-data";
 import { api } from "@/lib/api/client";
 import { ApiError, pesanError, terapkanErrorValidasi } from "@/lib/api/errors";
 import { queryKeys } from "@/lib/api/query-keys";
-import { LABEL_HUBUNGAN } from "@/lib/constants/label";
+import { HUBUNGAN, LABEL_HUBUNGAN } from "@/lib/constants/label";
 import { hariIniJakarta } from "@/lib/tanggal";
 
-// Panjang kode tautan dari backend (Murid::PANJANG_KODE_TAUTAN, A2).
-const PANJANG_KODE = 8;
-const HUBUNGAN = ["ayah", "ibu", "wali"] as const;
-
-const skemaTautkan = z.object({
-  kode: z
+const skemaTambahAnak = z.object({
+  nis: z
     .string()
-    .trim()
-    .toUpperCase()
-    .length(PANJANG_KODE, `Kode tautan terdiri dari ${PANJANG_KODE} karakter.`),
+    .transform((nilai) => nilai.replace(/\s+/g, "").toUpperCase())
+    .pipe(z.string().min(1, "NIS anak wajib diisi.")),
   tanggal_lahir: z.string().min(1, "Tanggal lahir anak wajib diisi."),
   hubungan: z.enum(HUBUNGAN, { error: "Pilih hubungan Anda dengan anak." }),
 });
 
-type MasukanTautkan = z.input<typeof skemaTautkan>;
-type NilaiTautkan = z.output<typeof skemaTautkan>;
-const FIELD = ["kode", "tanggal_lahir", "hubungan"] as const;
+type MasukanTambahAnak = z.input<typeof skemaTambahAnak>;
+type NilaiTambahAnak = z.output<typeof skemaTambahAnak>;
+const FIELD = ["nis", "tanggal_lahir", "hubungan"] as const;
 
-export function FormTautkanAnak() {
+/** Kakak/adik yang sudah bersekolah di sini ditambahkan dengan NIS + tanggal lahir (A2.2). */
+export function FormTambahAnak() {
   const queryClient = useQueryClient();
   const { pilih } = useAnakAktif();
   const [pesanGagal, setPesanGagal] = useState<string | null>(null);
-  const form = useForm<MasukanTautkan, unknown, NilaiTautkan>({
-    resolver: zodResolver(skemaTautkan),
-    defaultValues: { kode: "", tanggal_lahir: "" },
+  const form = useForm<MasukanTambahAnak, unknown, NilaiTambahAnak>({
+    resolver: zodResolver(skemaTambahAnak),
+    defaultValues: { nis: "", tanggal_lahir: "" },
   });
   const { errors } = form.formState;
 
   const mutation = useMutation({
-    mutationFn: (body: NilaiTautkan) => ambilData(api.POST("/wali/tautkan-anak", { body })),
+    mutationFn: (body: NilaiTambahAnak) => ambilData(api.POST("/wali/tambah-anak", { body })),
     onSuccess: async (hasil) => {
       pilih(hasil.data.id);
       form.reset();
-      toast.success(`${hasil.data.nama_panggilan} sudah tertaut dengan akun Anda.`);
+      toast.success(`${hasil.data.nama_panggilan} sudah ditambahkan ke akun Anda.`);
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: queryKeys.me }),
         queryClient.invalidateQueries({ queryKey: queryKeys.anakWali }),
@@ -62,7 +58,7 @@ export function FormTautkanAnak() {
     },
     onError: (error) => {
       if (terapkanErrorValidasi(error, form.setError, FIELD)) return;
-      // Kode salah/kedaluwarsa dan batas percobaan: pesan backend sudah menjelaskan langkahnya.
+      // Anak sudah tertaut / tidak aktif dan batas percobaan: pesan backend sudah menjelaskan langkahnya.
       if (error instanceof ApiError && (error.code === "BUSINESS_RULE" || error.code === "TOO_MANY_REQUESTS")) {
         setPesanGagal(error.message);
         return;
@@ -82,16 +78,15 @@ export function FormTautkanAnak() {
       <FieldGroup>
         {pesanGagal ? <KotakPesan nada="bahaya">{pesanGagal}</KotakPesan> : null}
         <KolomTeks
-          label="Kode tautan"
+          label="NIS anak"
           autoComplete="off"
           autoCapitalize="characters"
           spellCheck={false}
-          maxLength={PANJANG_KODE}
-          placeholder="Contoh: K7M2QX9A"
-          deskripsi="Kode 8 karakter dari sekolah. Berlaku 14 hari."
-          className="font-heading text-lg tracking-[0.3em] uppercase placeholder:font-sans placeholder:text-base placeholder:tracking-normal placeholder:normal-case"
-          error={errors.kode?.message}
-          {...form.register("kode")}
+          placeholder="Contoh: TA20250004"
+          deskripsi="Tertulis di kartu akun anak dari sekolah."
+          className="font-heading tracking-wider uppercase placeholder:font-sans placeholder:tracking-normal placeholder:normal-case"
+          error={errors.nis?.message}
+          {...form.register("nis")}
         />
         <KolomTeks
           label="Tanggal lahir anak"
@@ -121,7 +116,7 @@ export function FormTautkanAnak() {
           {errors.hubungan ? <FieldError>{errors.hubungan.message}</FieldError> : null}
         </FieldSet>
         <Button type="submit" size="lg" disabled={mutation.isPending}>
-          {mutation.isPending ? "Memeriksa kode..." : "Tautkan Anak"}
+          {mutation.isPending ? "Memeriksa data..." : "Tambah Anak"}
         </Button>
       </FieldGroup>
     </form>
