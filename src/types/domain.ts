@@ -1,6 +1,13 @@
-import type { components } from "@/types/api";
+import type { components, operations } from "@/types/api";
 
 type Schemas = components["schemas"];
+
+/** Isi `data` respons sukses sebuah operasi, untuk bentuk yang tidak punya skema bernama. */
+export type DataRespons<Op extends keyof operations> = operations[Op]["responses"] extends {
+  200: { content: { "application/json": { data: infer Data } } };
+}
+  ? Data
+  : never;
 
 export type Role = Schemas["Role"];
 export type StatusAkun = Schemas["StatusAkun"];
@@ -19,11 +26,13 @@ export type StatusRapor = Schemas["StatusRapor"];
 export type StatusPendaftaran = Schemas["StatusPendaftaran"];
 export type JenisDokumen = Schemas["JenisDokumen"];
 export type JenisNotifikasi = Schemas["JenisNotifikasi"];
+export type NadaInfo = Schemas["NadaInfo"];
 
 // A5 punya StatusKelasMurid, tetapi api.json tidak mengekspornya sebagai skema tersendiri.
 export type StatusKelasMurid = "aktif" | "naik" | "tinggal" | "lulus" | "keluar";
 
 export type User = Schemas["UserResource"];
+export type Akun = Schemas["AkunResource"];
 export type Agenda = Schemas["AgendaResource"];
 export type GaleriAlbum = Schemas["GaleriAlbumResource"];
 export type GuruPublik = Schemas["GuruPublikResource"];
@@ -31,9 +40,26 @@ export type PengumumanPublik = Schemas["PengumumanPublikResource"];
 export type Pengumuman = Schemas["PengumumanResource"];
 export type Notifikasi = Schemas["NotifikasiResource"];
 export type AnakWali = Schemas["AnakWaliResource"];
+export type Guru = Schemas["GuruResource"];
+export type TahunAjaran = Schemas["TahunAjaranResource"];
+export type Kelas = Schemas["KelasResource"];
+export type KelasDetail = Schemas["KelasDetailResource"];
+export type Murid = Schemas["MuridResource"];
+export type MuridDetail = Schemas["MuridDetailResource"];
+export type WaliMurid = Schemas["WaliMuridResource"];
+export type WaliMuridDetail = Schemas["WaliMuridDetailResource"];
+export type JenisTagihan = Schemas["JenisTagihanResource"];
+export type Keringanan = Schemas["KeringananResource"];
 export type Tagihan = Schemas["TagihanResource"];
+export type TagihanDetail = Schemas["TagihanDetailResource"];
+export type Pembayaran = Schemas["PembayaranResource"];
+export type RiwayatPembayaran = Schemas["RiwayatPembayaranResource"];
 export type KegiatanKelas = Schemas["KegiatanKelasResource"];
 export type Rapor = Schemas["RaporResource"];
+
+export type Dashboard = DataRespons<"dashboard.dashboard">;
+export type LaporanKeuangan = DataRespons<"laporan.keuangan">;
+export type LaporanTunggakan = DataRespons<"laporan.tunggakan">;
 
 export type KodeError =
   | "UNAUTHENTICATED"

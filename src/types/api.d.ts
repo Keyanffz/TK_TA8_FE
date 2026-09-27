@@ -505,7 +505,11 @@ export interface paths {
             cookie?: never;
         };
         get?: never;
-        put?: never;
+        /**
+         * Mengubah keterangan (`caption`) dan urutan satu foto kegiatan. Hanya guru pembuat kegiatan dan Kepala
+         *     Sekolah
+         */
+        put: operations["kegiatanKelas.perbaruiFoto"];
         post?: never;
         /** Menghapus satu foto kegiatan. Hanya guru pembuat kegiatan dan Kepala Sekolah */
         delete: operations["kegiatanKelas.hapusFoto"];
@@ -764,7 +768,11 @@ export interface paths {
         delete: operations["murid.lepasWali"];
         options?: never;
         head?: never;
-        patch?: never;
+        /**
+         * Mengubah hubungan (`ayah` | `ibu` | `wali`) atau kontak utama wali yang tertaut. Menjadikan wali ini kontak
+         *     utama melepas status itu dari wali lain; kontak utama tidak bisa dilepas tanpa memilih penggantinya
+         */
+        patch: operations["murid.ubahWali"];
         trace?: never;
     };
     "/notifikasi": {
@@ -774,7 +782,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Notifikasi milik pengguna yang sedang masuk, terbaru lebih dulu. `filter[dibaca]=0` hanya yang belum dibaca */
+        /** Notifikasi milik pengguna yang sedang masuk, terbaru lebih dulu. `filter[dibaca]=0` atau `false` hanya yang belum dibaca */
         get: operations["notifikasi.index"];
         put?: never;
         post?: never;
@@ -1137,7 +1145,7 @@ export interface paths {
         };
         /**
          * Pengaturan sebagai objek datar berkunci lengkap (`"profil.visi": …`), bisa dibatasi per `grup`
-         *     (`profil` | `landing` | `keuangan` | `ppdb`). Field gambar disertai pasangan `*_url`. Guru berizin
+         *     (`profil` | `landing` | `keuangan` | `ppdb` | `beranda`). Field gambar disertai pasangan `*_url`. Guru berizin
          *     keuangan hanya boleh membaca `grup=keuangan`
          */
         get: operations["pengaturan.index"];
@@ -1184,7 +1192,7 @@ export interface paths {
          * Feed pengumuman untuk pengguna: target semua, target sesuai role, kelas yang diampu / kelas anak, dan
          *     murid di kelasnya / anaknya, ditambah tulisannya sendiri (termasuk draft). Kepala Sekolah melihat semua.
          *     Yang disematkan lebih dulu, lalu terbaru
-         * @description Filter `filter[target]`, `filter[terbit]` (`0` = draft). `search` mencari judul.
+         * @description Filter `filter[target]`, `filter[terbit]` (`0` atau `false` = draft). `search` mencari judul.
          */
         get: operations["pengumuman.index"];
         put?: never;
@@ -1262,8 +1270,9 @@ export interface paths {
         };
         get?: never;
         /**
-         * Onboarding wali murid: melengkapi nomor HP, alamat, pekerjaan, dan NIK (opsional).
-         *     Setelah berhasil, `wali_murid.profil_lengkap` bernilai `true`
+         * Onboarding dan ubah profil wali murid: nomor HP, alamat, pekerjaan, dan NIK (opsional). Boleh sebagian;
+         *     field yang tidak dikirim tidak berubah. `wali_murid.profil_lengkap` bernilai `true` setelah nomor HP,
+         *     alamat, dan pekerjaan terisi
          */
         put: operations["wali.profilWali"];
         post?: never;
@@ -1282,8 +1291,8 @@ export interface paths {
         };
         /**
          * Semua pengaturan grup `profil` dan `landing` sebagai objek datar berkunci lengkap, dengan pasangan
-         *     `*_url` untuk field gambar. Teks yang belum diisi Kepala Sekolah berisi string kosong atau null. Field
-         *     opsional di item `landing.*` tidak ada kalau tidak dikirim saat `PUT /pengaturan`; `gambar_url` selalu ada
+         *     `*_url` untuk field gambar. Teks yang belum diisi Kepala Sekolah berisi string kosong atau null, termasuk
+         *     field opsional di item `landing.*` yang tidak dikirim saat `PUT /pengaturan`
          */
         get: operations["publik.profil"];
         put?: never;
@@ -1448,6 +1457,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/rapor/{id}/tarik": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Menarik rapor yang sudah terbit kembali ke revisi, dengan catatan untuk guru pembuat. Wali murid tidak
+         *     bisa melihat rapor itu lagi sampai diterbitkan ulang
+         */
+        post: operations["rapor.tarik"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/rapor": {
         parameters: {
             query?: never;
@@ -1485,8 +1514,9 @@ export interface paths {
         /** Detail rapor beserta deskripsi dan foto tiap elemen */
         get: operations["rapor.show"];
         /**
-         * Mengisi rapor (hanya guru pembuat, saat status draft atau revisi). Elemen yang tidak dikirim di `detail`
-         *     tidak berubah
+         * Mengisi rapor: guru pembuat saat status draft atau revisi, atau Kepala Sekolah saat status diajukan
+         *     (memperbaiki isi sebelum terbit; statusnya tetap diajukan). Elemen yang tidak dikirim di `detail` tidak
+         *     berubah
          */
         put: operations["rapor.update"];
         post?: never;
@@ -1616,7 +1646,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Membuat tagihan bulanan untuk satu periode secara manual. Aman diulang: tagihan yang sudah ada dilewati */
+        /**
+         * Membuat tagihan bulanan untuk satu periode secara manual. Aman diulang: tagihan yang sudah ada dilewati,
+         *     termasuk yang dibatalkan
+         */
         post: operations["tagihan.generate"];
         delete?: never;
         options?: never;
@@ -1642,6 +1675,28 @@ export interface paths {
          *     menunggu verifikasi. Alasan disimpan di `catatan`
          */
         patch: operations["tagihan.batalkan"];
+        trace?: never;
+    };
+    "/tagihan/{id}/aktifkan": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Mengaktifkan kembali tagihan yang dibatalkan: status menjadi belum bayar, atau terlambat kalau jatuh
+         *     temponya sudah lewat. Ditolak kalau murid sudah punya tagihan aktif lain untuk jenis dan periode yang sama.
+         *     Generate tagihan bulanan tidak membuat ulang tagihan yang dibatalkan, jadi ini satu-satunya cara
+         *     memulihkannya
+         */
+        post: operations["tagihan.aktifkan"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/tagihan": {
@@ -1681,7 +1736,12 @@ export interface paths {
         };
         /** Detail tagihan beserta riwayat pembayaran dan rekening sekolah untuk transfer */
         get: operations["tagihan.show"];
-        put?: never;
+        /**
+         * Mengubah jatuh tempo, potongan, atau catatan tagihan; `total` dihitung ulang dari nominal dikurangi
+         *     potongan. Ditolak untuk tagihan yang lunas, dibatalkan, atau punya bukti transfer yang menunggu
+         *     verifikasi. Tagihan terlambat yang jatuh temponya dimundurkan kembali berstatus belum bayar
+         */
+        put: operations["tagihan.update"];
         post?: never;
         delete?: never;
         options?: never;
@@ -1770,7 +1830,11 @@ export interface paths {
         };
         /** Detail wali murid beserta anak yang tertaut dan kelas aktifnya */
         get: operations["waliMurid.show"];
-        put?: never;
+        /**
+         * Mengubah data wali murid (nama, nomor HP, NIK, alamat, pekerjaan). Boleh sebagian; email tidak bisa diubah
+         *     karena dipakai login Google
+         */
+        put: operations["waliMurid.update"];
         post?: never;
         delete?: never;
         options?: never;
@@ -1843,8 +1907,8 @@ export interface components {
                 nama: string;
             } | null;
             foto_url: string | null;
-            hubungan?: components["schemas"]["Hubungan"] | null;
-            is_kontak_utama?: boolean | null;
+            hubungan: components["schemas"]["Hubungan"];
+            is_kontak_utama: boolean;
         };
         /**
          * BayarTagihanRequest
@@ -1946,6 +2010,25 @@ export interface components {
              */
             foto: string;
         };
+        /** GaleriAlbumDetailResource */
+        GaleriAlbumDetailResource: {
+            id: number;
+            judul: string;
+            slug: string;
+            deskripsi: string | null;
+            tanggal: string;
+            is_publik: boolean;
+            cover_url: string | null;
+            jumlah_foto: number;
+            /** Format: date-time */
+            created_at: string | null;
+            foto: {
+                id: number;
+                url: string;
+                caption: string | null;
+                urutan: number;
+            }[];
+        };
         /** GaleriAlbumResource */
         GaleriAlbumResource: {
             id: number;
@@ -1955,13 +2038,7 @@ export interface components {
             tanggal: string;
             is_publik: boolean;
             cover_url: string | null;
-            jumlah_foto?: number;
-            foto?: {
-                id: number;
-                url: string;
-                caption: string | null;
-                urutan: number;
-            }[];
+            jumlah_foto: number;
             /** Format: date-time */
             created_at: string | null;
         };
@@ -1985,7 +2062,7 @@ export interface components {
         /** GuruResource */
         GuruResource: {
             id: number;
-            user?: components["schemas"]["AkunResource"];
+            user: components["schemas"]["AkunResource"];
             nip: string | null;
             nuptk: string | null;
             jenis_kelamin: components["schemas"]["JenisKelamin"] | null;
@@ -2048,7 +2125,7 @@ export interface components {
         /** JenisTagihanResource */
         JenisTagihanResource: {
             id: number;
-            tahun_ajaran?: {
+            tahun_ajaran: {
                 id: number;
                 nama: string;
             };
@@ -2064,11 +2141,11 @@ export interface components {
         /** KegiatanKelasResource */
         KegiatanKelasResource: {
             id: number;
-            kelas?: {
+            kelas: {
                 id: number;
                 nama: string;
             };
-            guru?: {
+            guru: {
                 id: number;
                 nama: string;
             };
@@ -2076,7 +2153,7 @@ export interface components {
             tema: string | null;
             judul: string;
             deskripsi: string | null;
-            foto?: {
+            foto: {
                 id: number;
                 url: string;
                 caption: string | null;
@@ -2085,27 +2162,30 @@ export interface components {
             /** Format: date-time */
             created_at: string | null;
         };
-        /** KelasResource */
-        KelasResource: {
+        /** KelasDetailResource */
+        KelasDetailResource: {
             id: number;
             nama: string;
             tingkat: components["schemas"]["Tingkat"];
             kapasitas: number;
-            jumlah_murid?: number;
-            tahun_ajaran?: {
+            /** @description Murid dengan penempatan `aktif`. */
+            jumlah_murid: number;
+            tahun_ajaran: {
                 id: number;
                 nama: string;
                 is_aktif: boolean;
             };
-            wali_kelas?: {
+            wali_kelas: {
                 id: number;
                 nama: string;
             } | null;
-            guru_pendamping?: {
+            guru_pendamping: {
                 id: number;
                 nama: string;
             } | null;
-            murid?: {
+            /** Format: date-time */
+            created_at: string | null;
+            murid: {
                 id: number;
                 nis: string;
                 nama_lengkap: string;
@@ -2115,6 +2195,28 @@ export interface components {
                 status_kelas: string;
                 foto_url: string | null;
             }[];
+        };
+        /** KelasResource */
+        KelasResource: {
+            id: number;
+            nama: string;
+            tingkat: components["schemas"]["Tingkat"];
+            kapasitas: number;
+            /** @description Murid dengan penempatan `aktif`. */
+            jumlah_murid: number;
+            tahun_ajaran: {
+                id: number;
+                nama: string;
+                is_aktif: boolean;
+            };
+            wali_kelas: {
+                id: number;
+                nama: string;
+            } | null;
+            guru_pendamping: {
+                id: number;
+                nama: string;
+            } | null;
             /** Format: date-time */
             created_at: string | null;
         };
@@ -2134,12 +2236,12 @@ export interface components {
         /** KeringananResource */
         KeringananResource: {
             id: number;
-            murid?: {
+            murid: {
                 id: number;
                 nis: string;
                 nama_lengkap: string;
             };
-            jenis_tagihan?: {
+            jenis_tagihan: {
                 id: number;
                 nama: string;
                 nominal: number;
@@ -2150,18 +2252,22 @@ export interface components {
             alasan: string;
             berlaku_mulai: string;
             berlaku_sampai: string | null;
-            dibuat_oleh?: {
+            dibuat_oleh: {
                 id: number;
                 nama: string;
             } | null;
             /** Format: date-time */
             created_at: string | null;
         };
-        /** LengkapiProfilWaliRequest */
+        /**
+         * LengkapiProfilWaliRequest
+         * @description `PUT /wali/profil`: onboarding sekaligus ubah profil. Field yang tidak dikirim tidak berubah; nomor HP,
+         *     alamat, dan pekerjaan tidak bisa dikosongkan, NIK bisa (`null`).
+         */
         LengkapiProfilWaliRequest: {
-            no_hp: string;
-            alamat: string;
-            pekerjaan: string;
+            no_hp?: string;
+            alamat?: string;
+            pekerjaan?: string;
             nik?: string | null;
         };
         /** LogAktivitasResource */
@@ -2209,6 +2315,50 @@ export interface components {
          * @enum {string}
          */
         MetodeBayar: "transfer" | "tunai";
+        /** MuridDetailResource */
+        MuridDetailResource: {
+            id: number;
+            nis: string;
+            nisn: string | null;
+            nik: string | null;
+            nama_lengkap: string;
+            nama_panggilan: string;
+            jenis_kelamin: components["schemas"]["JenisKelamin"];
+            tempat_lahir: string;
+            tanggal_lahir: string;
+            agama: string;
+            alamat: string;
+            anak_ke: number | null;
+            foto_url: string | null;
+            catatan_khusus: string | null;
+            status: components["schemas"]["StatusMurid"];
+            tanggal_masuk: string;
+            tanggal_keluar: string | null;
+            kelas: {
+                id: number;
+                nama: string;
+                tingkat: components["schemas"]["Tingkat"];
+            } | null;
+            /** @description Hanya untuk Kepala Sekolah. */
+            kode_tautan?: string | null;
+            /**
+             * Format: date-time
+             * @description Hanya untuk Kepala Sekolah.
+             */
+            kode_tautan_expired_at?: string | null;
+            /** Format: date-time */
+            created_at: string | null;
+            wali: {
+                id: number;
+                nama: string;
+                email: string;
+                no_hp: string | null;
+                hubungan: components["schemas"]["Hubungan"];
+                is_kontak_utama: boolean;
+                /** Format: date-time */
+                tertaut_at: string | null;
+            }[];
+        };
         /** MuridResource */
         MuridResource: {
             id: number;
@@ -2233,16 +2383,6 @@ export interface components {
                 nama: string;
                 tingkat: components["schemas"]["Tingkat"];
             } | null;
-            wali?: {
-                id: number;
-                nama: string;
-                email: string;
-                no_hp: string | null;
-                hubungan: components["schemas"]["Hubungan"];
-                is_kontak_utama: boolean;
-                /** Format: date-time */
-                tertaut_at: string | null;
-            }[];
             /** @description Hanya untuk Kepala Sekolah. */
             kode_tautan?: string | null;
             /**
@@ -2253,6 +2393,12 @@ export interface components {
             /** Format: date-time */
             created_at: string | null;
         };
+        /**
+         * NadaInfo
+         * @description Nada banner info sekolah di beranda wali murid (`beranda.info_wali`), menentukan warnanya di FE.
+         * @enum {string}
+         */
+        NadaInfo: "info" | "penting" | "peringatan";
         /** NotifikasiResource */
         NotifikasiResource: {
             id: string;
@@ -2271,7 +2417,6 @@ export interface components {
             id: number;
             kode: string;
             tagihan_id: number;
-            tagihan?: components["schemas"]["TagihanResource"];
             metode: components["schemas"]["MetodeBayar"];
             jumlah: number;
             tanggal_bayar: string;
@@ -2280,11 +2425,11 @@ export interface components {
             nama_pengirim: string | null;
             status: components["schemas"]["StatusPembayaran"];
             alasan_penolakan: string | null;
-            dibayar_oleh?: {
+            dibayar_oleh: {
                 id: number;
                 nama: string;
             } | null;
-            diverifikasi_oleh?: {
+            diverifikasi_oleh: {
                 id: number;
                 nama: string;
             } | null;
@@ -2292,13 +2437,14 @@ export interface components {
             diverifikasi_at: string | null;
             /** Format: date-time */
             created_at: string | null;
+            tagihan: components["schemas"]["TagihanResource"];
         };
-        /** PendaftaranResource */
-        PendaftaranResource: {
+        /** PendaftaranDetailResource */
+        PendaftaranDetailResource: {
             id: number;
             kode: string;
             status: components["schemas"]["StatusPendaftaran"];
-            tahun_ajaran?: {
+            tahun_ajaran: {
                 id: number;
                 nama: string;
             };
@@ -2319,18 +2465,55 @@ export interface components {
             no_hp: string;
             /** @description Alasan penolakan. */
             catatan: string | null;
-            wali?: {
+            /** @description Murid yang dibuat saat pendaftaran diterima. */
+            murid: {
+                id: number;
+                nis: string;
+            } | null;
+            /** Format: date-time */
+            diproses_at: string | null;
+            /** Format: date-time */
+            created_at: string | null;
+            wali: {
                 id: number;
                 nama: string;
                 email: string;
                 no_hp: string | null;
             };
-            dokumen?: {
+            dokumen: {
                 id: number;
                 jenis: components["schemas"]["JenisDokumen"];
                 url: string;
             }[];
-            murid?: {
+        };
+        /** PendaftaranResource */
+        PendaftaranResource: {
+            id: number;
+            kode: string;
+            status: components["schemas"]["StatusPendaftaran"];
+            tahun_ajaran: {
+                id: number;
+                nama: string;
+            };
+            tingkat_tujuan: components["schemas"]["Tingkat"];
+            hubungan: components["schemas"]["Hubungan"];
+            nama_lengkap: string;
+            nama_panggilan: string;
+            jenis_kelamin: components["schemas"]["JenisKelamin"];
+            tempat_lahir: string;
+            tanggal_lahir: string;
+            nik: string;
+            agama: string;
+            alamat: string;
+            nama_ayah: string | null;
+            pekerjaan_ayah: string | null;
+            nama_ibu: string | null;
+            pekerjaan_ibu: string | null;
+            no_hp: string;
+            /** @description Alasan penolakan. */
+            catatan: string | null;
+            /** @description Murid yang dibuat saat pendaftaran diterima. */
+            murid: {
                 id: number;
                 nis: string;
             } | null;
@@ -2370,7 +2553,7 @@ export interface components {
             }[];
             is_publik: boolean;
             is_pinned: boolean;
-            penulis?: {
+            penulis: {
                 id: number;
                 nama: string;
             };
@@ -2395,6 +2578,14 @@ export interface components {
             caption?: string | null;
             urutan?: number;
         };
+        /**
+         * PerbaruiFotoKegiatanRequest
+         * @description Sama dengan `PUT /galeri-foto/{id}`: field yang tidak dikirim tidak berubah.
+         */
+        PerbaruiFotoKegiatanRequest: {
+            caption?: string | null;
+            urutan?: number;
+        };
         /** PerbaruiProfilRequest */
         PerbaruiProfilRequest: {
             name: string;
@@ -2406,24 +2597,47 @@ export interface components {
             avatar?: string | null;
         };
         /**
+         * PerbaruiTagihanRequest
+         * @description `PUT /tagihan/{id}`: field yang tidak dikirim tidak berubah. Potongan tidak boleh melebihi nominal tagihan,
+         *     dan jatuh tempo yang diubah tidak boleh sebelum hari ini (keduanya dicek terhadap data tagihan di service).
+         */
+        PerbaruiTagihanRequest: {
+            /** Format: date */
+            jatuh_tempo?: string;
+            potongan?: number;
+            catatan?: string | null;
+        };
+        /**
+         * PerbaruiWaliMuridRequest
+         * @description `PUT /wali-murid/{id}` oleh Kepala Sekolah, misalnya membetulkan nama atau nomor HP yang salah ketik.
+         *     Field yang tidak dikirim tidak berubah; email tidak bisa diubah karena dipakai login Google.
+         */
+        PerbaruiWaliMuridRequest: {
+            nama?: string;
+            no_hp?: string;
+            nik?: string | null;
+            alamat?: string;
+            pekerjaan?: string;
+        };
+        /**
          * PeriodeTagihan
          * @enum {string}
          */
         PeriodeTagihan: "bulanan" | "sekali";
-        /** RaporResource */
-        RaporResource: {
+        /** RaporDetailResource */
+        RaporDetailResource: {
             id: number;
-            murid?: {
+            murid: {
                 id: number;
                 nis: string;
                 nama_lengkap: string;
                 nama_panggilan: string;
             };
-            kelas?: {
+            kelas: {
                 id: number;
                 nama: string;
             };
-            tahun_ajaran?: {
+            tahun_ajaran: {
                 id: number;
                 nama: string;
             };
@@ -2434,7 +2648,7 @@ export interface components {
             status: components["schemas"]["StatusRapor"];
             /** @description Tidak dikirim ke wali murid. */
             catatan_revisi?: string | null;
-            pembuat?: {
+            pembuat: {
                 id: number;
                 nama: string;
             };
@@ -2442,7 +2656,11 @@ export interface components {
             diajukan_at: string | null;
             /** Format: date-time */
             terbit_at: string | null;
-            detail?: {
+            /** Format: date-time */
+            created_at: string | null;
+            /** Format: date-time */
+            updated_at: string | null;
+            detail: {
                 id: number;
                 elemen: {
                     id: number;
@@ -2452,6 +2670,39 @@ export interface components {
                 deskripsi: string | null;
                 foto_url: string | null;
             }[];
+        };
+        /** RaporResource */
+        RaporResource: {
+            id: number;
+            murid: {
+                id: number;
+                nis: string;
+                nama_lengkap: string;
+                nama_panggilan: string;
+            };
+            kelas: {
+                id: number;
+                nama: string;
+            };
+            tahun_ajaran: {
+                id: number;
+                nama: string;
+            };
+            semester: number;
+            tinggi_badan: number | null;
+            berat_badan: number | null;
+            catatan_guru: string | null;
+            status: components["schemas"]["StatusRapor"];
+            /** @description Tidak dikirim ke wali murid. */
+            catatan_revisi?: string | null;
+            pembuat: {
+                id: number;
+                nama: string;
+            };
+            /** Format: date-time */
+            diajukan_at: string | null;
+            /** Format: date-time */
+            terbit_at: string | null;
             /** Format: date-time */
             created_at: string | null;
             /** Format: date-time */
@@ -2474,6 +2725,32 @@ export interface components {
             email: string;
             password: string;
             password_confirmation: string;
+        };
+        /** RiwayatPembayaranResource */
+        RiwayatPembayaranResource: {
+            id: number;
+            kode: string;
+            tagihan_id: number;
+            metode: components["schemas"]["MetodeBayar"];
+            jumlah: number;
+            tanggal_bayar: string;
+            bukti_url: string | null;
+            bank_pengirim: string | null;
+            nama_pengirim: string | null;
+            status: components["schemas"]["StatusPembayaran"];
+            alasan_penolakan: string | null;
+            dibayar_oleh: {
+                id: number;
+                nama: string;
+            } | null;
+            diverifikasi_oleh: {
+                id: number;
+                nama: string;
+            } | null;
+            /** Format: date-time */
+            diverifikasi_at: string | null;
+            /** Format: date-time */
+            created_at: string | null;
         };
         /**
          * Role
@@ -2701,11 +2978,11 @@ export interface components {
          * @enum {string}
          */
         StatusTagihan: "belum_bayar" | "menunggu_verifikasi" | "lunas" | "terlambat" | "dibatalkan";
-        /** TagihanResource */
-        TagihanResource: {
+        /** TagihanDetailResource */
+        TagihanDetailResource: {
             id: number;
             kode: string;
-            murid?: {
+            murid: {
                 id: number;
                 nis: string;
                 nama_lengkap: string;
@@ -2715,7 +2992,7 @@ export interface components {
                     nama: string;
                 } | null;
             };
-            jenis_tagihan?: {
+            jenis_tagihan: {
                 id: number;
                 nama: string;
                 periode: components["schemas"]["PeriodeTagihan"];
@@ -2732,13 +3009,44 @@ export interface components {
             catatan: string | null;
             /** Format: date-time */
             created_at: string | null;
-            pembayaran?: components["schemas"]["PembayaranResource"][];
-            /** @description Hanya di detail tagihan. */
-            rekening?: {
+            pembayaran: components["schemas"]["RiwayatPembayaranResource"][];
+            rekening: {
                 bank: string;
                 nomor: string;
                 atas_nama: string;
             }[];
+        };
+        /** TagihanResource */
+        TagihanResource: {
+            id: number;
+            kode: string;
+            murid: {
+                id: number;
+                nis: string;
+                nama_lengkap: string;
+                nama_panggilan: string;
+                kelas: {
+                    id: number;
+                    nama: string;
+                } | null;
+            };
+            jenis_tagihan: {
+                id: number;
+                nama: string;
+                periode: components["schemas"]["PeriodeTagihan"];
+            };
+            tahun_ajaran_id: number;
+            periode: string | null;
+            nominal: number;
+            potongan: number;
+            total: number;
+            jatuh_tempo: string;
+            status: components["schemas"]["StatusTagihan"];
+            /** Format: date-time */
+            lunas_at: string | null;
+            catatan: string | null;
+            /** Format: date-time */
+            created_at: string | null;
         };
         /** TahunAjaranResource */
         TahunAjaranResource: {
@@ -2797,6 +3105,14 @@ export interface components {
             /** @enum {string} */
             status: "aktif" | "nonaktif";
         };
+        /**
+         * UbahTautanWaliRequest
+         * @description `PATCH /murid/{id}/wali/{wali_murid_id}`: salah satu atau keduanya; field yang tidak dikirim tidak berubah.
+         */
+        UbahTautanWaliRequest: {
+            hubungan?: components["schemas"]["Hubungan"];
+            is_kontak_utama?: boolean;
+        };
         /** UnggahGambarPengaturanRequest */
         UnggahGambarPengaturanRequest: {
             /**
@@ -2825,6 +3141,9 @@ export interface components {
             wali_murid: {
                 id: number;
                 profil_lengkap: boolean;
+                nik: string | null;
+                alamat: string | null;
+                pekerjaan: string | null;
                 anak: {
                     id: number;
                     nama_panggilan: string;
@@ -2836,16 +3155,28 @@ export interface components {
                 kelola_keuangan: boolean;
             };
         };
-        /** WaliMuridResource */
-        WaliMuridResource: {
+        /** WaliMuridDetailResource */
+        WaliMuridDetailResource: {
             id: number;
-            user?: components["schemas"]["AkunResource"];
+            user: components["schemas"]["AkunResource"];
             nik: string | null;
             pekerjaan: string | null;
             alamat: string | null;
             profil_lengkap: boolean;
-            jumlah_anak?: number;
-            anak?: components["schemas"]["AnakWaliResource"][];
+            jumlah_anak: number;
+            /** Format: date-time */
+            created_at: string | null;
+            anak: components["schemas"]["AnakWaliResource"][];
+        };
+        /** WaliMuridResource */
+        WaliMuridResource: {
+            id: number;
+            user: components["schemas"]["AkunResource"];
+            nik: string | null;
+            pekerjaan: string | null;
+            alamat: string | null;
+            profil_lengkap: boolean;
+            jumlah_anak: number;
             /** Format: date-time */
             created_at: string | null;
         };
@@ -3750,7 +4081,7 @@ export interface operations {
                                 rapor_diajukan: number;
                                 pendaftaran_baru: number;
                             };
-                            pengumuman_terbaru: (components["schemas"]["PengumumanResource"] & Record<string, never>)[];
+                            pengumuman_terbaru: components["schemas"]["PengumumanResource"][];
                             agenda_mendatang: components["schemas"]["AgendaResource"][];
                         } | {
                             kelas_saya: {
@@ -3765,8 +4096,8 @@ export interface operations {
                                 revisi: number;
                                 terbit: number;
                             };
-                            kegiatan_terbaru: (components["schemas"]["KegiatanKelasResource"] & Record<string, never>)[];
-                            pengumuman_terbaru: (components["schemas"]["PengumumanResource"] & Record<string, never>)[];
+                            kegiatan_terbaru: components["schemas"]["KegiatanKelasResource"][];
+                            pengumuman_terbaru: components["schemas"]["PengumumanResource"][];
                             agenda_mendatang: components["schemas"]["AgendaResource"][];
                             keuangan_kelas: {
                                 lunas: number;
@@ -3775,12 +4106,18 @@ export interface operations {
                             pembayaran_menunggu: number | null;
                         } | {
                             anak: components["schemas"]["AnakWaliResource"] | null;
-                            tagihan_aktif: (components["schemas"]["TagihanResource"] & Record<string, never>)[];
+                            tagihan_aktif: components["schemas"]["TagihanResource"][];
                             total_belum_bayar: number;
-                            kegiatan_terbaru: (components["schemas"]["KegiatanKelasResource"] & Record<string, never>)[];
-                            pengumuman_terbaru: (components["schemas"]["PengumumanResource"] & Record<string, never>)[];
+                            kegiatan_terbaru: components["schemas"]["KegiatanKelasResource"][];
+                            pengumuman_terbaru: components["schemas"]["PengumumanResource"][];
                             agenda_mendatang: components["schemas"]["AgendaResource"][];
                             rapor_terbaru: components["schemas"]["RaporResource"] | null;
+                            info_sekolah: {
+                                judul: string;
+                                isi: string;
+                                nada: components["schemas"]["NadaInfo"];
+                                berlaku_sampai: string | null;
+                            } | null;
                         };
                         meta: null;
                     };
@@ -4353,7 +4690,7 @@ export interface operations {
                     "application/json": {
                         success: boolean;
                         message: string;
-                        data: components["schemas"]["GaleriAlbumResource"] & Record<string, never>;
+                        data: components["schemas"]["GaleriAlbumDetailResource"];
                         meta: null;
                     };
                 };
@@ -4442,7 +4779,7 @@ export interface operations {
                         success: boolean;
                         /** @constant */
                         message: "Berhasil";
-                        data: components["schemas"]["GaleriAlbumResource"] & Record<string, never>;
+                        data: components["schemas"]["GaleriAlbumDetailResource"];
                         meta: null;
                     };
                 };
@@ -4533,7 +4870,7 @@ export interface operations {
                         success: boolean;
                         /** @constant */
                         message: "Album tersimpan.";
-                        data: components["schemas"]["GaleriAlbumResource"] & Record<string, never>;
+                        data: components["schemas"]["GaleriAlbumDetailResource"];
                         meta: null;
                     };
                 };
@@ -4726,7 +5063,7 @@ export interface operations {
                     "application/json": {
                         success: boolean;
                         message: string;
-                        data: components["schemas"]["GaleriAlbumResource"] & Record<string, never>;
+                        data: components["schemas"]["GaleriAlbumDetailResource"];
                         meta: null;
                     };
                 };
@@ -5033,7 +5370,7 @@ export interface operations {
                         success: boolean;
                         /** @constant */
                         message: "Berhasil";
-                        data: (components["schemas"]["GuruResource"] & Record<string, never>)[];
+                        data: components["schemas"]["GuruResource"][];
                         meta: {
                             current_page: number;
                             per_page: number;
@@ -5129,7 +5466,7 @@ export interface operations {
                         success: boolean;
                         /** @constant */
                         message: "Akun guru dibuat. Sampaikan password awal ke guru; password ini hanya ditampilkan sekali.";
-                        data: components["schemas"]["GuruResource"] & Record<string, never>;
+                        data: components["schemas"]["GuruResource"];
                         meta: null;
                     };
                 };
@@ -5218,7 +5555,7 @@ export interface operations {
                         success: boolean;
                         /** @constant */
                         message: "Berhasil";
-                        data: components["schemas"]["GuruResource"] & Record<string, never>;
+                        data: components["schemas"]["GuruResource"];
                         meta: null;
                     };
                 };
@@ -5412,7 +5749,7 @@ export interface operations {
                     "application/json": {
                         success: boolean;
                         message: string;
-                        data: components["schemas"]["GuruResource"] & Record<string, never>;
+                        data: components["schemas"]["GuruResource"];
                         meta: null;
                     };
                 };
@@ -5517,7 +5854,7 @@ export interface operations {
                     "application/json": {
                         success: boolean;
                         message: string;
-                        data: components["schemas"]["GuruResource"] & Record<string, never>;
+                        data: components["schemas"]["GuruResource"];
                         meta: null;
                     };
                 };
@@ -5763,7 +6100,7 @@ export interface operations {
                         success: boolean;
                         /** @constant */
                         message: "Berhasil";
-                        data: (components["schemas"]["JenisTagihanResource"] & Record<string, never>)[];
+                        data: components["schemas"]["JenisTagihanResource"][];
                         meta: {
                             current_page: number;
                             per_page: number;
@@ -5858,7 +6195,7 @@ export interface operations {
                     "application/json": {
                         success: boolean;
                         message: string;
-                        data: components["schemas"]["JenisTagihanResource"] & Record<string, never>;
+                        data: components["schemas"]["JenisTagihanResource"];
                         meta: null;
                     };
                 };
@@ -5951,7 +6288,7 @@ export interface operations {
                         success: boolean;
                         /** @constant */
                         message: "Jenis tagihan tersimpan.";
-                        data: components["schemas"]["JenisTagihanResource"] & Record<string, never>;
+                        data: components["schemas"]["JenisTagihanResource"];
                         meta: null;
                     };
                 };
@@ -6160,7 +6497,7 @@ export interface operations {
                         success: boolean;
                         /** @constant */
                         message: "Berhasil";
-                        data: (components["schemas"]["KegiatanKelasResource"] & Record<string, never>)[];
+                        data: components["schemas"]["KegiatanKelasResource"][];
                         meta: {
                             current_page: number;
                             per_page: number;
@@ -6255,7 +6592,7 @@ export interface operations {
                     "application/json": {
                         success: boolean;
                         message: string;
-                        data: components["schemas"]["KegiatanKelasResource"] & Record<string, never>;
+                        data: components["schemas"]["KegiatanKelasResource"];
                         meta: null;
                     };
                 };
@@ -6344,7 +6681,7 @@ export interface operations {
                         success: boolean;
                         /** @constant */
                         message: "Berhasil";
-                        data: components["schemas"]["KegiatanKelasResource"] & Record<string, never>;
+                        data: components["schemas"]["KegiatanKelasResource"];
                         meta: null;
                     };
                 };
@@ -6435,7 +6772,7 @@ export interface operations {
                         success: boolean;
                         /** @constant */
                         message: "Kegiatan tersimpan.";
-                        data: components["schemas"]["KegiatanKelasResource"] & Record<string, never>;
+                        data: components["schemas"]["KegiatanKelasResource"];
                         meta: null;
                     };
                 };
@@ -6628,7 +6965,7 @@ export interface operations {
                     "application/json": {
                         success: boolean;
                         message: string;
-                        data: components["schemas"]["KegiatanKelasResource"] & Record<string, never>;
+                        data: components["schemas"]["KegiatanKelasResource"];
                         meta: null;
                     };
                 };
@@ -6689,6 +7026,118 @@ export interface operations {
                         message: string;
                         /** @enum {string} */
                         code: "BUSINESS_RULE" | "VALIDATION_ERROR";
+                        errors: {
+                            [key: string]: string[];
+                        };
+                    };
+                };
+            };
+            /** @description TOO_MANY_REQUESTS */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "TOO_MANY_REQUESTS";
+                        errors: null;
+                    };
+                };
+            };
+        };
+    };
+    "kegiatanKelas.perbaruiFoto": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PerbaruiFotoKegiatanRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        /** @constant */
+                        message: "Foto tersimpan.";
+                        data: {
+                            id: number;
+                            caption: string | null;
+                            urutan: number;
+                        };
+                        meta: null;
+                    };
+                };
+            };
+            /** @description UNAUTHENTICATED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "UNAUTHENTICATED";
+                        errors: null;
+                    };
+                };
+            };
+            /** @description FORBIDDEN / ACCOUNT_PENDING / ACCOUNT_REJECTED / ACCOUNT_INACTIVE */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "FORBIDDEN" | "ACCOUNT_PENDING" | "ACCOUNT_REJECTED" | "ACCOUNT_INACTIVE";
+                        errors: null;
+                    };
+                };
+            };
+            /** @description NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "NOT_FOUND";
+                        errors: null;
+                    };
+                };
+            };
+            /** @description VALIDATION_ERROR */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "VALIDATION_ERROR";
                         errors: {
                             [key: string]: string[];
                         };
@@ -6823,7 +7272,7 @@ export interface operations {
                         success: boolean;
                         /** @constant */
                         message: "Berhasil";
-                        data: (components["schemas"]["KelasResource"] & Record<string, never>)[];
+                        data: components["schemas"]["KelasResource"][];
                         meta: {
                             current_page: number;
                             per_page: number;
@@ -6918,7 +7367,7 @@ export interface operations {
                     "application/json": {
                         success: boolean;
                         message: string;
-                        data: components["schemas"]["KelasResource"];
+                        data: components["schemas"]["KelasDetailResource"];
                         meta: null;
                     };
                 };
@@ -7007,7 +7456,7 @@ export interface operations {
                         success: boolean;
                         /** @constant */
                         message: "Berhasil";
-                        data: components["schemas"]["KelasResource"];
+                        data: components["schemas"]["KelasDetailResource"];
                         meta: null;
                     };
                 };
@@ -7098,7 +7547,7 @@ export interface operations {
                         success: boolean;
                         /** @constant */
                         message: "Data kelas tersimpan.";
-                        data: components["schemas"]["KelasResource"];
+                        data: components["schemas"]["KelasDetailResource"];
                         meta: null;
                     };
                 };
@@ -7308,7 +7757,7 @@ export interface operations {
                         success: boolean;
                         /** @constant */
                         message: "Berhasil";
-                        data: (components["schemas"]["KeringananResource"] & Record<string, never>)[];
+                        data: components["schemas"]["KeringananResource"][];
                         meta: {
                             current_page: number;
                             per_page: number;
@@ -7404,7 +7853,7 @@ export interface operations {
                         success: boolean;
                         /** @constant */
                         message: "Keringanan tersimpan.";
-                        data: components["schemas"]["KeringananResource"] & Record<string, never>;
+                        data: components["schemas"]["KeringananResource"];
                         meta: null;
                     };
                 };
@@ -7497,7 +7946,7 @@ export interface operations {
                         success: boolean;
                         /** @constant */
                         message: "Keringanan tersimpan.";
-                        data: components["schemas"]["KeringananResource"] & Record<string, never>;
+                        data: components["schemas"]["KeringananResource"];
                         meta: null;
                     };
                 };
@@ -8259,7 +8708,7 @@ export interface operations {
                     "application/json": {
                         success: boolean;
                         message: string;
-                        data: components["schemas"]["MuridResource"] & Record<string, never>;
+                        data: components["schemas"]["MuridDetailResource"];
                         meta: null;
                     };
                 };
@@ -8348,7 +8797,7 @@ export interface operations {
                         success: boolean;
                         /** @constant */
                         message: "Berhasil";
-                        data: components["schemas"]["MuridResource"] & Record<string, never>;
+                        data: components["schemas"]["MuridDetailResource"];
                         meta: null;
                     };
                 };
@@ -8439,7 +8888,7 @@ export interface operations {
                         success: boolean;
                         /** @constant */
                         message: "Data murid tersimpan.";
-                        data: components["schemas"]["MuridResource"] & Record<string, never>;
+                        data: components["schemas"]["MuridDetailResource"];
                         meta: null;
                     };
                 };
@@ -8816,6 +9265,114 @@ export interface operations {
             };
         };
     };
+    "murid.ubahWali": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+                wali_murid_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["UbahTautanWaliRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        data: components["schemas"]["MuridDetailResource"];
+                        meta: null;
+                    };
+                };
+            };
+            /** @description UNAUTHENTICATED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "UNAUTHENTICATED";
+                        errors: null;
+                    };
+                };
+            };
+            /** @description FORBIDDEN / ACCOUNT_PENDING / ACCOUNT_REJECTED / ACCOUNT_INACTIVE */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "FORBIDDEN" | "ACCOUNT_PENDING" | "ACCOUNT_REJECTED" | "ACCOUNT_INACTIVE";
+                        errors: null;
+                    };
+                };
+            };
+            /** @description NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "NOT_FOUND";
+                        errors: null;
+                    };
+                };
+            };
+            /** @description BUSINESS_RULE / VALIDATION_ERROR */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "BUSINESS_RULE" | "VALIDATION_ERROR";
+                        errors: {
+                            [key: string]: string[];
+                        };
+                    };
+                };
+            };
+            /** @description TOO_MANY_REQUESTS */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "TOO_MANY_REQUESTS";
+                        errors: null;
+                    };
+                };
+            };
+        };
+    };
     "notifikasi.index": {
         parameters: {
             query?: {
@@ -9161,7 +9718,7 @@ export interface operations {
                     "application/json": {
                         success: boolean;
                         message: string;
-                        data: components["schemas"]["PembayaranResource"] & Record<string, never>;
+                        data: components["schemas"]["PembayaranResource"];
                         meta: null;
                     };
                 };
@@ -9266,7 +9823,7 @@ export interface operations {
                     "application/json": {
                         success: boolean;
                         message: string;
-                        data: components["schemas"]["PembayaranResource"] & Record<string, never>;
+                        data: components["schemas"]["PembayaranResource"];
                         meta: null;
                     };
                 };
@@ -9373,7 +9930,7 @@ export interface operations {
                     "application/json": {
                         success: boolean;
                         message: string;
-                        data: components["schemas"]["PembayaranResource"] & Record<string, never>;
+                        data: components["schemas"]["PembayaranResource"];
                         meta: null;
                     };
                 };
@@ -9483,7 +10040,7 @@ export interface operations {
                         success: boolean;
                         /** @constant */
                         message: "Berhasil";
-                        data: (components["schemas"]["PembayaranResource"] & Record<string, never>)[];
+                        data: components["schemas"]["PembayaranResource"][];
                         meta: {
                             current_page: number;
                             per_page: number;
@@ -9577,7 +10134,7 @@ export interface operations {
                         success: boolean;
                         /** @constant */
                         message: "Berhasil";
-                        data: components["schemas"]["PembayaranResource"] & Record<string, never>;
+                        data: components["schemas"]["PembayaranResource"];
                         meta: null;
                     };
                 };
@@ -9842,7 +10399,7 @@ export interface operations {
                     "application/json": {
                         success: boolean;
                         message: string;
-                        data: components["schemas"]["PendaftaranResource"] & Record<string, never>;
+                        data: components["schemas"]["PendaftaranDetailResource"];
                         meta: null;
                     };
                 };
@@ -9947,7 +10504,7 @@ export interface operations {
                     "application/json": {
                         success: boolean;
                         message: string;
-                        data: components["schemas"]["PendaftaranResource"] & Record<string, never>;
+                        data: components["schemas"]["PendaftaranDetailResource"];
                         meta: null;
                     };
                 };
@@ -10054,7 +10611,7 @@ export interface operations {
                     "application/json": {
                         success: boolean;
                         message: string;
-                        data: components["schemas"]["PendaftaranResource"] & Record<string, never>;
+                        data: components["schemas"]["PendaftaranDetailResource"];
                         meta: null;
                     };
                 };
@@ -10164,7 +10721,7 @@ export interface operations {
                         success: boolean;
                         /** @constant */
                         message: "Berhasil";
-                        data: (components["schemas"]["PendaftaranResource"] & Record<string, never>)[];
+                        data: components["schemas"]["PendaftaranResource"][];
                         meta: {
                             current_page: number;
                             per_page: number;
@@ -10259,7 +10816,7 @@ export interface operations {
                     "application/json": {
                         success: boolean;
                         message: string;
-                        data: components["schemas"]["PendaftaranResource"] & Record<string, never>;
+                        data: components["schemas"]["PendaftaranDetailResource"];
                         meta: null;
                     };
                 };
@@ -10348,7 +10905,7 @@ export interface operations {
                         success: boolean;
                         /** @constant */
                         message: "Berhasil";
-                        data: components["schemas"]["PendaftaranResource"] & Record<string, never>;
+                        data: components["schemas"]["PendaftaranDetailResource"];
                         meta: null;
                     };
                 };
@@ -10438,7 +10995,7 @@ export interface operations {
                     "application/json": {
                         success: boolean;
                         message: string;
-                        data: components["schemas"]["KelasResource"];
+                        data: components["schemas"]["KelasDetailResource"];
                         meta: null;
                     };
                 };
@@ -10736,7 +11293,7 @@ export interface operations {
     "pengaturan.index": {
         parameters: {
             query?: {
-                grup?: "profil" | "landing" | "keuangan" | "ppdb";
+                grup?: "profil" | "landing" | "keuangan" | "ppdb" | "beranda";
             };
             header?: never;
             path?: never;
@@ -11035,7 +11592,7 @@ export interface operations {
                         success: boolean;
                         /** @constant */
                         message: "Berhasil";
-                        data: (components["schemas"]["PengumumanResource"] & Record<string, never>)[];
+                        data: components["schemas"]["PengumumanResource"][];
                         meta: {
                             current_page: number;
                             per_page: number;
@@ -11131,7 +11688,7 @@ export interface operations {
                         success: boolean;
                         /** @enum {string} */
                         message: "Pengumuman disimpan sebagai draft." | "Pengumuman diterbitkan.";
-                        data: components["schemas"]["PengumumanResource"] & Record<string, never>;
+                        data: components["schemas"]["PengumumanResource"];
                         meta: null;
                     };
                 };
@@ -11220,7 +11777,7 @@ export interface operations {
                         success: boolean;
                         /** @constant */
                         message: "Berhasil";
-                        data: components["schemas"]["PengumumanResource"] & Record<string, never>;
+                        data: components["schemas"]["PengumumanResource"];
                         meta: null;
                     };
                 };
@@ -11311,7 +11868,7 @@ export interface operations {
                         success: boolean;
                         /** @constant */
                         message: "Pengumuman tersimpan.";
-                        data: components["schemas"]["PengumumanResource"] & Record<string, never>;
+                        data: components["schemas"]["PengumumanResource"];
                         meta: null;
                     };
                 };
@@ -11671,7 +12228,7 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody: {
+        requestBody?: {
             content: {
                 "application/json": components["schemas"]["LengkapiProfilWaliRequest"];
             };
@@ -11787,25 +12344,25 @@ export interface operations {
                             "profil.sambutan_kepsek": string | null;
                             "landing.hero": {
                                 judul: string;
-                                subjudul?: string | null;
-                                gambar?: string | null;
-                                cta_teks?: string | null;
+                                subjudul: string | null;
+                                gambar: string | null;
+                                cta_teks: string | null;
                                 gambar_url: string | null;
                             };
                             "landing.program": {
                                 judul: string;
-                                deskripsi?: string | null;
+                                deskripsi: string | null;
                                 ikon: string;
                             }[];
                             "landing.fasilitas": {
                                 nama: string;
-                                deskripsi?: string | null;
-                                gambar?: string | null;
+                                deskripsi: string | null;
+                                gambar: string | null;
                                 gambar_url: string | null;
                             }[];
                             "landing.keunggulan": {
                                 judul: string;
-                                deskripsi?: string | null;
+                                deskripsi: string | null;
                                 ikon: string;
                             }[];
                         };
@@ -12096,7 +12653,7 @@ export interface operations {
                         success: boolean;
                         /** @constant */
                         message: "Berhasil";
-                        data: components["schemas"]["GaleriAlbumResource"] & Record<string, never>;
+                        data: components["schemas"]["GaleriAlbumDetailResource"];
                         meta: null;
                     };
                 };
@@ -12243,7 +12800,7 @@ export interface operations {
                     "application/json": {
                         success: boolean;
                         message: string;
-                        data: components["schemas"]["RaporResource"] & Record<string, never>;
+                        data: components["schemas"]["RaporDetailResource"];
                         meta: null;
                     };
                 };
@@ -12349,7 +12906,114 @@ export interface operations {
                         success: boolean;
                         /** @constant */
                         message: "Rapor dikembalikan ke guru untuk direvisi.";
-                        data: components["schemas"]["RaporResource"] & Record<string, never>;
+                        data: components["schemas"]["RaporDetailResource"];
+                        meta: null;
+                    };
+                };
+            };
+            /** @description UNAUTHENTICATED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "UNAUTHENTICATED";
+                        errors: null;
+                    };
+                };
+            };
+            /** @description FORBIDDEN / ACCOUNT_PENDING / ACCOUNT_REJECTED / ACCOUNT_INACTIVE */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "FORBIDDEN" | "ACCOUNT_PENDING" | "ACCOUNT_REJECTED" | "ACCOUNT_INACTIVE";
+                        errors: null;
+                    };
+                };
+            };
+            /** @description NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "NOT_FOUND";
+                        errors: null;
+                    };
+                };
+            };
+            /** @description BUSINESS_RULE / VALIDATION_ERROR */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "BUSINESS_RULE" | "VALIDATION_ERROR";
+                        errors: {
+                            [key: string]: string[];
+                        };
+                    };
+                };
+            };
+            /** @description TOO_MANY_REQUESTS */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "TOO_MANY_REQUESTS";
+                        errors: null;
+                    };
+                };
+            };
+        };
+    };
+    "rapor.tarik": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CatatanRevisiRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        data: components["schemas"]["RaporDetailResource"];
                         meta: null;
                     };
                 };
@@ -12461,7 +13125,7 @@ export interface operations {
                         success: boolean;
                         /** @constant */
                         message: "Berhasil";
-                        data: (components["schemas"]["RaporResource"] & Record<string, never>)[];
+                        data: components["schemas"]["RaporResource"][];
                         meta: {
                             current_page: number;
                             per_page: number;
@@ -12556,7 +13220,7 @@ export interface operations {
                     "application/json": {
                         success: boolean;
                         message: string;
-                        data: components["schemas"]["RaporResource"] & Record<string, never>;
+                        data: components["schemas"]["RaporDetailResource"];
                         meta: null;
                     };
                 };
@@ -12645,7 +13309,7 @@ export interface operations {
                         success: boolean;
                         /** @constant */
                         message: "Berhasil";
-                        data: components["schemas"]["RaporResource"] & Record<string, never>;
+                        data: components["schemas"]["RaporDetailResource"];
                         meta: null;
                     };
                 };
@@ -12736,7 +13400,7 @@ export interface operations {
                         success: boolean;
                         /** @constant */
                         message: "Rapor tersimpan.";
-                        data: components["schemas"]["RaporResource"] & Record<string, never>;
+                        data: components["schemas"]["RaporDetailResource"];
                         meta: null;
                     };
                 };
@@ -12845,7 +13509,7 @@ export interface operations {
                         success: boolean;
                         /** @constant */
                         message: "Foto tersimpan.";
-                        data: components["schemas"]["RaporResource"] & Record<string, never>;
+                        data: components["schemas"]["RaporDetailResource"];
                         meta: null;
                     };
                 };
@@ -12949,7 +13613,7 @@ export interface operations {
                         success: boolean;
                         /** @constant */
                         message: "Rapor diajukan ke Kepala Sekolah.";
-                        data: components["schemas"]["RaporResource"] & Record<string, never>;
+                        data: components["schemas"]["RaporDetailResource"];
                         meta: null;
                     };
                 };
@@ -13412,7 +14076,7 @@ export interface operations {
                     "application/json": {
                         success: boolean;
                         message: string;
-                        data: components["schemas"]["TagihanResource"] & Record<string, never>;
+                        data: components["schemas"]["TagihanResource"];
                         meta: null;
                     };
                 };
@@ -13496,6 +14160,107 @@ export interface operations {
             };
         };
     };
+    "tagihan.aktifkan": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        data: components["schemas"]["TagihanResource"];
+                        meta: null;
+                    };
+                };
+            };
+            /** @description UNAUTHENTICATED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "UNAUTHENTICATED";
+                        errors: null;
+                    };
+                };
+            };
+            /** @description FORBIDDEN / ACCOUNT_PENDING / ACCOUNT_REJECTED / ACCOUNT_INACTIVE */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "FORBIDDEN" | "ACCOUNT_PENDING" | "ACCOUNT_REJECTED" | "ACCOUNT_INACTIVE";
+                        errors: null;
+                    };
+                };
+            };
+            /** @description NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "NOT_FOUND";
+                        errors: null;
+                    };
+                };
+            };
+            /** @description BUSINESS_RULE */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "BUSINESS_RULE";
+                        errors: null;
+                    };
+                };
+            };
+            /** @description TOO_MANY_REQUESTS */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "TOO_MANY_REQUESTS";
+                        errors: null;
+                    };
+                };
+            };
+        };
+    };
     "tagihan.index": {
         parameters: {
             query?: {
@@ -13524,7 +14289,7 @@ export interface operations {
                         success: boolean;
                         /** @constant */
                         message: "Berhasil";
-                        data: (components["schemas"]["TagihanResource"] & Record<string, never>)[];
+                        data: components["schemas"]["TagihanResource"][];
                         meta: {
                             current_page: number;
                             per_page: number;
@@ -13726,7 +14491,7 @@ export interface operations {
                         success: boolean;
                         /** @constant */
                         message: "Berhasil";
-                        data: components["schemas"]["TagihanResource"] & Record<string, never>;
+                        data: components["schemas"]["TagihanDetailResource"];
                         meta: null;
                     };
                 };
@@ -13773,6 +14538,113 @@ export interface operations {
                         /** @enum {string} */
                         code: "NOT_FOUND";
                         errors: null;
+                    };
+                };
+            };
+            /** @description TOO_MANY_REQUESTS */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "TOO_MANY_REQUESTS";
+                        errors: null;
+                    };
+                };
+            };
+        };
+    };
+    "tagihan.update": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PerbaruiTagihanRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        data: components["schemas"]["TagihanResource"];
+                        meta: null;
+                    };
+                };
+            };
+            /** @description UNAUTHENTICATED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "UNAUTHENTICATED";
+                        errors: null;
+                    };
+                };
+            };
+            /** @description FORBIDDEN / ACCOUNT_PENDING / ACCOUNT_REJECTED / ACCOUNT_INACTIVE */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "FORBIDDEN" | "ACCOUNT_PENDING" | "ACCOUNT_REJECTED" | "ACCOUNT_INACTIVE";
+                        errors: null;
+                    };
+                };
+            };
+            /** @description NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "NOT_FOUND";
+                        errors: null;
+                    };
+                };
+            };
+            /** @description BUSINESS_RULE / VALIDATION_ERROR */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "BUSINESS_RULE" | "VALIDATION_ERROR";
+                        errors: {
+                            [key: string]: string[];
+                        };
                     };
                 };
             };
@@ -14298,7 +15170,7 @@ export interface operations {
                         success: boolean;
                         /** @constant */
                         message: "Berhasil";
-                        data: (components["schemas"]["WaliMuridResource"] & Record<string, never>)[];
+                        data: components["schemas"]["WaliMuridResource"][];
                         meta: {
                             current_page: number;
                             per_page: number;
@@ -14392,7 +15264,7 @@ export interface operations {
                         success: boolean;
                         /** @constant */
                         message: "Berhasil";
-                        data: components["schemas"]["WaliMuridResource"] & Record<string, never>;
+                        data: components["schemas"]["WaliMuridDetailResource"];
                         meta: null;
                     };
                 };
@@ -14459,6 +15331,113 @@ export interface operations {
             };
         };
     };
+    "waliMurid.update": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PerbaruiWaliMuridRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        data: components["schemas"]["WaliMuridDetailResource"];
+                        meta: null;
+                    };
+                };
+            };
+            /** @description UNAUTHENTICATED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "UNAUTHENTICATED";
+                        errors: null;
+                    };
+                };
+            };
+            /** @description FORBIDDEN / ACCOUNT_PENDING / ACCOUNT_REJECTED / ACCOUNT_INACTIVE */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "FORBIDDEN" | "ACCOUNT_PENDING" | "ACCOUNT_REJECTED" | "ACCOUNT_INACTIVE";
+                        errors: null;
+                    };
+                };
+            };
+            /** @description NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "NOT_FOUND";
+                        errors: null;
+                    };
+                };
+            };
+            /** @description VALIDATION_ERROR */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "VALIDATION_ERROR";
+                        errors: {
+                            [key: string]: string[];
+                        };
+                    };
+                };
+            };
+            /** @description TOO_MANY_REQUESTS */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "TOO_MANY_REQUESTS";
+                        errors: null;
+                    };
+                };
+            };
+        };
+    };
     "waliMurid.ubahStatus": {
         parameters: {
             query?: never;
@@ -14482,7 +15461,7 @@ export interface operations {
                     "application/json": {
                         success: boolean;
                         message: string;
-                        data: components["schemas"]["WaliMuridResource"] & Record<string, never>;
+                        data: components["schemas"]["WaliMuridResource"];
                         meta: null;
                     };
                 };
