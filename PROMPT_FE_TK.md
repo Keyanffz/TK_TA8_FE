@@ -9,7 +9,7 @@ Kamu adalah senior frontend engineer (Next.js + TypeScript). Tugasmu membangun *
 3. Tulis **file lengkap**, jangan potongan/diff parsial, jangan ada placeholder yang tidak jalan.
 4. **TypeScript strict, DILARANG memakai tipe `any`** (termasuk `as any`, `any[]`, `Record<string, any>`). Pakai tipe dari kontrak, `unknown` + narrowing, atau generic. Aktifkan rule ESLint `@typescript-eslint/no-explicit-any: "error"`.
 5. Kalau ada yang ambigu atau bertentangan dengan desain, **tanyakan**. Jangan mengubah alur/kontrak diam-diam.
-6. Semua teks UI dalam **Bahasa Indonesia** yang ramah dan jelas untuk orang tua (hindari istilah teknis).
+6. Semua teks UI dalam **Bahasa Indonesia** yang ramah dan jelas untuk orang tua (hindari istilah teknis), dengan sapaan "Anda".
 
 ## `dokumentasi.md` (WAJIB)
 
@@ -595,7 +595,7 @@ src/
 - `POST /api/auth/logout`: panggil BE `/auth/logout`, hapus kedua cookie.
 - Semua request data dari browser lewat `/api/proxy/[...path]` yang menambahkan `Authorization: Bearer` dari cookie dan meneruskan method, query, body (termasuk multipart) dan **stream file** (PDF, bukti, export Excel) apa adanya. Respons 401 dari BE → hapus cookie, FE redirect ke `/login`.
 - Server Component yang butuh data boleh fetch langsung ke BE dengan token dari `cookies()`.
-- Route guard (middleware/proxy Next.js sesuai versi): `/dashboard/*` tanpa `tk_token` → `/login?next=...`. Sudah login buka `/login` → `/dashboard`. Pembatasan per role dicek juga di layout halaman (redirect ke `/dashboard` + toast "Kamu tidak punya akses"). **Otorisasi sebenarnya tetap di BE**; FE hanya menyembunyikan menu & mencegah salah arah.
+- Route guard (middleware/proxy Next.js sesuai versi): `/dashboard/*` tanpa `tk_token` → `/login?next=...`. Sudah login buka `/login` atau `/login/*` → `/dashboard`. Pembatasan per role dicek juga di layout halaman (redirect ke `/dashboard` + toast "Anda tidak punya akses ke halaman itu."). **Otorisasi sebenarnya tetap di BE**; FE hanya menyembunyikan menu & mencegah salah arah.
 - Penanganan kode error login: `ACCOUNT_PENDING` → `/menunggu-persetujuan`; `ACCOUNT_REJECTED` → tampilkan alasan; `ACCOUNT_INACTIVE` → pesan hubungi sekolah.
 - Sesi user di React Query (`['me']` dari `GET /auth/me`), dengan hook `useSession()` → `{ user, role, isSuperAdmin, isGuru, isWali, bisaKelolaKeuangan }`.
 - Wali: jika `profil_lengkap = false` → paksa ke `/dashboard/onboarding`. Jika belum punya anak → beranda menampilkan empty state "Tautkan anak" / "Daftar PPDB".
@@ -605,7 +605,7 @@ src/
 
 `SA` = super admin, `G` = guru, `K` = petugas keuangan (SA atau guru `bisa_kelola_keuangan`), `W` = wali murid.
 
-**Publik:** `/`, `/pengumuman`, `/pengumuman/[slug]`, `/galeri`, `/galeri/[slug]`, `/ppdb`, `/login` (2 tab: "Orang Tua / Wali" → tombol Google; "Guru & Kepala Sekolah" → email+password), `/daftar-guru`, `/lupa-password`, `/reset-password`, `/menunggu-persetujuan`.
+**Publik:** `/`, `/pengumuman`, `/pengumuman/[slug]`, `/galeri`, `/galeri/[slug]`, `/ppdb`, `/login` (halaman pilihan: "Orang Tua / Wali Murid" dan "Guru & Kepala Sekolah"), `/login/wali` (Google), `/login/guru` (email + password, tautan daftar guru dan lupa password), `/daftar-guru`, `/lupa-password`, `/reset-password`, `/menunggu-persetujuan`.
 
 **Dashboard:**
 
@@ -669,8 +669,9 @@ Landing page berisi: navbar, hero, sambutan kepala sekolah, visi-misi, program, 
 
 ## B8. Desain visual
 
-- **Identitas hijau dominan** sesuai branding sekolah (tanyakan kode warna logo di Fase 0; jika belum ada, usulkan palet hijau dengan aksen kuning hangat yang cocok untuk TK). Definisikan sebagai CSS variable/token Tailwind, jangan hardcode warna di komponen.
-- Nuansa **ceria tapi rapi dan terpercaya** (sekolah anak, tapi juga mengurus uang orang tua). Sudut membulat, ilustrasi/aksen bentuk sederhana boleh di landing; dashboard tetap bersih.
+- **Identitas hijau dominan**: hijau logo sekolah `#0D8905` dipakai langsung sebagai warna utama dan berani (blok besar, header, hero, navbar, panel login), bukan cuma tombol. Teks putih di atasnya 4,57:1 (AA). Versi lebih gelap hanya untuk hover dan teks hijau kecil di latar terang. Kuning bintang logo (`#FFF001`) menjadi aksen. Definisikan sebagai CSS variable/token Tailwind, jangan hardcode warna di komponen.
+- Nuansa **ceria, hidup, dan tetap terpercaya** (sekolah anak, tapi juga mengurus uang orang tua). Bukan tampilan minimalis. Landing dan halaman login memakai ornamen yang terkait identitas sekolah: sembilan bintang dari logo, bentuk perisai bergelombang logo, pola geometri Islami (bintang delapan), sulur, ilustrasi sederhana dari bentuk dasar. Dashboard boleh lebih hidup (transisi, ilustrasi di empty state, mikro-interaksi), tetapi tabel dan form tetap jelas dan cepat dipakai.
+- **Gerak**: animasi harus punya karakter dan terkait identitas sekolah (bintang berkelip/melayang, perisai berputar sangat pelan, sulur tergambar, kartu seperti foto tempel yang jatuh lalu lurus, kalender membalik, angka menghitung naik). Tiap jenis konten punya efek muncul sendiri, bukan satu efek yang sama di semua section. Umpan balik hover/tekan cepat (±150–250 ms); efek muncul ±400–650 ms; ornamen berulang harus pelan dan halus. Semua animasi dekoratif mati saat `prefers-reduced-motion: reduce`, konten tetap tampil tanpa JavaScript, dan tidak ada library animasi tambahan (CSS + IntersectionObserver).
 - Font ramah dan mudah dibaca (usulkan pasangan font di Fase 0, via `next/font`).
 - Hindari tampilan template generik: landing harus terasa milik TK ini (pakai nama, foto, konten dari CMS).
 - **Mobile-first**, terutama untuk wali (mayoritas akses dari HP): dashboard wali memakai **bottom navigation** di mobile (Beranda, Tagihan, Kegiatan, Pengumuman, Lainnya) dan sidebar di desktop. SA/G: sidebar yang bisa diciutkan + sheet di mobile. Tabel di mobile berubah jadi kartu.
@@ -725,7 +726,7 @@ Landing page berisi: navbar, hero, sambutan kepala sekolah, visi-misi, program, 
 |---|---|
 | Kepala Sekolah | Admin utama, Principal, Kepsek (di UI) |
 | Guru | Pengajar, Staff, Teacher |
-| Wali Murid | Parent, User (di UI). "Orang Tua / Wali" hanya di tab login |
+| Wali Murid | Parent, User (di UI). "Orang Tua / Wali Murid" hanya di halaman login |
 | Murid | Siswa, Peserta didik, Student (pilih satu: **Murid**) |
 | Tagihan | Invoice, Bill |
 | Pembayaran | Transaksi, Payment |
@@ -764,7 +765,7 @@ Desain harus terasa **milik TK Tarbiyathul Athfal 8**, bukan template SaaS yang 
 - Ikon di setiap judul, tombol, dan item list. Ikon hanya jika membantu mengenali/memindai. Satu set ikon (lucide), satu ukuran stroke.
 - Emoji sebagai ikon atau dekorasi.
 - Kartu KPI dengan panah tren palsu ("+12% dari bulan lalu") kalau datanya tidak ada di API. Grafik hanya kalau ada data runtun waktu/perbandingan, bukan untuk satu angka.
-- Animasi di semua elemen (fade-up tiap section, bounce, parallax). Animasi hanya untuk umpan balik & transisi, durasi 150–250ms, dan hormati `prefers-reduced-motion`.
+- Animasi generik ala template: fade-up yang sama persis di setiap section, parallax berlebihan, efek glow, gradien ungu, animasi yang mengganggu keterbacaan atau membuat halaman berat di HP. Animasi dekoratif wajib mati saat `prefers-reduced-motion: reduce` (aturan gerak lengkap di B8).
 - Semua konten rata tengah. Gunakan perataan kiri untuk teks bacaan dan grid yang jelas.
 - Ilustrasi/foto stok bergaya AI (anak-anak "sempurna" hasil generate). Pakai foto dari CMS; kalau belum ada, placeholder netral (blok warna + label) yang jelas harus diganti.
 - Ukuran font acak. Tentukan skala tipografi (maksimal ±6 ukuran) dan skala spasi (kelipatan 4px) di token, lalu pakai konsisten.
