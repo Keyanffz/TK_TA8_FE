@@ -48,6 +48,26 @@ export const queryKeys = {
     semua: ["keringanan"] as const,
     daftar: (filter: object) => ["keringanan", "daftar", filter] as const,
   },
+  kegiatan: {
+    semua: ["kegiatan"] as const,
+    daftar: (filter: object) => ["kegiatan", "daftar", filter] as const,
+    detail: (id: number) => ["kegiatan", "detail", id] as const,
+  },
+  rapor: {
+    semua: ["rapor"] as const,
+    daftar: (filter: object) => ["rapor", "daftar", filter] as const,
+    detail: (id: number) => ["rapor", "detail", id] as const,
+  },
+  elemenPenilaian: ["elemen-penilaian"] as const,
+  pengumuman: {
+    semua: ["pengumuman"] as const,
+    daftar: (filter: object) => ["pengumuman", "daftar", filter] as const,
+    detail: (id: number) => ["pengumuman", "detail", id] as const,
+  },
+  agenda: {
+    semua: ["agenda"] as const,
+    bulan: (bulan: string) => ["agenda", bulan] as const,
+  },
   laporan: {
     keuangan: (filter: object) => ["laporan", "keuangan", filter] as const,
     tunggakan: (kelasId: number | null) => ["laporan", "tunggakan", kelasId] as const,

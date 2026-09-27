@@ -91,3 +91,12 @@ export function useKenaikanKelas() {
     onSuccess: segarkan,
   });
 }
+
+/**
+ * Kelas tahun ajaran aktif yang boleh dipilih pengguna: semua kelas untuk Kepala Sekolah, kelas yang
+ * diampu untuk guru (backend sudah membatasi `GET /kelas` untuk guru).
+ */
+export function useKelasAktif() {
+  const query = useDaftarKelas(null);
+  return { ...query, data: query.data?.filter((kelas) => kelas.tahun_ajaran.is_aktif) };
+}

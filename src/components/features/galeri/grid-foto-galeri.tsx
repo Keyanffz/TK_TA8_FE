@@ -9,9 +9,16 @@ import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/compone
 
 type FotoGaleri = { id: number; url: string; caption: string | null };
 
-type GridFotoGaleriProps = { judulAlbum: string; foto: FotoGaleri[] };
+type GridFotoGaleriProps = {
+  judulAlbum: string;
+  foto: FotoGaleri[];
+  /** Foto private (kegiatan kelas) berupa signed URL yang kedaluwarsa, jadi tidak lewat optimasi gambar Next. */
+  privat?: boolean;
+  /** Keterangan tampil di bawah tiap foto, bukan hanya di lightbox. */
+  keteranganDiBawah?: boolean;
+};
 
-export function GridFotoGaleri({ judulAlbum, foto }: GridFotoGaleriProps) {
+export function GridFotoGaleri({ judulAlbum, foto, privat = false, keteranganDiBawah = false }: GridFotoGaleriProps) {
   const [indeksAktif, setIndeksAktif] = useState<number | null>(null);
   const aktif = indeksAktif === null ? null : foto[indeksAktif];
 
@@ -27,7 +34,7 @@ export function GridFotoGaleri({ judulAlbum, foto }: GridFotoGaleriProps) {
     <>
       <ul className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4">
         {foto.map((item, indeks) => (
-          <li key={item.id}>
+          <li key={item.id} className="flex flex-col gap-1.5">
             <button
               type="button"
               onClick={() => setIndeksAktif(indeks)}
@@ -39,9 +46,11 @@ export function GridFotoGaleri({ judulAlbum, foto }: GridFotoGaleriProps) {
                 alt={item.caption ?? `Foto ${indeks + 1} dari ${judulAlbum}`}
                 fill
                 sizes="(min-width: 1024px) 25vw, (min-width: 768px) 33vw, 50vw"
+                unoptimized={privat}
                 className="object-cover"
               />
             </button>
+            {keteranganDiBawah && item.caption ? <p className="text-sm text-muted-foreground">{item.caption}</p> : null}
           </li>
         ))}
       </ul>
@@ -62,6 +71,7 @@ export function GridFotoGaleri({ judulAlbum, foto }: GridFotoGaleriProps) {
                   alt={aktif.caption ?? `Foto ${indeksAktif + 1} dari ${judulAlbum}`}
                   fill
                   sizes="(min-width: 896px) 896px, 100vw"
+                  unoptimized={privat}
                   className="object-contain"
                 />
               </div>

@@ -1,6 +1,5 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -12,19 +11,14 @@ import { Muncul } from "@/components/shared/muncul";
 import { GAYA_MASKER_PERISAI } from "@/components/shared/ornamen/perisai";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ambilData } from "@/lib/api/ambil-data";
-import { api } from "@/lib/api/client";
-import { queryKeys } from "@/lib/api/query-keys";
+import { useAnakWali } from "@/lib/api/wali";
 import { LABEL_HUBUNGAN, LABEL_JENIS_KELAMIN } from "@/lib/constants/label";
 import { formatTanggal } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 export function DaftarAnak() {
   const { anakAktif, pilih } = useAnakAktif();
-  const { data, isPending, isError, error, refetch } = useQuery({
-    queryKey: queryKeys.anakWali,
-    queryFn: async () => (await ambilData(api.GET("/wali/anak"))).data,
-  });
+  const { data, isPending, isError, error, refetch } = useAnakWali();
 
   if (isPending) return <Skeleton aria-label="Memuat data anak" className="h-44 rounded-xl" />;
   if (isError) return <GalatMuat error={error} onCobaLagi={() => void refetch()} />;
