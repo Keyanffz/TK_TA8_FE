@@ -56,6 +56,8 @@ export type Pembayaran = Schemas["PembayaranResource"];
 export type RiwayatPembayaran = Schemas["RiwayatPembayaranResource"];
 export type KegiatanKelas = Schemas["KegiatanKelasResource"];
 export type Rapor = Schemas["RaporResource"];
+export type RaporDetail = Schemas["RaporDetailResource"];
+export type ElemenPenilaian = Schemas["ElemenPenilaianResource"];
 export type Pendaftaran = Schemas["PendaftaranResource"];
 export type PendaftaranPublik = Schemas["PendaftaranPublikResource"];
 
