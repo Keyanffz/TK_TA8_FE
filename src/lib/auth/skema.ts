@@ -18,3 +18,8 @@ export const skemaNomorHp = z
   .string()
   .trim()
   .regex(/^08\d{8,13}$/, "Nomor HP diawali 08 dan berisi 10–15 angka.");
+
+export const skemaNikOpsional = z
+  .string()
+  .trim()
+  .regex(/^(\d{16})?$/, "NIK berisi 16 angka sesuai KTP. Boleh dikosongkan.");

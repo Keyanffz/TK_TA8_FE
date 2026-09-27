@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 
 import { TOKEN_COOKIE } from "@/lib/auth/cookies";
+import { HEADER_PATH } from "@/lib/auth/path";
 import { RUTE_LOGIN } from "@/lib/auth/rute-login";
 
 /**
@@ -15,6 +16,14 @@ export function proxy(request: NextRequest) {
     const login = new URL(RUTE_LOGIN.pilihan, request.url);
     login.searchParams.set("next", `${pathname}${search}`);
     return NextResponse.redirect(login);
+  }
+
+  // Layout dashboard perlu tahu path yang dibuka (misalnya untuk mengarahkan
+  // wali yang belum melengkapi profil), sedangkan layout tidak menerima pathname.
+  if (pathname.startsWith("/dashboard")) {
+    const headers = new Headers(request.headers);
+    headers.set(HEADER_PATH, `${pathname}${search}`);
+    return NextResponse.next({ request: { headers } });
   }
 
   if ((pathname === RUTE_LOGIN.pilihan || pathname.startsWith(`${RUTE_LOGIN.pilihan}/`)) && sudahMasuk) {
