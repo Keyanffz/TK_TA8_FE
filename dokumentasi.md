@@ -11,9 +11,9 @@ Website publik dan dashboard sistem informasi TK Tarbiyathul Athfal 8 (TK Muslim
 | 2. Publik & auth | Selesai; revisi setelah review (login terpisah, warna, font, gerak) menunggu review |
 | Penyesuaian login wali NIS (sebelum Fase 4) | Selesai |
 | 3. Shell dashboard | Selesai (review Fase 3 tanpa revisi) |
-| 4. Master data | Selesai (dikerjakan berturut-turut dengan Fase 5, belum direview) |
-| 5. Keuangan | Selesai (dikerjakan berturut-turut dengan Fase 4, belum direview) |
-| 6. Akademik & komunikasi | Belum |
+| 4. Master data | Selesai, disetujui (perbaikan setelah review: lihat "Review Fase 4–5") |
+| 5. Keuangan | Selesai, disetujui (perbaikan setelah review: lihat "Review Fase 4–5") |
+| 6. Akademik & komunikasi | Selesai (dikerjakan berturut-turut dengan Fase 7, belum direview) |
 | 7. PPDB, CMS, pengaturan | Belum |
 | 8. Integrasi & polish | Belum |
 
@@ -171,9 +171,48 @@ Request dari Server Component ke endpoint publik (landing, ISR) tidak membawa `X
 - **Catat pembayaran** oleh petugas: untuk tunai hanya `metode` dan `tanggal_bayar` yang dikirim (bank, pengirim, dan bukti dilarang backend untuk tunai).
 - **Ubah tagihan** hanya mengirim field yang berubah. Jatuh tempo yang tidak diubah boleh sudah lewat; yang diubah paling cepat hari ini. Toast memberi tahu kalau potongan membuat tagihan langsung lunas.
 - **Antrean verifikasi** (`/dashboard/pembayaran`, tab Menunggu Verifikasi) urut dari yang paling lama menunggu (`sort=created_at`), bukti tampil besar dan bisa diperbesar. Terima/tolak juga tersedia di riwayat pembayaran detail tagihan. Wali di route yang sama melihat riwayat pembayarannya dengan kwitansi.
-- **Laporan**: rentang bawaan dari tanggal mulai tahun ajaran aktif sampai hari ini (disimpan di URL). Backend menghitung tagihan berdasarkan jatuh tempo dan pemasukan berdasarkan tanggal bayar; keterangan di kartu ringkasan menyebut ini. Grafik: batang bertumpuk terbayar + belum terbayar per bulan (jumlahnya total tagihan). Warna `--grafik-terbayar` `#0A6E04` dan `--grafik-belum` `#D08A1A` diperiksa dengan validator palet skill dataviz: lolos pemisahan buta warna (ΔE protan 15,4) dan batas penglihatan normal; kontras oranye 2,86:1 di bawah 3:1, jadi legenda dan tabel per bulan selalu tampil. Satu sumbu Y, tooltip per batang.
-- **Tunggakan** menampilkan kontak utama wali dengan tautan `tel:`. Tombol "Kirim pengumuman" (B4) belum dibuat karena form pengumuman baru ada di Fase 6; akan ditambahkan di sana dengan prefill target murid.
+- **Laporan**: rentang bawaan dari tanggal mulai tahun ajaran aktif sampai hari ini (disimpan di URL). Backend menghitung tagihan berdasarkan jatuh tempo dan pemasukan berdasarkan tanggal bayar; keterangan di kartu ringkasan menyebut ini. Grafik: batang bertumpuk terbayar + belum terbayar per bulan (jumlahnya total tagihan). Warna `--grafik-terbayar` `#0A6E04` dan `--grafik-belum` `#C07C10` diperiksa dengan validator palet skill dataviz: lolos pemisahan buta warna (ΔE protan 10,7), batas penglihatan normal, dan kontras minimal 3:1 (oranye 3,42:1 di atas kartu putih, 3,23:1 di atas latar krem). Sebelum review warnanya `#D08A1A` (2,86:1). Legenda dan tabel per bulan tetap selalu tampil. Satu sumbu Y, tooltip per batang.
+- **Tunggakan** menampilkan kontak utama wali dengan tautan `tel:`. Tombol "Kirim Pengumuman" (B4) ditambahkan di Fase 6 (lihat Keputusan Fase 6).
 - `PilihMurid` (cari murid aktif, pilih satu atau banyak) dipakai tagihan sekali bayar, keringanan, dan penempatan murid; `TambahMuridKelas` Fase 4 ikut dipindah ke komponen ini.
+
+## Review Fase 4–5
+
+- Keputusan Fase 4 dan 5 disetujui pemilik repo.
+- Oranye grafik laporan digelapkan ke `#C07C10` (lihat Keputusan Fase 5).
+- **Kenaikan kelas**: `POST /kelas/kenaikan` tidak punya field tahun ajaran asal; backend selalu memakai tahun ajaran aktif. Wizard sebelumnya membolehkan memilih asal lain, sehingga simpan gagal dengan "Murid berikut tidak punya kelas aktif di tahun ajaran 2026/2027". Pilihan asal diganti teks tetap "(tahun ajaran aktif)"; tanpa tahun ajaran aktif tampil pesan untuk mengaktifkannya.
+- **Guru ditolak**: kolom Keterangan di tab Ditolak berisi alasan penolakan (sebelumnya kosong, alasan hanya di detail).
+- **Saringan bulan tagihan**: `<input type="month">` tidak didukung Firefox dan tampil sebagai kotak kosong tanpa label. Diganti pilihan "Semua bulan" + bulan-bulan tahun ajaran aktif (`daftarBulan()` di `src/lib/tanggal.ts`, `formatBulan()` di `src/lib/format.ts`).
+- **Tampilan HP petugas keuangan**: saringan tanggal di riwayat pembayaran diberi label terlihat "Tanggal bayar"; nominal di antrean verifikasi dan riwayat tidak lagi terpotong dua baris ("Rp / 150.000").
+
+Pengujian alur yang belum pernah diuji (dev server ke backend lokal, Firefox headless lewat puppeteer-core di luar repo):
+
+- Tambah guru "Laila Nurhidayah, S.Pd." dengan foto → kotak password awal tampil, detail guru menampilkan foto dari `/storage/guru/...`.
+- Guru pending: setujui Fitri Handayani (toast, pindah ke tab Aktif, login backend berhasil); tolak Ahmad Fauzi tanpa alasan → "Alasan penolakan wajib diisi."; dengan alasan → login backend membalas `ACCOUNT_REJECTED` beserta alasannya.
+- Tambah murid "Kinanti Ayu Lestari" → NIS `TA20260031`, toast akun wali otomatis, detail menampilkan "Wali Kinan" (kontak utama, username NIS); kartu akun `GET /murid/62/kartu-akun` 200 PDF; login wali `TA20260031` + `14032021` berhasil. Unggah foto murid lewat Ubah Data → foto tampil di detail (signed URL).
+- Hapus murid "Raka Aditya Pratama" (`TA20260032`) → kembali ke daftar, `GET /murid/63` 404, akun otomatisnya `ACCOUNT_INACTIVE`.
+- Simpan kenaikan kelas: supaya 60 murid demo tidak ikut naik, dibuat kelas uji TK A1 di 2027/2028 (berisi Kinanti) dan tahun ajaran 2028/2029 dengan TK B1, lalu 2027/2028 diaktifkan sementara. Wizard → Simpan → "1 murid naik kelas, 0 tinggal kelas, 0 lulus", Kinanti ada di TK B1 2028/2029. Tahun ajaran aktif dikembalikan ke 2026/2027.
+- Tagihan sekali bayar Uang Kegiatan untuk Kinanti (murid tertentu) → "1 tagihan dibuat." (tagihan 241); catat pembayaran transfer dengan bukti, bank BRI, nama pengirim → lunas, pembayaran `diterima` dengan `bukti_url`.
+- Tampilan HP (390 px) guru petugas keuangan `siti.rahmawati`: tagihan, detail tagihan, antrean, riwayat pembayaran, keringanan, laporan, tunggakan tanpa scroll horizontal; temuan diperbaiki di atas.
+- Data backend yang berubah: guru Laila (id 10) dan persetujuan/penolakan dua guru pending, murid Kinanti (id 62) beserta akun walinya, murid Raka (terhapus), kelas TK A1 2027/2028 (id 5), tahun ajaran 2028/2029 (id 3) dengan TK B1 (id 6), tagihan 241 lunas.
+
+## Keputusan Fase 6
+
+- **Kegiatan kelas**: feed berisi kartu "foto tempel" (foto utama + dua foto kecil, sisa foto sebagai "+n"), efek muncul `jatuh`. Wali melihat kegiatan kelas anak aktif; id kelas diambil dari `GET /wali/anak` (`useAnakWali`, `src/lib/api/wali.ts`) karena `anak` di sesi hanya memuat nama kelas. Anak tanpa kelas aktif → feed tanpa saringan kelas (kegiatan kelas lama tetap terlihat, backend yang membatasi).
+- Kepala Sekolah dan guru memakai saringan kelas dari `useKelasAktif()` (`GET /kelas` tahun ajaran aktif; untuk guru backend sudah membatasi ke kelas yang diampu). Pilihan kelas yang sama dipakai form kegiatan dan sasaran pengumuman.
+- **Kelola foto** (pembuat kegiatan atau Kepala Sekolah): keterangan per foto (`PUT /kegiatan-foto/{id}`), geser atas/bawah (urutan ditulis ulang 1..n hanya untuk foto yang nilainya berubah), hapus, tambah foto (sisa kuota 30 per kegiatan, 10 per unggahan). Lightbox memakai `GridFotoGaleri` dengan prop `privat` (signed URL, `unoptimized`) dan `keteranganDiBawah`.
+- **Rapor**: guru memilih kelas dan semester (bawaan `semester_aktif` tahun ajaran aktif), daftar murid aktif beserta status rapornya, "Buat Draft" lalu editor. Editor: tinggi/berat (koma atau titik, satu desimal, rentang sama dengan backend), deskripsi per elemen dengan deskripsi elemen sebagai panduan, satu foto per elemen (hanya pembuat saat draft/revisi), catatan guru. Tombol ajukan/terbitkan nonaktif selama ada perubahan belum disimpan, supaya isi terbaru yang dikirim.
+- Kepala Sekolah: tab "Menunggu Review" (urut paling lama diajukan), "Semua Rapor" (saringan status, kelas, semester, cari), dan "Kelas Saya" kalau profil gurunya mengampu kelas (memakai `kelas_diampu` dari sesi, karena `GET /kelas` baginya berisi semua kelas). Rapor diajukan bisa diperbaiki ("Simpan Perbaikan"), diterbitkan, atau dikembalikan dengan catatan; rapor terbit bisa ditarik dengan catatan.
+- **Rapor ditarik untuk wali**: backend membalas 404 kalau wali membuka rapor yang belum/tidak lagi terbit. Halaman detail wali mengubah 404 itu menjadi kotak "Rapor ini belum bisa dibuka" dengan penjelasan bahwa rapor sedang diperiksa ulang dan notifikasi akan dikirim saat terbit. Status rapor tidak ditampilkan ke wali.
+- PDF rapor: wali "Unduh PDF" (simpan file `rapor-<NIS>-<tahun ajaran>-semester-<n>.pdf`), guru dan Kepala Sekolah "Pratinjau PDF" di tab baru (bertanda pratinjau dari backend sebelum terbit).
+- **Pengumuman**: editor bersama `EditorTeks` (`src/components/shared/editor-teks.tsx`, Tiptap StarterKit v3 yang sudah memuat Link dan Underline; tanpa code/codeBlock; `immediatelyRender: false`). Toolbar: tebal, miring, garis bawah, subjudul, daftar poin/nomor, tautan (popover), urungkan/ulangi. Dipakai lagi di CMS Fase 7.
+- Sasaran: Kepala Sekolah semua target; guru hanya "Kelas tertentu" dan "Murid tertentu" (backend menolak target lain). Pengumuman baru: "Terbitkan Pengumuman" atau "Simpan Draft"; pengumuman terbit hanya "Simpan Perubahan". "Tampilkan di website" hanya untuk Kepala Sekolah dengan target Semua. Penulis dan Kepala Sekolah melihat tab Semua/Terbit/Draft dan sasaran; wali hanya feed.
+- **Kirim pengumuman dari Tunggakan**: tombol membuka `/dashboard/pengumuman/baru?dari=tunggakan&kelas=` yang memuat ulang `GET /laporan/tunggakan` dengan saringan kelas yang sama, lalu mengisi judul, isi pengingat, dan semua murid penunggak sebagai sasaran. Guru petugas keuangan hanya bisa menyasar murid di kelas yang dia ampu, jadi murid kelas lain tidak dipilih dan jumlahnya disebut di atas form. Id murid tidak ditaruh di URL.
+- **Agenda**: kalender Senin–Minggu, hari ini dilingkari hijau, Minggu merah, label agenda di desktop dan titik berwarna di HP (`NADA_JENIS_AGENDA`: kegiatan hijau, libur merah, rapat biru, lainnya abu). Bulan (`?bulan=`) dan hari terpilih (`?hari=`) di URL; memilih hari menyaring daftar di samping. Kepala Sekolah menambah (tanggal awal = hari terpilih), mengubah, menghapus lewat dialog; agenda tidak publik diberi badge "Internal".
+
+## Temuan kontrak Fase 6
+
+- `api.json` menandai `kelas_id` wajib di body `PUT /kegiatan/{id}`, padahal backend menolaknya (`prohibited`, kelas kegiatan tidak bisa diganti). FE mengisi `kelas_id` supaya sesuai tipe hasil generate, lalu `bodySerializer` membuangnya sebelum dikirim (`useUbahKegiatan`). Perlu diperbaiki di anotasi backend.
+- `filter[semester]` dan `semester` di `POST /rapor` bertipe string `"1" | "2"` di `api.json`; FE memetakan angka 1/2 lewat `SEMESTER_API`.
 
 ## Audit data dashboard wali (revisi poin 4)
 
@@ -308,8 +347,17 @@ Andika hanya punya bobot 400 dan 700, jadi `font-semibold` tampil sebagai 700.
 | `/dashboard/keuangan/jenis-tagihan` | SA | Jenis tagihan per tahun ajaran |
 | `/dashboard/keuangan/keringanan` | K | Keringanan persen/rupiah per murid dan jenis tagihan |
 | `/dashboard/keuangan/laporan` | K | Ringkasan, grafik per bulan, tabel per bulan dan per jenis, unduh Excel |
-| `/dashboard/keuangan/tunggakan` | K | Murid dengan tagihan terlambat dan kontak walinya |
-| `/dashboard/*` lain | | 404 di dalam kerangka dashboard (`[...lainnya]`); halamannya dibuat di Fase 6–7 |
+| `/dashboard/keuangan/tunggakan` | K | Murid dengan tagihan terlambat dan kontak walinya; tombol Kirim Pengumuman |
+| `/dashboard/kegiatan` | SA, G, W (lihat) | SA/G: feed + saringan kelas + cari, tombol Catat Kegiatan. W: feed kelas anak aktif |
+| `/dashboard/kegiatan/baru` | SA, G | Form kegiatan + unggah foto (maks 10); `?kelas=` memilih kelas awal |
+| `/dashboard/kegiatan/[id]` | SA, G, W | Detail + galeri + lightbox; pembuat/SA: ubah, hapus, kelola foto (keterangan, urutan, hapus, tambah) |
+| `/dashboard/rapor` | SA, G, W | G: kelas + semester → murid + status → buat/isi. SA: Menunggu Review, Semua Rapor, Kelas Saya. W: rapor terbit anak aktif + unduh PDF |
+| `/dashboard/rapor/[id]` | SA, G, W | Editor (pembuat saat draft/revisi, SA saat diajukan) atau tampilan; ajukan, terbitkan, minta revisi, tarik; PDF. W: rapor ditarik → pesan ramah |
+| `/dashboard/pengumuman` | SA, G, W (lihat) | Feed (disematkan di atas); SA/G: tab Semua/Terbit/Draft, cari, Tulis Pengumuman |
+| `/dashboard/pengumuman/baru` | SA, G | Form Tiptap + sasaran; `?dari=tunggakan&kelas=` terisi murid penunggak (K) |
+| `/dashboard/pengumuman/[id]`, `/[id]/ubah` | SA, G, W / penulis, SA | Detail; ubah dan hapus untuk penulis dan SA |
+| `/dashboard/agenda` | SA (kelola), G, W | Kalender bulanan + daftar (`?bulan=`, `?hari=`); SA tambah/ubah/hapus |
+| `/dashboard/*` lain | | 404 di dalam kerangka dashboard (`[...lainnya]`); halamannya dibuat di Fase 7 |
 | `/api/auth/login`, `/api/auth/login-wali`, `/api/auth/logout`, `/api/auth/sesi-habis` | route handler | BFF sesi |
 | `/api/proxy/[...path]` | route handler | Proxy ke backend |
 
@@ -328,6 +376,37 @@ Tempat deploy belum ditentukan. Syarat yang sudah pasti:
 5. Batas body di reverse proxy minimal 55 MB (unggahan kegiatan 10 foto × 5 MB), sama dengan `post_max_size` backend.
 
 ## Changelog
+
+### Fase 6 (branch `fe/fase-6-8`)
+
+File baru:
+
+- `src/lib/api/{kegiatan,rapor,pengumuman,agenda,wali}.ts`: hook React Query per modul; `src/lib/{rapor,pengumuman}.ts`: nama file PDF rapor, periode, label sasaran pengumuman.
+- `src/components/shared/editor-teks.tsx`: editor Tiptap bersama.
+- `src/components/features/kegiatan/{kartu-kegiatan,feed-kegiatan,form-kegiatan,tambah-kegiatan,detail-kegiatan,kelola-foto-kegiatan}.tsx`.
+- `src/components/features/rapor/{daftar-rapor-wali,rapor-kelas,review-rapor,rapor-kepala-sekolah,detail-rapor,editor-rapor,foto-elemen-rapor,tampilan-rapor,aksi-rapor,tombol-pdf-rapor}.tsx`.
+- `src/components/features/pengumuman/{feed-pengumuman,detail-pengumuman,form-pengumuman,pilih-kelas,pengumuman-baru,ubah-pengumuman}.tsx`.
+- `src/components/features/agenda/{kalender-agenda,form-agenda,halaman-agenda}.tsx`.
+- Halaman `src/app/dashboard/{kegiatan,kegiatan/baru,kegiatan/[id],rapor,rapor/[id],pengumuman,pengumuman/baru,pengumuman/[id],pengumuman/[id]/ubah,agenda}/page.tsx`.
+
+File yang diubah:
+
+- `src/lib/api/query-keys.ts` (key kegiatan, rapor, elemen penilaian, pengumuman, agenda), `src/lib/api/kelas.ts` (`useKelasAktif`), `src/lib/tanggal.ts` (`geserBulan`, `hariDalamBulan`), `src/lib/constants/status.ts` (`NADA_JENIS_AGENDA`), `src/types/domain.ts` (`RaporDetail`, `ElemenPenilaian`).
+- `src/components/features/galeri/grid-foto-galeri.tsx`: prop `privat` dan `keteranganDiBawah` untuk foto kegiatan.
+- `src/components/features/wali/daftar-anak.tsx`: memakai `useAnakWali`.
+- `src/components/features/laporan/daftar-tunggakan.tsx`: tombol Kirim Pengumuman di samping total.
+
+Pengujian Fase 6 (dev server ke backend lokal, Firefox headless):
+
+- `lint`, `typecheck`, `build`, `check:slop` bersih.
+- Kegiatan (guru `nur.aini`): kirim kosong → "Pilih kelas." dan "Judul kegiatan wajib diisi."; simpan dengan 3 foto (kegiatan 13) → detail; keterangan foto 1 tersimpan; geser foto 1 ke bawah → urutan berubah; hapus foto 3 → sisa 2; ubah judul → "Kegiatan tersimpan."; lightbox terbuka, panah kanan pindah ke foto 2.
+- Rapor (guru `nur.aini`, TK A1): ringkasan "15 murid · ... · 12 belum dibuat"; Buat Draft (rapor 19, Aurora); ajukan kosong → pesan backend "Lengkapi deskripsi elemen ..." di dialog; tinggi 300 → "Tinggi badan antara 50 dan 200."; isi tiga elemen, foto elemen, catatan → tersimpan → diajukan (editor hilang).
+- Rapor (Kepala Sekolah): tab Menunggu Review 5; di rapor 19 Terbitkan nonaktif selama ada perubahan; Simpan Perbaikan → Terbitkan → Terbit. Minta revisi rapor 10 dengan catatan → catatan tampil. Tarik rapor 1 tanpa catatan → "Catatan untuk guru wajib diisi."; dengan catatan → Perlu revisi.
+- Wali `TA20250001`: sebelum ditarik rapor 1 bisa dibuka dan PDF 200; sesudah ditarik → kotak "Rapor ini belum bisa dibuka" (HP).
+- Pengumuman: dari Tunggakan (TK A1) → 6 murid terpilih, judul dan isi terisi → terbit (pengumuman 8, "Untuk: 6 murid"). Form kosong → dua pesan; target kelas tanpa kelas → "Pilih minimal satu kelas."; daftar poin lewat toolbar tersimpan sebagai `<ul><li>`; draft (pengumuman 9) → ubah → terbit. Guru `sri.wahyuni` hanya melihat opsi Kelas tertentu dan Murid tertentu. Wali `TA20260001` melihat pengingat di feed, tanpa draft.
+- Agenda (Kepala Sekolah): tanggal selesai sebelum mulai dan judul kosong → dua pesan; tambah agenda 9 Oktober → pilih tanggal 9 menyaring daftar; ubah jenis; hapus. Wali di HP melihat Desember 2026 tanpa tombol tambah dan tanpa badge Internal.
+- Tidak ada error konsol browser selama pengujian di atas.
+- Data backend yang berubah: kegiatan 13 (TK A1, 2 foto), rapor 19 terbit, rapor 10 revisi, rapor 1 ditarik (revisi), pengumuman 8 dan 9 terbit.
 
 ### Fase 5 (branch `fe/fase-4-5`)
 
