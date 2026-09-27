@@ -8,3 +8,8 @@ export function namaTagihan(tagihan: Pick<Tagihan, "jenis_tagihan" | "periode" |
   if (!tagihan.periode) return jenis;
   return `${jenis} ${bulanTahun.format(new Date(`${tagihan.periode}T00:00:00Z`))}`;
 }
+
+/** Tagihan yang masih bisa dibayar, diubah, atau dibatalkan (belum lunas, tidak menunggu verifikasi, tidak dibatalkan). */
+export function tagihanTerbuka(status: Tagihan["status"]): boolean {
+  return status === "belum_bayar" || status === "terlambat";
+}

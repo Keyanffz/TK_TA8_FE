@@ -31,4 +31,25 @@ export const queryKeys = {
     detail: (id: number) => ["wali-murid", "detail", id] as const,
   },
   pengaturan: (grup: string) => ["pengaturan", grup] as const,
+  tagihan: {
+    semua: ["tagihan"] as const,
+    daftar: (filter: object) => ["tagihan", "daftar", filter] as const,
+    detail: (id: number) => ["tagihan", "detail", id] as const,
+  },
+  pembayaran: {
+    semua: ["pembayaran"] as const,
+    daftar: (filter: object) => ["pembayaran", "daftar", filter] as const,
+  },
+  jenisTagihan: {
+    semua: ["jenis-tagihan"] as const,
+    daftar: (filter: object) => ["jenis-tagihan", "daftar", filter] as const,
+  },
+  keringanan: {
+    semua: ["keringanan"] as const,
+    daftar: (filter: object) => ["keringanan", "daftar", filter] as const,
+  },
+  laporan: {
+    keuangan: (filter: object) => ["laporan", "keuangan", filter] as const,
+    tunggakan: (kelasId: number | null) => ["laporan", "tunggakan", kelasId] as const,
+  },
 };
