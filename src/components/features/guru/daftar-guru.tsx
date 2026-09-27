@@ -34,6 +34,9 @@ function Identitas({ guru }: { guru: Guru }) {
 }
 
 function Peran({ guru }: { guru: Guru }) {
+  if (guru.user.status === "ditolak") {
+    return <p className="line-clamp-2 max-w-xs text-sm text-muted-foreground">{guru.alasan_penolakan ?? "Tanpa alasan tercatat."}</p>;
+  }
   return (
     <div className="flex flex-wrap gap-1">
       {guru.bisa_kelola_keuangan ? <StatusBadge nada="proses">Petugas keuangan</StatusBadge> : null}
