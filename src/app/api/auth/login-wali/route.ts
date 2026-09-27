@@ -3,5 +3,5 @@ import type { NextRequest } from "next/server";
 import { masukLewatBackend } from "@/lib/auth/bff";
 
 export function POST(request: NextRequest) {
-  return masukLewatBackend(request, "/auth/google", ["id_token"]);
+  return masukLewatBackend(request, "/auth/login-wali", ["username", "password"]);
 }

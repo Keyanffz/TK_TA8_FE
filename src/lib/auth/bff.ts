@@ -42,12 +42,11 @@ async function bacaBodyJson(request: NextRequest): Promise<Record<string, unknow
 
 /**
  * Meneruskan login ke backend, lalu menyimpan token di cookie httpOnly.
- * Token tidak pernah dikirim ke browser; respons ke browser hanya berisi
- * data selain token (user, dan is_new untuk login Google).
+ * Token tidak pernah dikirim ke browser; respons ke browser hanya berisi user.
  */
 export async function masukLewatBackend(
   request: NextRequest,
-  bePath: "/auth/login" | "/auth/google",
+  bePath: "/auth/login" | "/auth/login-wali",
   fieldDiizinkan: readonly string[],
 ): Promise<NextResponse> {
   if (!dariOriginSendiri(request.headers)) return responsOriginDitolak();

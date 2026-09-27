@@ -29,7 +29,7 @@ export default async function LoginGuruPage({ searchParams }: PageProps<"/login/
       <p className="mt-8 text-sm text-muted-foreground">
         Orang tua atau wali murid?{" "}
         <Link href={urlLogin(RUTE_LOGIN.wali, tujuan)} className="font-bold text-primary-strong hover:underline">
-          Masuk dengan Google
+          Masuk dengan NIS anak
         </Link>
       </p>
     </>

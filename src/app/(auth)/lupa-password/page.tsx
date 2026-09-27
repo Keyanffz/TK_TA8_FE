@@ -9,7 +9,7 @@ export default function LupaPasswordPage() {
     <>
       <h1 className="text-xl font-semibold">Lupa Password</h1>
       <p className="mt-2 mb-8 text-muted-foreground">
-        Untuk akun guru dan Kepala Sekolah. Wali murid masuk dengan akun Google, jadi tidak memakai password.
+        Untuk akun guru dan Kepala Sekolah. Wali murid yang lupa password meminta Kepala Sekolah mengembalikannya ke password awal.
       </p>
       <FormLupaPassword />
     </>

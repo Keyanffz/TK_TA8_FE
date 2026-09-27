@@ -57,7 +57,7 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
         <Pilihan
           href={urlLogin(RUTE_LOGIN.wali, tujuan)}
           judul="Orang Tua / Wali Murid"
-          keterangan="Masuk dengan akun Google untuk melihat tagihan, kegiatan kelas, dan rapor anak."
+          keterangan="Masuk dengan NIS anak dan password untuk melihat tagihan, kegiatan kelas, dan rapor anak."
           ilustrasi={<IlustrasiWali className="w-28 shrink-0 sm:w-32" />}
           className="bg-highlight text-highlight-foreground"
           urutan={2}

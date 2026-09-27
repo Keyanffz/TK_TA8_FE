@@ -8,7 +8,7 @@ import { queryKeys } from "@/lib/api/query-keys";
 import { pathSekarang, wajibSesi } from "@/lib/auth/akses";
 import { pilihAnakAktif } from "@/lib/auth/anak-aktif";
 import { ANAK_COOKIE, SIDEBAR_COOKIE } from "@/lib/auth/cookies";
-import { RUTE_ONBOARDING } from "@/lib/auth/path";
+import { RUTE_GANTI_PASSWORD, RUTE_ONBOARDING } from "@/lib/auth/path";
 
 export default async function DashboardLayout({ children }: LayoutProps<"/dashboard">) {
   const [user, path, cookieStore, profil] = await Promise.all([
@@ -17,10 +17,13 @@ export default async function DashboardLayout({ children }: LayoutProps<"/dashbo
     cookies(),
     ambilProfilSekolah(),
   ]);
-  const halamanOnboarding = path.split("?")[0] === RUTE_ONBOARDING;
+  const rute = path.split("?")[0];
+  const halamanGantiPassword = rute === RUTE_GANTI_PASSWORD;
+  const halamanOnboarding = rute === RUTE_ONBOARDING;
 
-  // Wali yang belum melengkapi profil selalu ke onboarding dulu (B3).
-  if (user.wali_murid && !user.wali_murid.profil_lengkap && !halamanOnboarding) {
+  // Urutan wajib wali (A6): ganti password awal, lalu lengkapi profil (B3).
+  if (user.wajib_ganti_password && !halamanGantiPassword) redirect(RUTE_GANTI_PASSWORD);
+  if (!user.wajib_ganti_password && user.wali_murid && !user.wali_murid.profil_lengkap && !halamanOnboarding) {
     redirect(RUTE_ONBOARDING);
   }
 
@@ -30,7 +33,7 @@ export default async function DashboardLayout({ children }: LayoutProps<"/dashbo
 
   return (
     <HydrationBoundary state={dehydrate(queryClient)}>
-      {halamanOnboarding ? (
+      {halamanGantiPassword || halamanOnboarding ? (
         children
       ) : (
         <ShellDashboard
