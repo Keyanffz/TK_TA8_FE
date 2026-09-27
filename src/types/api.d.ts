@@ -1282,7 +1282,8 @@ export interface paths {
         };
         /**
          * Semua pengaturan grup `profil` dan `landing` sebagai objek datar berkunci lengkap, dengan pasangan
-         *     `*_url` untuk field gambar
+         *     `*_url` untuk field gambar. Teks yang belum diisi Kepala Sekolah berisi string kosong atau null. Field
+         *     opsional di item `landing.*` tidak ada kalau tidak dikirim saat `PUT /pengaturan`; `gambar_url` selalu ada
          */
         get: operations["publik.profil"];
         put?: never;
@@ -1838,7 +1839,7 @@ export interface components {
             jenis_kelamin: components["schemas"]["JenisKelamin"];
             tanggal_lahir: string;
             kelas: {
-                id: string;
+                id: number;
                 nama: string;
             } | null;
             foto_url: string | null;
@@ -2228,18 +2229,19 @@ export interface components {
             tanggal_masuk: string;
             tanggal_keluar: string | null;
             kelas: {
-                id: string;
+                id: number;
                 nama: string;
-                tingkat: string;
+                tingkat: components["schemas"]["Tingkat"];
             } | null;
             wali?: {
                 id: number;
                 nama: string;
                 email: string;
                 no_hp: string | null;
-                hubungan: string;
-                is_kontak_utama: string;
-                tertaut_at: string;
+                hubungan: components["schemas"]["Hubungan"];
+                is_kontak_utama: boolean;
+                /** Format: date-time */
+                tertaut_at: string | null;
             }[];
             /** @description Hanya untuk Kepala Sekolah. */
             kode_tautan?: string | null;
@@ -2709,7 +2711,7 @@ export interface components {
                 nama_lengkap: string;
                 nama_panggilan: string;
                 kelas: {
-                    id: string;
+                    id: number;
                     nama: string;
                 } | null;
             };
@@ -2732,7 +2734,11 @@ export interface components {
             created_at: string | null;
             pembayaran?: components["schemas"]["PembayaranResource"][];
             /** @description Hanya di detail tagihan. */
-            rekening?: null;
+            rekening?: {
+                bank: string;
+                nomor: string;
+                atas_nama: string;
+            }[];
         };
         /** TahunAjaranResource */
         TahunAjaranResource: {
@@ -4254,10 +4260,10 @@ export interface operations {
                         message: "Berhasil";
                         data: components["schemas"]["GaleriAlbumResource"][];
                         meta: {
-                            current_page: string;
-                            per_page: string;
-                            total: string;
-                            last_page: string;
+                            current_page: number;
+                            per_page: number;
+                            total: number;
+                            last_page: number;
                         };
                     };
                 };
@@ -5029,10 +5035,10 @@ export interface operations {
                         message: "Berhasil";
                         data: (components["schemas"]["GuruResource"] & Record<string, never>)[];
                         meta: {
-                            current_page: string;
-                            per_page: string;
-                            total: string;
-                            last_page: string;
+                            current_page: number;
+                            per_page: number;
+                            total: number;
+                            last_page: number;
                         };
                     };
                 };
@@ -5759,10 +5765,10 @@ export interface operations {
                         message: "Berhasil";
                         data: (components["schemas"]["JenisTagihanResource"] & Record<string, never>)[];
                         meta: {
-                            current_page: string;
-                            per_page: string;
-                            total: string;
-                            last_page: string;
+                            current_page: number;
+                            per_page: number;
+                            total: number;
+                            last_page: number;
                         };
                     };
                 };
@@ -6156,10 +6162,10 @@ export interface operations {
                         message: "Berhasil";
                         data: (components["schemas"]["KegiatanKelasResource"] & Record<string, never>)[];
                         meta: {
-                            current_page: string;
-                            per_page: string;
-                            total: string;
-                            last_page: string;
+                            current_page: number;
+                            per_page: number;
+                            total: number;
+                            last_page: number;
                         };
                     };
                 };
@@ -6819,10 +6825,10 @@ export interface operations {
                         message: "Berhasil";
                         data: (components["schemas"]["KelasResource"] & Record<string, never>)[];
                         meta: {
-                            current_page: string;
-                            per_page: string;
-                            total: string;
-                            last_page: string;
+                            current_page: number;
+                            per_page: number;
+                            total: number;
+                            last_page: number;
                         };
                     };
                 };
@@ -7304,10 +7310,10 @@ export interface operations {
                         message: "Berhasil";
                         data: (components["schemas"]["KeringananResource"] & Record<string, never>)[];
                         meta: {
-                            current_page: string;
-                            per_page: string;
-                            total: string;
-                            last_page: string;
+                            current_page: number;
+                            per_page: number;
+                            total: number;
+                            last_page: number;
                         };
                     };
                 };
@@ -8008,10 +8014,10 @@ export interface operations {
                         message: "Berhasil";
                         data: components["schemas"]["LogAktivitasResource"][];
                         meta: {
-                            current_page: string;
-                            per_page: string;
-                            total: string;
-                            last_page: string;
+                            current_page: number;
+                            per_page: number;
+                            total: number;
+                            last_page: number;
                         };
                     };
                 };
@@ -8160,10 +8166,10 @@ export interface operations {
                         message: "Berhasil";
                         data: components["schemas"]["MuridResource"][];
                         meta: {
-                            current_page: string;
-                            per_page: string;
-                            total: string;
-                            last_page: string;
+                            current_page: number;
+                            per_page: number;
+                            total: number;
+                            last_page: number;
                         };
                     };
                 };
@@ -8834,10 +8840,10 @@ export interface operations {
                         message: "Berhasil";
                         data: components["schemas"]["NotifikasiResource"][];
                         meta: {
-                            current_page: string;
-                            per_page: string;
-                            total: string;
-                            last_page: string;
+                            current_page: number;
+                            per_page: number;
+                            total: number;
+                            last_page: number;
                         };
                     };
                 };
@@ -9479,10 +9485,10 @@ export interface operations {
                         message: "Berhasil";
                         data: (components["schemas"]["PembayaranResource"] & Record<string, never>)[];
                         meta: {
-                            current_page: string;
-                            per_page: string;
-                            total: string;
-                            last_page: string;
+                            current_page: number;
+                            per_page: number;
+                            total: number;
+                            last_page: number;
                         };
                     };
                 };
@@ -10160,10 +10166,10 @@ export interface operations {
                         message: "Berhasil";
                         data: (components["schemas"]["PendaftaranResource"] & Record<string, never>)[];
                         meta: {
-                            current_page: string;
-                            per_page: string;
-                            total: string;
-                            last_page: string;
+                            current_page: number;
+                            per_page: number;
+                            total: number;
+                            last_page: number;
                         };
                     };
                 };
@@ -11031,10 +11037,10 @@ export interface operations {
                         message: "Berhasil";
                         data: (components["schemas"]["PengumumanResource"] & Record<string, never>)[];
                         meta: {
-                            current_page: string;
-                            per_page: string;
-                            total: string;
-                            last_page: string;
+                            current_page: number;
+                            per_page: number;
+                            total: number;
+                            last_page: number;
                         };
                     };
                 };
@@ -11765,10 +11771,43 @@ export interface operations {
                 content: {
                     "application/json": {
                         success: boolean;
-                        /** @constant */
-                        message: "Berhasil";
+                        message: string;
                         data: {
-                            [key: string]: unknown;
+                            "profil.nama_sekolah": string;
+                            "profil.npsn": string | null;
+                            "profil.alamat": string | null;
+                            "profil.telepon": string | null;
+                            "profil.email": string | null;
+                            "profil.maps_embed_url": string | null;
+                            "profil.logo": string | null;
+                            "profil.logo_url": string | null;
+                            "profil.visi": string | null;
+                            "profil.misi": string[];
+                            "profil.sejarah": string | null;
+                            "profil.sambutan_kepsek": string | null;
+                            "landing.hero": {
+                                judul: string;
+                                subjudul?: string | null;
+                                gambar?: string | null;
+                                cta_teks?: string | null;
+                                gambar_url: string | null;
+                            };
+                            "landing.program": {
+                                judul: string;
+                                deskripsi?: string | null;
+                                ikon: string;
+                            }[];
+                            "landing.fasilitas": {
+                                nama: string;
+                                deskripsi?: string | null;
+                                gambar?: string | null;
+                                gambar_url: string | null;
+                            }[];
+                            "landing.keunggulan": {
+                                judul: string;
+                                deskripsi?: string | null;
+                                ikon: string;
+                            }[];
                         };
                         meta: null;
                     };
@@ -11814,10 +11853,10 @@ export interface operations {
                         message: "Berhasil";
                         data: components["schemas"]["PengumumanPublikResource"][];
                         meta: {
-                            current_page: string;
-                            per_page: string;
-                            total: string;
-                            last_page: string;
+                            current_page: number;
+                            per_page: number;
+                            total: number;
+                            last_page: number;
                         };
                     };
                 };
@@ -11995,10 +12034,10 @@ export interface operations {
                         message: "Berhasil";
                         data: components["schemas"]["GaleriAlbumResource"][];
                         meta: {
-                            current_page: string;
-                            per_page: string;
-                            total: string;
-                            last_page: string;
+                            current_page: number;
+                            per_page: number;
+                            total: number;
+                            last_page: number;
                         };
                     };
                 };
@@ -12424,10 +12463,10 @@ export interface operations {
                         message: "Berhasil";
                         data: (components["schemas"]["RaporResource"] & Record<string, never>)[];
                         meta: {
-                            current_page: string;
-                            per_page: string;
-                            total: string;
-                            last_page: string;
+                            current_page: number;
+                            per_page: number;
+                            total: number;
+                            last_page: number;
                         };
                     };
                 };
@@ -13487,10 +13526,10 @@ export interface operations {
                         message: "Berhasil";
                         data: (components["schemas"]["TagihanResource"] & Record<string, never>)[];
                         meta: {
-                            current_page: string;
-                            per_page: string;
-                            total: string;
-                            last_page: string;
+                            current_page: number;
+                            per_page: number;
+                            total: number;
+                            last_page: number;
                         };
                     };
                 };
@@ -13779,10 +13818,10 @@ export interface operations {
                         message: "Berhasil";
                         data: components["schemas"]["TahunAjaranResource"][];
                         meta: {
-                            current_page: string;
-                            per_page: string;
-                            total: string;
-                            last_page: string;
+                            current_page: number;
+                            per_page: number;
+                            total: number;
+                            last_page: number;
                         };
                     };
                 };
@@ -14261,10 +14300,10 @@ export interface operations {
                         message: "Berhasil";
                         data: (components["schemas"]["WaliMuridResource"] & Record<string, never>)[];
                         meta: {
-                            current_page: string;
-                            per_page: string;
-                            total: string;
-                            last_page: string;
+                            current_page: number;
+                            per_page: number;
+                            total: number;
+                            last_page: number;
                         };
                     };
                 };

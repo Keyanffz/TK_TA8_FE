@@ -4,7 +4,6 @@ import { cache } from "react";
 
 import { buatApiError } from "@/lib/api/errors";
 import { bacaProfilPublik } from "@/lib/api/pengaturan";
-import { normalisasiMeta } from "@/lib/api/pagination";
 import { apiServer } from "@/lib/api/server";
 import { REVALIDATE_PUBLIK_DETIK, TAG_PUBLIK } from "@/lib/constants/sekolah";
 import { bulanJakarta, hariIniJakarta } from "@/lib/tanggal";
@@ -38,7 +37,7 @@ export async function ambilDaftarPengumuman(halaman: number, perHalaman: number)
     params: { query: { page: halaman, per_page: perHalaman } },
   });
   if (!data) throw buatApiError(response, error);
-  return { data: data.data, meta: normalisasiMeta(data.meta) };
+  return { data: data.data, meta: data.meta };
 }
 
 /** null kalau slug tidak ada atau pengumuman tidak publik. */
@@ -56,7 +55,7 @@ export async function ambilDaftarGaleri(halaman: number, perHalaman: number) {
     params: { query: { page: halaman, per_page: perHalaman } },
   });
   if (!data) throw buatApiError(response, error);
-  return { data: data.data, meta: normalisasiMeta(data.meta) };
+  return { data: data.data, meta: data.meta };
 }
 
 /** null kalau slug tidak ada atau album tidak publik. */

@@ -1,58 +1,10 @@
-import { z } from "zod";
+import type { operations } from "@/types/api";
 
-// api.json menulis data GET /public/profil sebagai objek bebas, jadi bentuknya
-// divalidasi di sini mengikuti kunci pengaturan A4. String kosong dianggap
-// belum diisi.
-const teksOpsional = z
-  .string()
-  .nullish()
-  .transform((nilai) => (nilai && nilai.trim() !== "" ? nilai : null));
+type ProfilPublikMentah =
+  operations["publik.profil"]["responses"][200]["content"]["application/json"]["data"];
 
-const daftar = <T extends z.ZodType>(item: T) =>
-  z
-    .array(item)
-    .nullish()
-    .transform((nilai) => nilai ?? []);
-
-const itemBerikon = z.object({
-  judul: z.string(),
-  deskripsi: teksOpsional,
-  ikon: teksOpsional,
-});
-
-const itemFasilitas = z.object({
-  nama: z.string(),
-  deskripsi: teksOpsional,
-  gambar_url: teksOpsional,
-});
-
-const skemaProfilPublik = z.object({
-  "profil.nama_sekolah": z.string(),
-  "profil.npsn": teksOpsional,
-  "profil.alamat": teksOpsional,
-  "profil.telepon": teksOpsional,
-  "profil.email": teksOpsional,
-  "profil.maps_embed_url": teksOpsional,
-  "profil.logo_url": teksOpsional,
-  "profil.visi": teksOpsional,
-  "profil.misi": daftar(z.string()),
-  "profil.sejarah": teksOpsional,
-  "profil.sambutan_kepsek": teksOpsional,
-  "landing.hero": z
-    .object({
-      judul: teksOpsional,
-      subjudul: teksOpsional,
-      gambar_url: teksOpsional,
-      cta_teks: teksOpsional,
-    })
-    .nullish(),
-  "landing.program": daftar(itemBerikon),
-  "landing.keunggulan": daftar(itemBerikon),
-  "landing.fasilitas": daftar(itemFasilitas),
-});
-
-export type ItemBerikon = z.output<typeof itemBerikon>;
-export type ItemFasilitas = z.output<typeof itemFasilitas>;
+export type ItemBerikon = { judul: string; deskripsi: string | null; ikon: string | null };
+export type ItemFasilitas = { nama: string; deskripsi: string | null; gambar_url: string | null };
 
 export type ProfilSekolah = {
   namaSekolah: string;
@@ -72,29 +24,42 @@ export type ProfilSekolah = {
   fasilitas: ItemFasilitas[];
 };
 
-export function bacaProfilPublik(data: unknown): ProfilSekolah {
-  const profil = skemaProfilPublik.parse(data);
+// Kunci yang belum diisi Kepala Sekolah berisi string kosong atau null. Keduanya
+// dianggap kosong supaya halaman tidak menampilkan elemen tanpa isi.
+function isi(teks: string | null | undefined): string | null {
+  return teks && teks.trim() !== "" ? teks : null;
+}
+
+function itemBerikon(item: { judul: string; deskripsi?: string | null; ikon: string }): ItemBerikon {
+  return { judul: item.judul, deskripsi: isi(item.deskripsi), ikon: isi(item.ikon) };
+}
+
+export function bacaProfilPublik(profil: ProfilPublikMentah): ProfilSekolah {
   const hero = profil["landing.hero"];
   return {
     namaSekolah: profil["profil.nama_sekolah"],
-    npsn: profil["profil.npsn"],
-    alamat: profil["profil.alamat"],
-    telepon: profil["profil.telepon"],
-    email: profil["profil.email"],
-    mapsEmbedUrl: profil["profil.maps_embed_url"],
-    logoUrl: profil["profil.logo_url"],
-    visi: profil["profil.visi"],
-    misi: profil["profil.misi"],
-    sejarah: profil["profil.sejarah"],
-    sambutanKepsek: profil["profil.sambutan_kepsek"],
+    npsn: isi(profil["profil.npsn"]),
+    alamat: isi(profil["profil.alamat"]),
+    telepon: isi(profil["profil.telepon"]),
+    email: isi(profil["profil.email"]),
+    mapsEmbedUrl: isi(profil["profil.maps_embed_url"]),
+    logoUrl: isi(profil["profil.logo_url"]),
+    visi: isi(profil["profil.visi"]),
+    misi: profil["profil.misi"].filter((misi) => misi.trim() !== ""),
+    sejarah: isi(profil["profil.sejarah"]),
+    sambutanKepsek: isi(profil["profil.sambutan_kepsek"]),
     hero: {
-      judul: hero?.judul ?? null,
-      subjudul: hero?.subjudul ?? null,
-      gambarUrl: hero?.gambar_url ?? null,
-      ctaTeks: hero?.cta_teks ?? null,
+      judul: isi(hero.judul),
+      subjudul: isi(hero.subjudul),
+      gambarUrl: isi(hero.gambar_url),
+      ctaTeks: isi(hero.cta_teks),
     },
-    program: profil["landing.program"],
-    keunggulan: profil["landing.keunggulan"],
-    fasilitas: profil["landing.fasilitas"],
+    program: profil["landing.program"].map(itemBerikon),
+    keunggulan: profil["landing.keunggulan"].map(itemBerikon),
+    fasilitas: profil["landing.fasilitas"].map((item) => ({
+      nama: item.nama,
+      deskripsi: isi(item.deskripsi),
+      gambar_url: isi(item.gambar_url),
+    })),
   };
 }

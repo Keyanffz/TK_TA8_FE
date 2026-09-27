@@ -48,8 +48,6 @@ export type ResponsError = {
   errors: Record<string, string[]> | null;
 };
 
-// api.json menulis field meta sebagai string, padahal backend mengirim angka.
-// Nilainya dinormalisasi lewat normalisasiMeta() di lib/api/pagination.ts.
 export type MetaPaginasi = {
   current_page: number;
   per_page: number;
