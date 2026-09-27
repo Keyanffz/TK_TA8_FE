@@ -8,7 +8,7 @@ Website publik dan dashboard sistem informasi TK Tarbiyathul Athfal 8 (TK Muslim
 |---|---|
 | 0. Analisis | Selesai, rencana disetujui (Arah desain A "Buku Cerita") |
 | 1. Fondasi | Selesai |
-| 2. Publik & auth | Belum |
+| 2. Publik & auth | Selesai, menunggu review desain (C7) |
 | 3. Shell dashboard | Belum |
 | 4. Master data | Belum |
 | 5. Keuangan | Belum |
@@ -111,10 +111,29 @@ Request dari Server Component ke endpoint publik (landing, ISR) tidak membawa `X
 - Sesi di React Query dengan key `['me']`, diisi dari server lewat `HydrationBoundary` di layout dashboard. `useSession()` → `{ user, role, isSuperAdmin, isGuru, isWali, bisaKelolaKeuangan }`.
 - Error terpusat di `src/lib/api/errors.ts`: `ApiError { status, code, message, errors }`, `pesanError()` untuk toast, `terapkanErrorValidasi()` memasang `errors` VALIDATION_ERROR ke field react-hook-form.
 
+## Keputusan Fase 2
+
+- Teks UI memakai sapaan "Anda", sama dengan pesan dari backend, supaya satu layar tidak mencampur "kamu" dan "Anda". (B3 memberi contoh "Kamu tidak punya akses"; menunggu konfirmasi.)
+- Data publik diambil di Server Component lewat `src/lib/api/publik.ts` dengan `revalidate` 300 detik dan tag per jenis data. `ambilProfilSekolah()` dibungkus `cache()` React karena dipanggil layout dan halaman.
+- Bentuk `GET /public/profil` divalidasi dengan zod (`src/lib/api/pengaturan.ts`) lalu diubah ke objek `ProfilSekolah`. String kosong dianggap belum diisi, jadi NPSN, peta, dan sambutan yang kosong di data demo tidak memunculkan elemen kosong.
+- Identitas "TK Muslimat NU Kota Semarang" tidak ada di kunci pengaturan A4, jadi disimpan sebagai konstanta `NAUNGAN_SEKOLAH` dan ditampilkan di footer, bagian profil, dan panel halaman auth.
+- Hero tanpa gambar CMS menampilkan logo sekolah di panel hijau muda. Foto guru yang belum diunggah diganti inisial nama. Fasilitas tanpa foto diberi label "Foto fasilitas belum diunggah".
+- Foto Kepala Sekolah di sambutan diambil dari `/public/guru` dengan jabatan "Kepala Sekolah" (backend menaruhnya paling depan).
+- Agenda di landing: agenda publik bulan ini dan bulan depan yang belum selesai (dibanding tanggal hari ini di Asia/Jakarta), paling banyak 4, disaring per id karena agenda lintas bulan muncul di dua bulan.
+- Galeri terbaru: komposisi mengikuti jumlah album (2 kolom sama besar untuk 1–2 album, mosaik untuk 3 atau 5 album).
+- Ikon program/keunggulan dari CMS dibatasi ke daftar `IKON_CMS` (28 ikon lucide, kunci kebab-case). Nama di luar daftar tidak ditampilkan. Daftar ini juga menjadi pilihan ikon di CMS Fase 7.
+- Peta hanya ditampilkan untuk URL `https` dengan host `www.google.com` atau `maps.google.com`.
+- HTML dari CMS/pengumuman dirender apa adanya (`KontenHtml`) karena backend sudah menyanitasinya dengan Purify; gayanya di kelas `.konten-html` (`globals.css`).
+- Skeleton `loading.tsx` hanya dipasang di route group `pengumuman/(daftar)` dan `galeri/(daftar)`. Kalau dipasang di level `(public)`, halaman detail sudah mengirim status 200 sebelum `notFound()` dipanggil, sehingga slug yang tidak ada tidak membalas 404.
+- Login: tab disimpan di query `?tab=` (nuqs) supaya halaman lain bisa menautkan langsung ke tab guru. Kode `ACCOUNT_PENDING` → `/menunggu-persetujuan`; `ACCOUNT_REJECTED`, `ACCOUNT_INACTIVE`, dan `TOO_MANY_REQUESTS` ditampilkan di atas form dengan pesan dari backend (termasuk alasan penolakan dan lama tunggu); `VALIDATION_ERROR` dipasang ke field.
+- `NEXT_PUBLIC_GOOGLE_CLIENT_ID` kosong → tab wali menampilkan pesan bahwa login Google belum disiapkan sekolah, tanpa memuat script Google.
+- Validasi form di browser mengikuti aturan backend (`src/lib/auth/skema.ts`): password minimal 8 karakter berisi huruf dan angka, nomor HP diawali 08 dengan 10–15 angka. Backend tetap pemeriksa akhir.
+- Pendaftaran guru, lupa password, dan reset password memanggil backend lewat `/api/proxy` (endpoint publik tanpa token).
+
 ## Temuan kontrak dari `api.json`
 
 - Field `meta` pada 18 endpoint berpaginasi bertipe `string` di OpenAPI, padahal backend mengirim angka. FE memakai tipe `MetaPaginasi` (angka) di `src/types/domain.ts` dan menormalisasinya lewat `normalisasiMeta()`. Perlu diperbaiki di anotasi Scramble backend.
-- `GET /public/profil` (dan `GET /pengaturan`) bertipe `{ [key: string]: unknown }`. FE akan menulis tipe dan validasi runtime sendiri untuk kunci pengaturan (A4) saat landing dibuat di Fase 2.
+- `GET /public/profil` (dan `GET /pengaturan`) bertipe `{ [key: string]: unknown }`. FE memvalidasinya dengan zod di `src/lib/api/pengaturan.ts` mengikuti kunci pengaturan A4.
 - `data` di `GET /dashboard` berupa `anyOf` tiga bentuk tanpa penanda role; bentuknya dipilih lewat role dari sesi (Fase 3).
 - `AnakWaliResource.kelas.id` bertipe `string` di OpenAPI, sedangkan di tempat lain id kelas bertipe `number`.
 - Enum `StatusKelasMurid` (A5) tidak diekspor sebagai skema, jadi ditulis manual di `domain.ts`.
@@ -152,15 +171,21 @@ Warna status (`src/lib/constants/status.ts`, token `status-*`): sukses `#075F0B`
 
 ## Peta route
 
-| Route | Akses | Status |
+| Route | Akses | Isi |
 |---|---|---|
-| `/` | publik | Fase 1: judul dari `profil.nama_sekolah`; landing lengkap di Fase 2 |
+| `/` | publik | Landing: hero, pita PPDB (jika dibuka), profil (sambutan, visi-misi, sejarah), program, keunggulan, fasilitas, guru, galeri terbaru, pengumuman + agenda, kontak + peta. Section yang datanya kosong di CMS tidak ditampilkan. ISR 5 menit. |
+| `/pengumuman`, `/pengumuman/[slug]` | publik | Daftar berpaginasi (`?page=`) dan detail pengumuman publik |
+| `/galeri`, `/galeri/[slug]` | publik | Daftar album berpaginasi dan detail album dengan lightbox (panah kiri/kanan, Esc) |
+| `/ppdb` | publik | Status buka/tutup, jadwal, kuota, sisa kuota, info HTML; tombol ke `/login?tab=wali&next=/dashboard/ppdb` |
+| `/login` | publik (sudah masuk → `/dashboard`) | Tab `?tab=wali` (Google) dan `?tab=guru` (email + password) |
+| `/daftar-guru`, `/lupa-password`, `/reset-password?token=&email=`, `/menunggu-persetujuan` | publik | Alur akun guru/Kepala Sekolah |
 | `/dashboard` | SA, G, W | Fase 1: sapaan + tombol keluar; beranda per role di Fase 3 |
-| `/api/auth/login`, `/api/auth/google`, `/api/auth/logout` | route handler | selesai |
-| `/api/auth/sesi-habis` | route handler | selesai |
-| `/api/proxy/[...path]` | route handler | selesai |
+| `/api/auth/login`, `/api/auth/google`, `/api/auth/logout`, `/api/auth/sesi-habis` | route handler | BFF sesi |
+| `/api/proxy/[...path]` | route handler | Proxy ke backend |
 
-Route lain mengikuti B4 dan ditambahkan per fase. `/api/auth/me` tidak dibuat (disetujui di Fase 0): sesi dibaca lewat `/api/proxy/auth/me`. `/api/revalidate` (disetujui di Fase 0) dibuat di Fase 7 bersama penyimpanan CMS.
+Route lain mengikuti B4 dan ditambahkan per fase. `/api/auth/me` tidak dibuat (disetujui di Fase 0): sesi dibaca lewat `/api/proxy/auth/me`. `/api/revalidate` (disetujui di Fase 0) dibuat di Fase 7 bersama penyimpanan CMS; tag cache publik sudah disiapkan di `TAG_PUBLIK` (`src/lib/constants/sekolah.ts`).
+
+Wali yang `profil_lengkap = false` diarahkan ke `/dashboard/onboarding` setelah login Google; halaman itu dibuat di Fase 3.
 
 ## Deploy
 
@@ -173,6 +198,39 @@ Tempat deploy belum ditentukan. Syarat yang sudah pasti:
 5. Batas body di reverse proxy minimal 55 MB (unggahan kegiatan 10 foto × 5 MB), sama dengan `post_max_size` backend.
 
 ## Changelog
+
+### Fase 2
+
+File baru:
+
+- `src/app/(public)/layout.tsx`, `page.tsx`, `error.tsx`, `not-found.tsx`, `pengumuman/(daftar)/{page,loading}.tsx`, `pengumuman/[slug]/page.tsx`, `galeri/(daftar)/{page,loading}.tsx`, `galeri/[slug]/page.tsx`, `ppdb/page.tsx`: halaman publik.
+- `src/app/(auth)/layout.tsx`, `login/page.tsx`, `daftar-guru/page.tsx`, `lupa-password/page.tsx`, `reset-password/page.tsx`, `menunggu-persetujuan/page.tsx`: halaman auth.
+- `src/app/not-found.tsx`: 404 untuk URL di luar layout publik.
+- `src/components/layout/publik/{navbar-publik,menu-publik-hp,footer-publik,tautan-publik}`: navbar (sheet di HP), footer.
+- `src/components/features/landing/{hero,pita-ppdb,profil-sekolah,program,keunggulan,fasilitas,daftar-guru,galeri-terbaru,pengumuman-agenda,kontak}.tsx`: section landing, masing-masing dengan komposisi sesuai isinya.
+- `src/components/features/galeri/grid-foto-galeri.tsx`: grid foto + lightbox.
+- `src/components/features/auth/{tab-login,form-login-guru,masuk-google,form-daftar-guru,form-lupa-password,form-reset-password}.tsx`.
+- `src/components/shared/{judul-bagian,judul-halaman,konten-html,avatar-inisial,logo-sekolah,kotak-pesan,empty-state,paginasi-tautan,blok-tanggal,kolom-teks}.tsx`.
+- `src/components/ui/{input,label,tabs,sheet,dialog,skeleton,radio-group,field,separator}.tsx`: dari shadcn, disesuaikan (input 44 px, tab 44 px, radio 20 px, overlay tanpa blur, label "Tutup", kelas dark mode dibuang).
+- `src/lib/api/{publik,pengaturan}.ts`, `src/lib/auth/{masuk,skema}.ts`, `src/lib/constants/{sekolah,ikon-cms}.ts`, `src/lib/{tanggal,html,halaman}.ts`.
+- `docs/review/fase-2/*.png`: screenshot untuk review desain.
+
+File yang diubah:
+
+- `src/app/page.tsx` dihapus (diganti `src/app/(public)/page.tsx`).
+- `src/app/globals.css`: gaya `.konten-html`.
+- `src/components/ui/button.tsx`: warna border dan ukuran teks dipindah ke varian supaya `buttonVariants()` yang dipakai langsung di `Link` tidak membawa kelas yang bertabrakan.
+- `src/app/dashboard/page.tsx`: sapaan "Anda".
+
+Pengujian Fase 2 (`next start` ke backend lokal, browser Firefox 155 headless lewat WebDriver BiDi):
+
+- Semua route publik dan auth membalas 200; `/tidak-ada`, `/pengumuman/tidak-ada`, `/galeri/tidak-ada` membalas 404.
+- Form login guru di browser: field kosong → "Email wajib diisi."; password salah → pesan backend di field email; akun `pending` → pindah ke `/menunggu-persetujuan`; akun benar → `/dashboard` menampilkan nama guru. Tombol Keluar → `/login`, cookie `tk_role` hilang.
+- Daftar guru: validasi browser menampilkan enam pesan field; email yang sudah dipakai → "Email sudah digunakan." dari backend di field email. Pendaftaran baru tidak dikirim supaya tidak menambah data di backend.
+- Lupa password dengan email tidak terdaftar → pesan netral. Reset dengan token palsu → pesan backend dan tautan ke lupa password.
+- Lightbox galeri terbuka dengan klik, menampilkan caption dan tombol sebelumnya/berikutnya. Menu HP terbuka lewat tombol.
+- Screenshot desktop 1440 px dan HP 390 px ada di `docs/review/fase-2/`.
+- Belum diuji: login Google (tidak ada `GOOGLE_CLIENT_ID`), tampilan dengan sambutan, fasilitas, keunggulan, logo, gambar hero, dan peta dari CMS (kosong di data demo), tampilan dengan foto guru (data demo tanpa foto). Pembaca layar belum dicoba; yang sudah dipastikan: label form terhubung ke input, pesan error terhubung lewat `aria-describedby`, tautan "Lewati ke konten", fokus terlihat.
 
 ### Fase 1
 
