@@ -1,0 +1,108 @@
+"use client";
+
+import { toast } from "sonner";
+
+import { AksiPersetujuanGuru } from "@/components/features/guru/aksi-persetujuan-guru";
+import { FormGuru } from "@/components/features/guru/form-guru";
+import { DialogKonfirmasi } from "@/components/shared/dialog-konfirmasi";
+import { FotoProfil } from "@/components/shared/foto-profil";
+import { GalatMuat } from "@/components/shared/galat-muat";
+import { KotakPesan } from "@/components/shared/kotak-pesan";
+import { StatusBadge } from "@/components/shared/status-badge";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useDetailGuru, useUbahGuru, useUbahStatusGuru } from "@/lib/api/guru";
+import { LABEL_STATUS_AKUN } from "@/lib/constants/label";
+import { NADA_STATUS_AKUN } from "@/lib/constants/status";
+import { formatTanggal, formatTanggalWaktu } from "@/lib/format";
+import type { Guru } from "@/types/domain";
+
+function AksiStatus({ guru }: { guru: Guru }) {
+  const ubahStatus = useUbahStatusGuru();
+  const { status, name } = guru.user;
+  if (guru.user.role === "super_admin") return null;
+  if (status === "pending") return <AksiPersetujuanGuru id={guru.id} nama={name} />;
+  if (status === "ditolak") return null;
+  const nonaktifkan = status === "aktif";
+  return (
+    <DialogKonfirmasi
+      pemicu={<Button variant={nonaktifkan ? "outline" : "secondary"}>{nonaktifkan ? "Nonaktifkan Akun" : "Aktifkan Akun"}</Button>}
+      judul={nonaktifkan ? `Nonaktifkan akun ${name}?` : `Aktifkan kembali akun ${name}?`}
+      deskripsi={
+        nonaktifkan
+          ? "Guru langsung dikeluarkan dari semua perangkat dan tidak bisa masuk sampai diaktifkan lagi. Data kelas dan kegiatan tetap ada."
+          : "Guru bisa masuk lagi dengan email dan password lamanya."
+      }
+      labelAksi={nonaktifkan ? "Nonaktifkan" : "Aktifkan"}
+      berbahaya={nonaktifkan}
+      onKonfirmasi={async () => {
+        await ubahStatus.mutateAsync({ id: guru.id, status: nonaktifkan ? "nonaktif" : "aktif" });
+        toast.success(nonaktifkan ? `Akun ${name} dinonaktifkan.` : `Akun ${name} aktif kembali.`);
+      }}
+    />
+  );
+}
+
+export function DetailGuru({ id }: { id: number }) {
+  const { data: guru, isPending, isError, error, refetch } = useDetailGuru(id);
+  const ubah = useUbahGuru(id);
+
+  if (isPending) return <Skeleton aria-label="Memuat data guru" className="h-96 rounded-xl" />;
+  if (isError) return <GalatMuat error={error} onCobaLagi={() => void refetch()} />;
+
+  return (
+    <div className="grid gap-6 lg:grid-cols-[320px_1fr] lg:items-start">
+      <aside className="flex flex-col gap-4 rounded-xl border border-border bg-card p-5 shadow-sm">
+        <div className="flex items-center gap-4">
+          <FotoProfil nama={guru.user.name} url={guru.foto_url} ukuran={72} className="size-18 text-xl" />
+          <div className="min-w-0">
+            <p className="font-heading text-lg leading-tight font-extrabold">{guru.user.name}</p>
+            <p className="text-sm text-muted-foreground">{guru.jabatan}</p>
+          </div>
+        </div>
+        <StatusBadge nada={NADA_STATUS_AKUN[guru.user.status]} className="self-start">
+          {LABEL_STATUS_AKUN[guru.user.status]}
+        </StatusBadge>
+        {guru.user.role === "super_admin" ? (
+          <KotakPesan nada="proses">Profil guru milik Kepala Sekolah. Status akun dan izin keuangan tidak bisa diubah.</KotakPesan>
+        ) : null}
+        {guru.user.status === "ditolak" && guru.alasan_penolakan ? (
+          <KotakPesan nada="bahaya" judul="Alasan penolakan">
+            {guru.alasan_penolakan}
+          </KotakPesan>
+        ) : null}
+        <dl className="grid gap-2 text-sm">
+          <div>
+            <dt className="text-muted-foreground">Terdaftar</dt>
+            <dd className="font-bold">{guru.created_at ? formatTanggal(guru.created_at) : "-"}</dd>
+          </div>
+          {guru.disetujui_at ? (
+            <div>
+              <dt className="text-muted-foreground">Disetujui</dt>
+              <dd className="font-bold">{formatTanggal(guru.disetujui_at)}</dd>
+            </div>
+          ) : null}
+          <div>
+            <dt className="text-muted-foreground">Terakhir masuk</dt>
+            <dd className="font-bold">{guru.user.last_login_at ? formatTanggalWaktu(guru.user.last_login_at) : "Belum pernah"}</dd>
+          </div>
+        </dl>
+        <AksiStatus guru={guru} />
+      </aside>
+      <section aria-labelledby="judul-data-guru" className="rounded-xl border border-border bg-card p-5 shadow-sm">
+        <h2 id="judul-data-guru" className="mb-5 text-lg font-extrabold">
+          Data guru
+        </h2>
+        <FormGuru
+          key={guru.id}
+          guru={guru}
+          labelSimpan="Simpan Perubahan"
+          kirim={async (body) => {
+            await ubah.mutateAsync(body);
+            toast.success("Data guru tersimpan.");
+          }}
+        />
+      </section>
+    </div>
+  );
+}
