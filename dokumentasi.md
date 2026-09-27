@@ -8,7 +8,7 @@ Website publik dan dashboard sistem informasi TK Tarbiyathul Athfal 8 (TK Muslim
 |---|---|
 | 0. Analisis | Selesai, rencana disetujui (Arah desain A "Buku Cerita") |
 | 1. Fondasi | Selesai |
-| 2. Publik & auth | Selesai, menunggu review desain (C7) |
+| 2. Publik & auth | Selesai; revisi setelah review (login terpisah, warna, font, gerak) menunggu review |
 | 3. Shell dashboard | Belum |
 | 4. Master data | Belum |
 | 5. Keuangan | Belum |
@@ -99,7 +99,7 @@ Request dari Server Component ke endpoint publik (landing, ISR) tidak membawa `X
 
 ### Route guard
 
-- `src/proxy.ts` (matcher `/dashboard/:path*` dan `/login`): tanpa cookie `tk_token` ke `/dashboard/*` → `/login?next=...`; sudah punya cookie buka `/login` → `/dashboard`. `/api` sengaja tidak dicocokkan karena proxy Next.js membatasi body 10 MB (`proxyClientMaxBodySize`), sedangkan unggahan kegiatan bisa lebih besar.
+- `src/proxy.ts` (matcher `/dashboard/:path*`, `/login`, `/login/:path*`): tanpa cookie `tk_token` ke `/dashboard/*` → `/login?next=...`; sudah punya cookie buka `/login` atau `/login/*` → `/dashboard`. `/api` sengaja tidak dicocokkan karena proxy Next.js membatasi body 10 MB (`proxyClientMaxBodySize`), sedangkan unggahan kegiatan bisa lebih besar.
 - `src/app/dashboard/layout.tsx` memanggil `ambilSesi()` (`GET /auth/me`, di-cache per request). Token ditolak (401 atau `ACCOUNT_*`) → `/api/auth/sesi-habis`.
 - Otorisasi sebenarnya tetap di backend.
 
@@ -113,11 +113,11 @@ Request dari Server Component ke endpoint publik (landing, ISR) tidak membawa `X
 
 ## Keputusan Fase 2
 
-- Teks UI memakai sapaan "Anda", sama dengan pesan dari backend, supaya satu layar tidak mencampur "kamu" dan "Anda". (B3 memberi contoh "Kamu tidak punya akses"; menunggu konfirmasi.)
+- Teks UI memakai sapaan "Anda", sama dengan pesan dari backend (disetujui saat review; B3 dan aturan kerja di `PROMPT_FE_TK.md` sudah disesuaikan).
 - Data publik diambil di Server Component lewat `src/lib/api/publik.ts` dengan `revalidate` 300 detik dan tag per jenis data. `ambilProfilSekolah()` dibungkus `cache()` React karena dipanggil layout dan halaman.
-- Bentuk `GET /public/profil` divalidasi dengan zod (`src/lib/api/pengaturan.ts`) lalu diubah ke objek `ProfilSekolah`. String kosong dianggap belum diisi, jadi NPSN, peta, dan sambutan yang kosong di data demo tidak memunculkan elemen kosong.
+- `GET /public/profil` dibaca dari tipe hasil generate lalu diubah ke objek `ProfilSekolah` (`src/lib/api/pengaturan.ts`). String kosong dianggap belum diisi, jadi NPSN, peta, dan sambutan yang kosong di data demo tidak memunculkan elemen kosong.
 - Identitas "TK Muslimat NU Kota Semarang" tidak ada di kunci pengaturan A4, jadi disimpan sebagai konstanta `NAUNGAN_SEKOLAH` dan ditampilkan di footer, bagian profil, dan panel halaman auth.
-- Hero tanpa gambar CMS menampilkan logo sekolah di panel hijau muda. Foto guru yang belum diunggah diganti inisial nama. Fasilitas tanpa foto diberi label "Foto fasilitas belum diunggah".
+- Hero tanpa gambar CMS menampilkan logo sekolah di lingkaran putih dengan sembilan bintang; kalau ada gambar, foto dipotong berbentuk perisai logo. Section guru hanya tampil kalau minimal satu guru punya foto; guru tanpa foto tampil kecil (inisial + nama) di bawah potret. Fasilitas tanpa foto diberi label "Foto fasilitas belum diunggah".
 - Foto Kepala Sekolah di sambutan diambil dari `/public/guru` dengan jabatan "Kepala Sekolah" (backend menaruhnya paling depan).
 - Agenda di landing: agenda publik bulan ini dan bulan depan yang belum selesai (dibanding tanggal hari ini di Asia/Jakarta), paling banyak 4, disaring per id karena agenda lintas bulan muncul di dua bulan.
 - Galeri terbaru: komposisi mengikuti jumlah album (2 kolom sama besar untuk 1–2 album, mosaik untuk 3 atau 5 album).
@@ -125,46 +125,70 @@ Request dari Server Component ke endpoint publik (landing, ISR) tidak membawa `X
 - Peta hanya ditampilkan untuk URL `https` dengan host `www.google.com` atau `maps.google.com`.
 - HTML dari CMS/pengumuman dirender apa adanya (`KontenHtml`) karena backend sudah menyanitasinya dengan Purify; gayanya di kelas `.konten-html` (`globals.css`).
 - Skeleton `loading.tsx` hanya dipasang di route group `pengumuman/(daftar)` dan `galeri/(daftar)`. Kalau dipasang di level `(public)`, halaman detail sudah mengirim status 200 sebelum `notFound()` dipanggil, sehingga slug yang tidak ada tidak membalas 404.
-- Login: tab disimpan di query `?tab=` (nuqs) supaya halaman lain bisa menautkan langsung ke tab guru. Kode `ACCOUNT_PENDING` → `/menunggu-persetujuan`; `ACCOUNT_REJECTED`, `ACCOUNT_INACTIVE`, dan `TOO_MANY_REQUESTS` ditampilkan di atas form dengan pesan dari backend (termasuk alasan penolakan dan lama tunggu); `VALIDATION_ERROR` dipasang ke field.
-- `NEXT_PUBLIC_GOOGLE_CLIENT_ID` kosong → tab wali menampilkan pesan bahwa login Google belum disiapkan sekolah, tanpa memuat script Google.
+- Login dipisah (revisi review Fase 2): `/login` halaman pilihan, `/login/wali` (Google), `/login/guru` (email + password). `?next=` dibawa dari halaman pilihan. Semua tautan memakai `RUTE_LOGIN`/`urlLogin()` (`src/lib/auth/rute-login.ts`). Kode `ACCOUNT_PENDING` → `/menunggu-persetujuan`; `ACCOUNT_REJECTED`, `ACCOUNT_INACTIVE`, dan `TOO_MANY_REQUESTS` ditampilkan di atas form dengan pesan dari backend (termasuk alasan penolakan dan lama tunggu); `VALIDATION_ERROR` dipasang ke field.
+- `NEXT_PUBLIC_GOOGLE_CLIENT_ID` kosong → `/login/wali` menampilkan pesan bahwa login Google belum disiapkan sekolah, tanpa memuat script Google.
 - Validasi form di browser mengikuti aturan backend (`src/lib/auth/skema.ts`): password minimal 8 karakter berisi huruf dan angka, nomor HP diawali 08 dengan 10–15 angka. Backend tetap pemeriksa akhir.
 - Pendaftaran guru, lupa password, dan reset password memanggil backend lewat `/api/proxy` (endpoint publik tanpa token).
 
 ## Temuan kontrak dari `api.json`
 
-- Field `meta` pada 18 endpoint berpaginasi bertipe `string` di OpenAPI, padahal backend mengirim angka. FE memakai tipe `MetaPaginasi` (angka) di `src/types/domain.ts` dan menormalisasinya lewat `normalisasiMeta()`. Perlu diperbaiki di anotasi Scramble backend.
-- `GET /public/profil` (dan `GET /pengaturan`) bertipe `{ [key: string]: unknown }`. FE memvalidasinya dengan zod di `src/lib/api/pengaturan.ts` mengikuti kunci pengaturan A4.
-- `data` di `GET /dashboard` berupa `anyOf` tiga bentuk tanpa penanda role; bentuknya dipilih lewat role dari sesi (Fase 3).
-- `AnakWaliResource.kelas.id` bertipe `string` di OpenAPI, sedangkan di tempat lain id kelas bertipe `number`.
+Sudah diperbaiki backend (branch `be/fix-openapi`) dan dipakai lewat `npm run gen:api`: tipe `meta` paginasi, bentuk `GET /public/profil`, `kelas.id` number, `MuridResource.wali[]`, dan `rekening` di detail tagihan. `normalisasiMeta()` dan validasi zod profil publik sudah dihapus.
+
+Yang masih berlaku:
+
+- `data` di `GET /dashboard` berupa `anyOf` tiga bentuk tanpa penanda role; bentuknya dipilih lewat role dari sesi.
 - Enum `StatusKelasMurid` (A5) tidak diekspor sebagai skema, jadi ditulis manual di `domain.ts`.
 
 ## Desain visual
 
-Arah A "Buku Cerita", disesuaikan dengan logo sekolah (`public/logo-tk-asli.jpeg`: hijau NU sekitar `#0D8905`, kuning bintang sekitar `#FFF001`).
+Arah A "Buku Cerita", direvisi setelah review Fase 1–2: bukan minimalis lagi. Hijau logo menjadi warna dominan (navbar, hero, panel login, blok visi-misi, kontak), kuning bintang logo sebagai aksen, dan ornamen diambil dari identitas sekolah.
 
 | Token | Nilai | Kontras | Dipakai untuk |
 |---|---|---|---|
-| `primary` | `#0A7A0A` | putih di atasnya 5,52:1; di atas `background` 5,21:1 | tombol utama, tautan, fokus |
-| `primary-strong` | `#075F0B` | putih 7,92:1 | hover tombol, teks status lunas |
-| `primary-soft` | `#E7F3E4` | teks `primary-strong` di atasnya 6,9:1 | latar badge, sorotan |
-| `highlight` | `#F9D923` | teks `highlight-foreground` `#3A3000` 9,35:1 | pita PPDB, garis bawah judul, tombol CTA kuning |
-| `highlight-soft` | `#FFF7CC` | | latar info kuning |
+| `primary` | `#0D8905` (hijau logo) | putih di atasnya 4,57:1 | blok besar (navbar, hero, panel login, header), tombol utama, teks besar |
+| `primary-strong` | `#0A6E04` | di atas `background` 6,10:1; putih 6,47:1 | hover tombol, teks/tautan hijau kecil di latar terang, fokus (`ring`) |
+| `primary-deep` | `#07520A` | putih 9,46:1; `bintang` 7,98:1 | footer, blok gelap, tombol di atas kuning |
+| `primary-soft` / `primary-soft-strong` | `#E6F4E1` / `#D3EBCB` | `primary-strong` di atasnya 5,67:1 | latar badge, section galeri |
+| `highlight` | `#FFE600` | teks `highlight-foreground` `#3A3000` 10,34:1 | tombol CTA kuning, pita PPDB, kartu wali |
+| `highlight-soft` / `highlight-strong` | `#FFF8C2` / `#F2D500` | | latar info kuning / hover |
+| `bintang` | `#FFF001` (kuning logo) | di atas `primary` 3,85:1 | hanya ornamen dan ikon di atas hijau, bukan teks kecil |
 | `background` | `#FBF8F1` | teks `foreground` `#1F2A24` 13,99:1 | latar halaman (krem) |
 | `card` | `#FFFFFF` | | kartu |
 | `muted-foreground` | `#5F6B63` | 5,25:1 di atas `background` | teks sekunder |
 | `border` / `input` | `#E4DFD3` / `#D6D0C2` | | garis |
 | `destructive` | `#B42318` | putih 6,57:1 | aksi hapus, status terlambat |
 
-Warna logo asli (`#0D8905`) hanya 4,57:1 dengan teks putih, terlalu tipis untuk teks kecil, jadi `primary` digelapkan sedikit dengan rona yang sama. Kuning logo (`#FFF001`) hampir tidak terlihat di atas latar krem, jadi `highlight` dibuat sedikit lebih hangat dan pekat.
+`#0D8905` di atas krem hanya 4,31:1, jadi teks hijau berukuran kecil di latar terang selalu memakai `primary-strong`. `primary` tetap boleh untuk teks besar (judul, angka besar) dan ornamen.
 
-Warna status (`src/lib/constants/status.ts`, token `status-*`): sukses `#075F0B`/`#E7F3E4`, menunggu `#8A5A00`/`#FDF1D3`, bahaya `#B42318`/`#FDE8E6`, proses `#3E5C76`/`#E6EDF3`, netral `#5F6B63`/`#EEEDE8`. Semua di atas 4,5:1.
+Warna status (`src/lib/constants/status.ts`, token `status-*`): sukses `#0A6E04`/`#E6F4E1`, menunggu `#8A5A00`/`#FDF1D3`, bahaya `#B42318`/`#FDE8E6`, proses `#3E5C76`/`#E6EDF3`, netral `#5F6B63`/`#EEEDE8`. Semua di atas 4,5:1.
 
-- Font: judul Fraunces (sumbu `SOFT` 100 dan `opsz`), teks Plus Jakarta Sans, keduanya lewat `next/font/google`.
-- Skala tipografi 6 ukuran (Tailwind `--text-*` direset): `xs` 12, `sm` 14, `base` 16, `lg` 20, `xl` 28, `2xl` 40 px.
+### Font
+
+Judul dan tombol **Baloo 2** (500–800), teks **Andika** (400, 700), keduanya lewat `next/font/google`. Pratinjau tiga kandidat ada di `docs/review/font/` (`index.html` dan screenshot `pasangan-*.png`):
+
+| Pasangan | Catatan |
+|---|---|
+| A. Baloo 2 + Andika (dipakai) | Baloo 2 bulat dan tebal, terasa ramah anak tanpa jadi kartun. Andika dirancang SIL untuk pembaca pemula: bentuk a dan g seperti tulisan tangan di sekolah, l/I/1 dan 0/O mudah dibedakan, tetap jelas di HP. Angka rupiah rata dan tidak bergaya aneh. |
+| B. Grandstander + Atkinson Hyperlegible Next | Judul lebih jenaka, tetapi Atkinson memakai angka nol bergaris miring yang terasa teknis untuk nominal rupiah. |
+| C. Sour Gummy + Lexend | Paling "permen"; angka Sour Gummy (7, 2) kurang tegas untuk nominal uang di kartu tagihan. |
+
+Andika hanya punya bobot 400 dan 700, jadi `font-semibold` tampil sebagai 700.
+
+### Ornamen dan gerak
+
+- Ornamen (`src/components/shared/ornamen/`): `Bintang` dan `TaburanBintang` (bintang lima sudut dari logo, berkelip atau melayang), `BentukPerisai` (tepi bergelombang delapan lekuk seperti bingkai logo; juga dipakai sebagai mask foto lewat `GAYA_MASKER_PERISAI`), `OrbitLogo` (logo/foto dikelilingi sembilan bintang seperti susunan di logo), `PolaGeometri` (pola bintang delapan khas geometri Islami, tipis di atas hijau), `Sulur` (garis bawah judul yang digambar lalu daunnya tumbuh), `TepiBergelombang` (peralihan antar blok warna).
+- Efek muncul lewat `<Muncul efek>` (`src/components/shared/muncul.tsx`, IntersectionObserver lewat callback ref). Efek berbeda per jenis konten: `pop` (kartu program, kontak), `jatuh` (foto galeri dan fasilitas seperti foto cetak), `balik` (kalender agenda), `geser` (misi, pengumuman, keunggulan), `gambar` (sulur). Anak elemen muncul bergiliran 80 ms. Elemen yang sudah terlihat saat dimuat tidak dianimasikan (tanpa kedipan), dan tanpa JavaScript konten tetap tampil.
+- `AngkaNaik` menghitung bilangan bulat dari 0 memakai CSS `@property --angka` (tanpa JavaScript); pembaca layar membaca angka aslinya. Tidak dipakai untuk nominal uang.
+- Hover/tekan: kartu terangkat dan lurus (`.angkat`, 220 ms), bintang berputar, tombol mengecil sedikit saat ditekan. Kelas gerak dekoratif (`gerak-*`, efek muncul, hitung) hanya aktif di `@media (prefers-reduced-motion: no-preference)`; dengan `reduce`, semua transisi dipendekkan ke 0,01 ms.
+- Tidak ada paket animasi tambahan.
+
+### Lainnya
+
+- Skala tipografi 6 ukuran (Tailwind `--text-*` direset): `xs` 12, `sm` 14, `base` 16, `lg` 20, `xl` 28, `2xl` 44 px (sebelumnya 40; Baloo 2 tampak lebih kecil dari Fraunces pada ukuran yang sama).
 - Radius: `--radius` 12 px (kartu); `rounded-md` 10 px (tombol, input); `rounded-sm` 6 px.
 - Bayangan dua tingkat (`--shadow-*` direset): `shadow-sm`, `shadow-md`.
 - Spasi memakai skala bawaan Tailwind (kelipatan 4 px).
-- Fokus: outline 2 px warna `ring`. `prefers-reduced-motion` mematikan animasi dan transisi.
+- Fokus: outline 2 px warna `ring`.
 - Light mode saja; blok `.dark` bawaan shadcn dihapus.
 - Logo: `public/logo-tk.png` (512 px, latar transparan, dipotong mengikuti lingkaran) untuk cadangan kalau `profil.logo` di CMS belum diisi. Favicon dari logo yang sama: `src/app/favicon.ico` (16/32/48), `src/app/icon.png` (192), `src/app/apple-icon.png` (180, latar putih).
 - Nama sekolah selalu dari `profil.nama_sekolah`. Nilai tetap hanya ada di metadata default `src/app/layout.tsx` sebagai cadangan.
@@ -176,8 +200,10 @@ Warna status (`src/lib/constants/status.ts`, token `status-*`): sukses `#075F0B`
 | `/` | publik | Landing: hero, pita PPDB (jika dibuka), profil (sambutan, visi-misi, sejarah), program, keunggulan, fasilitas, guru, galeri terbaru, pengumuman + agenda, kontak + peta. Section yang datanya kosong di CMS tidak ditampilkan. ISR 5 menit. |
 | `/pengumuman`, `/pengumuman/[slug]` | publik | Daftar berpaginasi (`?page=`) dan detail pengumuman publik |
 | `/galeri`, `/galeri/[slug]` | publik | Daftar album berpaginasi dan detail album dengan lightbox (panah kiri/kanan, Esc) |
-| `/ppdb` | publik | Status buka/tutup, jadwal, kuota, sisa kuota, info HTML; tombol ke `/login?tab=wali&next=/dashboard/ppdb` |
-| `/login` | publik (sudah masuk → `/dashboard`) | Tab `?tab=wali` (Google) dan `?tab=guru` (email + password) |
+| `/ppdb` | publik | Status buka/tutup, jadwal, kuota, sisa kuota, info HTML; tombol ke `/login/wali?next=/dashboard/ppdb` |
+| `/login` | publik (sudah masuk → `/dashboard`) | Pilihan "Orang Tua / Wali Murid" atau "Guru & Kepala Sekolah"; `?next=` diteruskan |
+| `/login/wali` | publik (sudah masuk → `/dashboard`) | Login Google wali murid |
+| `/login/guru` | publik (sudah masuk → `/dashboard`) | Email + password, tautan daftar guru dan lupa password |
 | `/daftar-guru`, `/lupa-password`, `/reset-password?token=&email=`, `/menunggu-persetujuan` | publik | Alur akun guru/Kepala Sekolah |
 | `/dashboard` | SA, G, W | Fase 1: sapaan + tombol keluar; beranda per role di Fase 3 |
 | `/api/auth/login`, `/api/auth/google`, `/api/auth/logout`, `/api/auth/sesi-habis` | route handler | BFF sesi |
@@ -198,6 +224,35 @@ Tempat deploy belum ditentukan. Syarat yang sudah pasti:
 5. Batas body di reverse proxy minimal 55 MB (unggahan kegiatan 10 foto × 5 MB), sama dengan `post_max_size` backend.
 
 ## Changelog
+
+### Revisi setelah review Fase 1–2
+
+File baru:
+
+- `src/app/(auth)/login/wali/page.tsx`, `src/app/(auth)/login/guru/page.tsx`: halaman login per jenis akun.
+- `src/components/features/auth/{ilustrasi-login,kembali-ke-pilihan}.tsx`: ilustrasi kartu pilihan login (orang tua menggandeng anak, buku terbuka dari logo) dan tautan kembali.
+- `src/lib/auth/rute-login.ts`: `RUTE_LOGIN` dan `urlLogin()`.
+- `src/components/shared/ornamen/{bintang,perisai,orbit-logo,pola-geometri,sulur,tepi-bergelombang}.tsx`, `src/components/shared/{muncul,angka-naik}.tsx`: ornamen dan gerak.
+- `docs/review/font/`: pratinjau tiga pasangan font. `docs/review/fase-2-revisi/`: screenshot landing (desktop, HP), `/login`, `/login/wali`, `/login/guru`.
+
+File yang diubah:
+
+- `src/types/api.d.ts`: generate ulang dari `api.json` backend yang sudah diperbaiki. `src/lib/api/pengaturan.ts` membaca tipe hasil generate (zod dihapus); `src/lib/api/pagination.ts` dihapus; `src/lib/api/publik.ts` memakai `meta` apa adanya.
+- `package-lock.json`: disinkronkan dengan npm 11 (`npm ci` gagal karena `@emnapi/core` dan `@emnapi/runtime` tidak tercatat). Versi paket langsung tidak berubah.
+- `src/app/globals.css`: token warna baru, font, skala `2xl`, kelas gerak dan keyframe. `src/app/layout.tsx`: Baloo 2 + Andika, `themeColor` hijau logo.
+- `src/components/ui/button.tsx`: font Baloo 2, varian `terang` (garis putih di atas hijau), efek tekan. `src/components/ui/field.tsx` dan tautan di form auth serta halaman publik: `text-primary-strong` untuk teks hijau kecil.
+- `src/app/(auth)/layout.tsx`, `login/page.tsx`: panel hijau dengan pola, bintang, dan logo berorbit; di HP diganti pita hijau bertepi gelombang. `tab-login.tsx` dihapus.
+- `src/proxy.ts`, `src/app/api/auth/sesi-habis/route.ts`, `src/components/providers.tsx`, `src/components/features/auth/{tombol-keluar,form-*}.tsx`, `menunggu-persetujuan/page.tsx`, `ppdb/page.tsx`, navbar, footer: tautan dan redirect ke login baru.
+- `src/components/features/landing/*`, `src/components/shared/{judul-bagian,judul-halaman,blok-tanggal}.tsx`, `src/components/layout/publik/*`, `src/lib/format.ts` (`rentangTanggal`): tampilan landing dan halaman publik (lihat "Ornamen dan gerak").
+- `PROMPT_FE_TK.md`: B8 dan C7 (aturan gerak dan warna baru), B4 (login terpisah), sapaan "Anda".
+
+Pengujian revisi (`next start` ke backend lokal di container cloud, Chromium headless lewat Playwright):
+
+- `lint`, `typecheck`, `build`, `check:slop` bersih.
+- Tanpa cookie ke `/dashboard/tagihan` → 307 `/login?next=%2Fdashboard%2Ftagihan`. Dengan cookie ke `/login`, `/login/wali`, `/login/guru` → 307 `/dashboard`. `/login?next=/dashboard/ppdb` menautkan ke `/login/wali?next=%2Fdashboard%2Fppdb` dan `/login/guru?next=...`; `?next=//evil.com` diganti `/dashboard`.
+- Screenshot desktop 1440 px dan HP 390 px diambil setelah halaman digulir sampai bawah (supaya efek muncul selesai).
+- Belum diuji: tampilan dengan foto guru, gambar hero, dan fasilitas dari CMS (data demo kosong); perilaku di Safari dan Firefox (hanya Chromium di container).
+- `prefers-reduced-motion` diemulasikan di Chromium: dengan `reduce`, tidak ada elemen `data-siap` (isi di bawah layar tetap opacity 1) dan animasi bintang `none`; dengan `no-preference`, 6 grup di bawah layar menunggu (opacity 0) dan bintang berkelip.
 
 ### Fase 2
 
