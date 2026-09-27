@@ -587,7 +587,6 @@ Pakai **versi stabil terbaru** saat pengerjaan, cek kompatibilitas di Fase 0.
 | Grafik | Recharts (via komponen chart shadcn) |
 | State filter di URL | `nuqs` (filter, search, page tersimpan di query string) |
 | Tipe API | `openapi-typescript` + `openapi-fetch` dari `api.json` hasil Scramble BE |
-| Login Google | `@react-oauth/google` (tombol Google Identity Services → dapat `credential`/ID token) |
 | Rich text | Tiptap (StarterKit + Link + Underline) untuk pengumuman & konten CMS |
 | Tanggal | `date-fns` + locale `id` |
 | Toast | `sonner` |
@@ -598,10 +597,10 @@ Pakai **versi stabil terbaru** saat pengerjaan, cek kompatibilitas di Fase 0.
 ```
 src/
   app/
-    (public)/            # landing, pengumuman, galeri, ppdb
+    (public)/            # landing, pengumuman, galeri, ppdb (info, daftar, status)
     (auth)/              # login, daftar-guru, lupa-password, reset-password, menunggu-persetujuan
     dashboard/           # layout dashboard + semua halaman role
-    api/auth/            # route handler BFF: login, google, logout, me
+    api/auth/            # route handler BFF: login, login-wali, logout, sesi-habis
     api/proxy/[...path]/ # route handler: teruskan request ke BE + Bearer dari cookie
   components/
     ui/                  # shadcn
@@ -621,35 +620,37 @@ src/
 
 ## B3. Autentikasi (pola BFF, token tidak pernah disentuh JavaScript browser)
 
-- `POST /api/auth/login` & `POST /api/auth/google` (route handler Next.js) memanggil BE `/auth/login` / `/auth/google`, lalu menyimpan token di cookie **httpOnly, secure (production), sameSite=lax**, nama `tk_token`, umur 30 hari. Simpan juga cookie non-httpOnly `tk_role` (hanya nilai role, untuk redirect cepat).
+- `POST /api/auth/login` & `POST /api/auth/login-wali` (route handler Next.js) memanggil BE `/auth/login` / `/auth/login-wali`, lalu menyimpan token di cookie **httpOnly, secure (production), sameSite=lax**, nama `tk_token`, umur 30 hari. Simpan juga cookie non-httpOnly `tk_role` (hanya nilai role, untuk redirect cepat).
 - `POST /api/auth/logout`: panggil BE `/auth/logout`, hapus kedua cookie.
 - Semua request data dari browser lewat `/api/proxy/[...path]` yang menambahkan `Authorization: Bearer` dari cookie dan meneruskan method, query, body (termasuk multipart) dan **stream file** (PDF, bukti, export Excel) apa adanya. Respons 401 dari BE → hapus cookie, FE redirect ke `/login`.
 - Server Component yang butuh data boleh fetch langsung ke BE dengan token dari `cookies()`.
 - Route guard (middleware/proxy Next.js sesuai versi): `/dashboard/*` tanpa `tk_token` → `/login?next=...`. Sudah login buka `/login` atau `/login/*` → `/dashboard`. Pembatasan per role dicek juga di layout halaman (redirect ke `/dashboard` + toast "Anda tidak punya akses ke halaman itu."). **Otorisasi sebenarnya tetap di BE**; FE hanya menyembunyikan menu & mencegah salah arah.
-- Penanganan kode error login: `ACCOUNT_PENDING` → `/menunggu-persetujuan`; `ACCOUNT_REJECTED` → tampilkan alasan; `ACCOUNT_INACTIVE` → pesan hubungi sekolah.
+- Penanganan kode error login: `ACCOUNT_PENDING` → `/menunggu-persetujuan`; `ACCOUNT_REJECTED` → tampilkan alasan; `ACCOUNT_INACTIVE` → pesan hubungi sekolah. Login wali: NIS atau password salah → pesan backend di field NIS.
+- **Ganti password wajib (wali):** kalau `user.wajib_ganti_password = true` (dari respons login atau `GET /auth/me`), semua halaman dashboard diarahkan ke `/dashboard/ganti-password` (tanpa menu, hanya form ganti password dan tombol Keluar). Respons API `PASSWORD_WAJIB_DIGANTI` di mana pun juga mengarah ke halaman itu. Setelah berhasil, sesi diambil ulang lalu wali diteruskan ke onboarding (kalau `profil_lengkap = false`) atau beranda.
 - Sesi user di React Query (`['me']` dari `GET /auth/me`), dengan hook `useSession()` → `{ user, role, isSuperAdmin, isGuru, isWali, bisaKelolaKeuangan }`.
-- Wali: jika `profil_lengkap = false` → paksa ke `/dashboard/onboarding`. Jika belum punya anak → beranda menampilkan empty state "Tautkan anak" / "Daftar PPDB".
+- Wali: jika `profil_lengkap = false` (dan password sudah diganti) → paksa ke `/dashboard/onboarding`. Onboarding mengirim `PUT /wali/profil` dengan `nama` dan `no_hp` wajib di setiap permintaan. Jika belum punya anak (tautan dilepas Kepala Sekolah) → beranda menampilkan empty state "Tambah Anak" / "Daftar PPDB".
 - **Anak aktif** (wali dengan >1 anak): `AnakSwitcher` di topbar, pilihan disimpan di cookie `tk_anak` dan dikirim sebagai `murid_id` ke endpoint terkait.
 
 ## B4. Peta route & akses
 
 `SA` = super admin, `G` = guru, `K` = petugas keuangan (SA atau guru `bisa_kelola_keuangan`), `W` = wali murid.
 
-**Publik:** `/`, `/pengumuman`, `/pengumuman/[slug]`, `/galeri`, `/galeri/[slug]`, `/ppdb`, `/login` (halaman pilihan: "Orang Tua / Wali Murid" dan "Guru & Kepala Sekolah"), `/login/wali` (Google), `/login/guru` (email + password, tautan daftar guru dan lupa password), `/daftar-guru`, `/lupa-password`, `/reset-password`, `/menunggu-persetujuan`.
+**Publik:** `/`, `/pengumuman`, `/pengumuman/[slug]`, `/galeri`, `/galeri/[slug]`, `/ppdb` (info), `/ppdb/daftar` (form pendaftaran multi-step tanpa login, hasilnya kode pendaftaran), `/ppdb/status` (cek status dengan kode + tanggal lahir anak), `/login` (halaman pilihan: "Orang Tua / Wali Murid" dan "Guru & Kepala Sekolah"), `/login/wali` (NIS anak + password; keterangan "Username adalah NIS anak. Password awal adalah tanggal lahir anak (DDMMYYYY)."), `/login/guru` (email + password, tautan daftar guru dan lupa password), `/daftar-guru`, `/lupa-password` (hanya guru dan Kepala Sekolah), `/reset-password`, `/menunggu-persetujuan`.
 
 **Dashboard:**
 
 | Route | SA | G | W | Isi |
 |---|:-:|:-:|:-:|---|
 | `/dashboard` | ✓ | ✓ | ✓ | Beranda sesuai role (B5) |
-| `/dashboard/onboarding` | | | ✓ | Lengkapi profil wali |
-| `/dashboard/anak` | | | ✓ | Kartu anak + form tautkan anak (kode + tanggal lahir + hubungan) |
+| `/dashboard/ganti-password` | | | ✓ | Ganti password awal (wajib selama `wajib_ganti_password`), tanpa menu |
+| `/dashboard/onboarding` | | | ✓ | Lengkapi profil wali (nama, no HP wajib; alamat, pekerjaan, NIK) |
+| `/dashboard/anak` | | | ✓ | Kartu anak + form Tambah Anak (NIS + tanggal lahir + hubungan) |
 | `/dashboard/kelas`, `/[id]` | ✓ | ✓ scoped | | Daftar kelas, detail + murid + penempatan (SA) |
-| `/dashboard/murid`, `/[id]` | ✓ | ✓ scoped | | Tabel murid, detail (profil, kelas, wali, tagihan, rapor). SA: CRUD, generate kode tautan (tampil besar + tombol salin + bagikan ke WhatsApp `wa.me` + cetak kartu kode) |
+| `/dashboard/murid`, `/[id]` | ✓ | ✓ scoped | | Tabel murid, detail (profil, kelas, wali, tagihan, rapor). SA: CRUD, unduh/cetak kartu akun wali (PDF; pesan backend kalau ditolak), ubah hubungan & kontak utama wali, lepas tautan |
 | `/dashboard/guru`, `/[id]` | ✓ | | | Tab "Aktif" / "Menunggu Persetujuan" / "Nonaktif", approval, izin keuangan, tampil di landing |
-| `/dashboard/wali-murid` | ✓ | | | Daftar wali + anak tertaut |
+| `/dashboard/wali-murid`, `/[id]` | ✓ | | | Daftar wali (cari nama/NIS/no HP) + anak tertaut; detail: ubah data wali, aktif/nonaktif, reset password ke password awal |
 | `/dashboard/tahun-ajaran` | ✓ | | | CRUD + aktifkan + wizard kenaikan kelas |
-| `/dashboard/tagihan`, `/[id]` | ✓ | ✓ read-only | ✓ | K: tabel semua tagihan + filter + buat tagihan sekali + generate manual. G: status kelasnya. W: kartu tagihan anak aktif, detail + rekening sekolah + form upload bukti |
+| `/dashboard/tagihan`, `/[id]` | ✓ | ✓ read-only | ✓ | K: tabel semua tagihan + filter + buat tagihan sekali + generate manual + ubah jatuh tempo/potongan/catatan; SA: batalkan dan aktifkan kembali. G: status kelasnya. W: kartu tagihan anak aktif, detail + rekening sekolah + form upload bukti |
 | `/dashboard/pembayaran` | K | | ✓ | K: antrean verifikasi (preview bukti besar, terima/tolak dengan alasan) + catat tunai + riwayat. W: riwayat + unduh kwitansi |
 | `/dashboard/keuangan/jenis-tagihan` | ✓ | | | CRUD |
 | `/dashboard/keuangan/keringanan` | K | | | CRUD |
@@ -659,13 +660,13 @@ src/
 | `/dashboard/rapor`, `/[id]` | ✓ | ✓ | ✓ terbit | G: pilih kelas & semester → daftar murid + status rapor → editor. SA: tab "Menunggu Review" → terbitkan / minta revisi. W: daftar rapor terbit + unduh PDF |
 | `/dashboard/pengumuman`, `/baru`, `/[id]` | ✓ | ✓ | ✓ lihat | Feed; form Tiptap + pemilih target (kelas/murid, dibatasi untuk guru) + publik/pin/draft |
 | `/dashboard/agenda` | ✓ kelola | ✓ | ✓ | Kalender bulanan + daftar; SA bisa tambah/edit |
-| `/dashboard/ppdb`, `/[id]` | ✓ | | ✓ | W: form multi-step + status pendaftarannya. SA: tabel pendaftar, detail dokumen, verifikasi/terima (pilih kelas)/tolak |
+| `/dashboard/ppdb`, `/daftar`, `/[id]` | ✓ | | ✓ | W: daftar pendaftarannya + form multi-step (`/daftar`, sama dengan form publik) untuk kakak/adik. SA: tabel pendaftar, detail dokumen, verifikasi/terima (pilih kelas)/tolak |
 | `/dashboard/website` | ✓ | | | **CMS landing page** (B7) |
 | `/dashboard/website/galeri` | ✓ | | | Album & foto |
-| `/dashboard/pengaturan` | ✓ | | | Tab: Rekening, Tagihan (jatuh tempo, pengingat), PPDB, Elemen Penilaian |
+| `/dashboard/pengaturan` | ✓ | | | Tab: Rekening, Tagihan (jatuh tempo, pengingat), PPDB, Beranda Wali (banner `beranda.info_wali`), Elemen Penilaian |
 | `/dashboard/log-aktivitas` | ✓ | | | Tabel log + filter |
 | `/dashboard/notifikasi` | ✓ | ✓ | ✓ | Semua notifikasi, tandai dibaca |
-| `/dashboard/profil` | ✓ | ✓ | ✓ | Edit profil, avatar, ganti password (SA/G) |
+| `/dashboard/profil` | ✓ | ✓ | ✓ | Edit profil, avatar, ganti password (semua role); W juga alamat, pekerjaan, NIK |
 
 Menu sidebar dibangun dari 1 konfigurasi (`lib/navigation.ts`) berisi `roles` dan `requiresKeuangan`, dikelompokkan: Utama, Akademik, Keuangan, Sekolah, Website & Pengaturan.
 
@@ -680,7 +681,8 @@ Menu sidebar dibangun dari 1 konfigurasi (`lib/navigation.ts`) berisi `roles` da
 - Client: `openapi-fetch` dengan `paths` dari `src/types/api.d.ts`, baseUrl `/api/proxy`. Script `npm run gen:api` = `openapi-typescript ${BE_REPO_PATH_OR_URL}/api.json -o src/types/api.d.ts`.
 - **Sebelum `api.json` tersedia:** tulis tipe manual di `src/types/domain.ts` persis sesuai A7, dan aktifkan mode mock `NEXT_PUBLIC_USE_MOCK=true` (data contoh di `src/mocks/` dengan bentuk respons A7, termasuk pagination & error). Setiap hook API harus bisa jalan di mode mock dan mode asli **tanpa mengubah komponen**. Catat di `dokumentasi.md` endpoint mana yang masih mock. Setelah `api.json` ada, generate tipe dan sesuaikan `domain.ts` agar merujuk ke tipe hasil generate.
 - Query key terpusat (`lib/api/query-keys.ts`), invalidasi yang benar setelah mutasi (misal terima pembayaran → invalidate tagihan, pembayaran, dashboard).
-- Error handling terpusat: `VALIDATION_ERROR` → petakan `errors` ke field react-hook-form; error lain → toast `message`. 403/404 → halaman "Tidak ditemukan / tidak punya akses" yang ramah.
+- Error handling terpusat: `VALIDATION_ERROR` → petakan `errors` ke field react-hook-form; `PASSWORD_WAJIB_DIGANTI` → `/dashboard/ganti-password` (B3); error lain → toast `message`. 403/404 → halaman "Tidak ditemukan / tidak punya akses" yang ramah.
+- Unggahan multipart (PPDB, bukti transfer, foto) dikirim lewat `openapi-fetch` dengan `bodySerializer` yang membentuk `FormData`. `gen:api` mengubah field `format: binary` menjadi `Blob` supaya `File` bisa dipakai di body tanpa cast.
 - Badge notifikasi: polling `GET /notifikasi/belum-dibaca` tiap 60 detik (hanya saat tab aktif).
 - File private: tampilkan dari `*_url` yang dikirim BE (sudah signed). Unduhan PDF/Excel lewat `/api/proxy/...` dengan nama file yang rapi.
 
@@ -745,7 +747,7 @@ Landing page berisi: navbar, hero, sambutan kepala sekolah, visi-misi, program, 
 - **Kata/frasa terlarang:** "seamless", "revolusioner", "solusi terdepan/terbaik", "era digital", "transformasi digital", "memberdayakan", "tingkatkan pengalaman Anda", "platform all-in-one", "mudah, cepat, dan aman", "#1", "canggih", "inovatif", "Selamat datang di masa depan…", "Mari bersama…". Juga hindari pola tiga kata sifat berjejer.
 - **Dilarang emoji dan tanda seru berlebihan** di UI. Maksimal satu tanda seru untuk pesan sukses yang memang perlu.
 - **Label tombol = kata kerja yang spesifik:** "Unggah Bukti Transfer", "Setujui Guru", "Terbitkan Rapor" — bukan "Submit", "Kirim Sekarang!", "Lanjutkan" di mana-mana.
-- **Pesan error** menjelaskan apa yang terjadi + apa yang bisa dilakukan ("Kode tautan sudah kedaluwarsa. Minta kode baru ke pihak sekolah."), bukan "Terjadi kesalahan".
+- **Pesan error** menjelaskan apa yang terjadi + apa yang bisa dilakukan ("NIS atau tanggal lahir anak tidak cocok. Periksa kembali NIS di kartu akun dari sekolah."), bukan "Terjadi kesalahan".
 - **Empty state** memberi arah tindakan yang nyata ("Belum ada tagihan bulan ini."), bukan kalimat puitis.
 - **Dilarang data palsu yang tampil ke publik:** tidak ada statistik karangan ("1000+ siswa bahagia"), testimoni fiktif, rating bintang, atau logo mitra palsu. Semua konten landing berasal dari CMS / API.
 - **Data seed/mock realistis Indonesia:** nama anak & orang tua Indonesia yang wajar, alamat Semarang, nomor HP format `08xx`. Dilarang "John Doe", "Test User", "Lorem ipsum", "asdf".
@@ -763,7 +765,6 @@ Landing page berisi: navbar, hero, sambutan kepala sekolah, visi-misi, program, 
 | Kegiatan Kelas | Aktivitas, Jurnal, Post |
 | Rapor | Laporan perkembangan, Report card |
 | Pengumuman | Info, Berita, Broadcast |
-| Kode Tautan | Kode undangan, Token, Invite code |
 | Tahun Ajaran | Periode, Academic year |
 | Password | Kata sandi |
 
@@ -816,12 +817,12 @@ Desain harus terasa **milik TK Tarbiyathul Athfal 8**, bukan template SaaS yang 
 |---|---|---|
 | **0. Analisis** | Baca semua, cek versi, rencana folder & route, arah desain (palet, font, contoh layout), daftar pertanyaan. **Tanpa kode.** | Rencana disetujui |
 | **1. Fondasi** | Setup Next.js + TS strict + ESLint (no-any) + Tailwind + shadcn, design token & font, `lib/format`, konstanta enum, tipe domain dari A7, client API + mode mock, BFF auth + proxy + route guard, React Query provider, `dokumentasi.md` | Build bersih, login mock bisa masuk dashboard kosong |
-| **2. Publik & auth** | Landing lengkap (data `/public/*`), pengumuman, galeri, info PPDB, login 2 tab (Google + email), daftar guru, lupa/reset password, menunggu persetujuan | Semua halaman publik responsif, alur login semua role (mock) |
-| **3. Shell dashboard** | Layout (sidebar, topbar, bottom nav wali), menu per role, notifikasi bell + halaman, AnakSwitcher, onboarding wali, halaman anak + tautkan, beranda 3 role, profil | Tiap role melihat menu & beranda yang benar |
-| **4. Master data** | Guru (+approval), tahun ajaran (+wizard kenaikan), kelas (+penempatan), murid (+kode tautan & bagikan), wali murid | CRUD lengkap dengan validasi & state |
+| **2. Publik & auth** | Landing lengkap (data `/public/*`), pengumuman, galeri, info PPDB, login terpisah (wali: NIS + password; guru/Kepala Sekolah: email + password), daftar guru, lupa/reset password, menunggu persetujuan | Semua halaman publik responsif, alur login semua role (mock) |
+| **3. Shell dashboard** | Layout (sidebar, topbar, bottom nav wali), menu per role, notifikasi bell + halaman, AnakSwitcher, ganti password wajib + onboarding wali, halaman anak + tambah anak, beranda 3 role, profil | Tiap role melihat menu & beranda yang benar |
+| **4. Master data** | Guru (+approval), tahun ajaran (+wizard kenaikan), kelas (+penempatan), murid (+kartu akun wali, ubah tautan wali), wali murid (+ubah data, reset password) | CRUD lengkap dengan validasi & state |
 | **5. Keuangan** | Tagihan (W bayar + upload bukti, K kelola, G read-only), pembayaran (antrean verifikasi, catat tunai, riwayat, kwitansi), jenis tagihan, keringanan, generate, laporan + grafik + export, tunggakan | Alur bayar → verifikasi → lunas jalan end-to-end |
 | **6. Akademik & komunikasi** | Kegiatan (feed, multi-upload, lightbox), rapor (editor per elemen, ajukan, review SA, PDF), pengumuman (Tiptap + target), agenda (kalender) | Alur rapor & pengumuman per role benar |
-| **7. PPDB, CMS, pengaturan** | PPDB (form multi-step W, review SA), CMS website 5 tab + pratinjau + revalidate, galeri, pengaturan, log aktivitas | SA ubah konten → landing ikut berubah |
+| **7. PPDB, CMS, pengaturan** | PPDB (review SA; form publik dan W sudah ada), CMS website 5 tab + pratinjau + revalidate, galeri, pengaturan, log aktivitas | SA ubah konten → landing ikut berubah |
 | **8. Integrasi & polish** | Generate tipe dari `api.json`, matikan mock per modul & uji ke BE asli, rapikan empty/loading/error, cek responsif & aksesibilitas, `dokumentasi.md` & README final | Tidak ada endpoint mock tersisa, lint/typecheck/build bersih |
 
 Catatan: kalau BE sudah selesai dan `api.json` tersedia sebelum kamu mulai, lewati mode mock dan langsung pakai tipe hasil generate sejak Fase 1.
