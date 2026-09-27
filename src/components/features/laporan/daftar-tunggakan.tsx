@@ -1,11 +1,12 @@
 "use client";
 
-import { Phone } from "lucide-react";
+import { Megaphone, Phone } from "lucide-react";
 import Link from "next/link";
 import { parseAsInteger, useQueryState } from "nuqs";
 
 import { EmptyState } from "@/components/shared/empty-state";
 import { GalatMuat } from "@/components/shared/galat-muat";
+import { buttonVariants } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useDaftarKelas } from "@/lib/api/kelas";
 import { useLaporanTunggakan } from "@/lib/api/laporan";
@@ -39,10 +40,18 @@ export function DaftarTunggakan() {
           </select>
         </label>
         {data ? (
-          <p className="text-sm">
-            <span className="font-bold">{data.jumlah_murid} murid</span> menunggak, total{" "}
-            <span className="font-heading text-lg font-extrabold text-destructive tabular-nums">{formatRupiah(data.total_tunggakan)}</span>
-          </p>
+          <div className="flex flex-wrap items-center gap-3">
+            <p className="text-sm">
+              <span className="font-bold">{data.jumlah_murid} murid</span> menunggak, total{" "}
+              <span className="font-heading text-lg font-extrabold text-destructive tabular-nums">{formatRupiah(data.total_tunggakan)}</span>
+            </p>
+            {data.murid.length > 0 ? (
+              <Link href={`/dashboard/pengumuman/baru?dari=tunggakan${kelasId ? `&kelas=${kelasId}` : ""}`} className={buttonVariants({ variant: "outline" })}>
+                <Megaphone aria-hidden="true" />
+                Kirim Pengumuman
+              </Link>
+            ) : null}
+          </div>
         ) : null}
       </div>
       {isPending ? (
