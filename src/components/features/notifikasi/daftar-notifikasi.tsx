@@ -1,12 +1,13 @@
 "use client";
 
-import { ChevronLeft, ChevronRight } from "lucide-react";
 import { parseAsBoolean, parseAsInteger, useQueryState } from "nuqs";
 import { toast } from "sonner";
 
 import { ItemNotifikasi } from "@/components/features/notifikasi/item-notifikasi";
 import { EmptyState } from "@/components/shared/empty-state";
 import { GalatMuat } from "@/components/shared/galat-muat";
+import { Paginasi } from "@/components/shared/paginasi";
+import { SaringSegmen } from "@/components/shared/saring-segmen";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { pesanError } from "@/lib/api/errors";
@@ -28,25 +29,15 @@ export function DaftarNotifikasi() {
   return (
     <div>
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <div role="group" aria-label="Saring notifikasi" className="inline-flex rounded-full bg-muted p-1">
-          {[
+        <SaringSegmen
+          label="Saring notifikasi"
+          opsi={[
             { nilai: false, label: "Semua" },
-            { nilai: true, label: `Belum dibaca (${jumlahBelum})` },
-          ].map((pilihan) => (
-            <button
-              key={pilihan.label}
-              type="button"
-              aria-pressed={hanyaBelum === pilihan.nilai}
-              onClick={() => pilihFilter(pilihan.nilai)}
-              className={cn(
-                "min-h-10 rounded-full px-4 font-heading text-sm font-bold transition-colors duration-150",
-                hanyaBelum === pilihan.nilai ? "bg-primary text-primary-foreground" : "hover:bg-card",
-              )}
-            >
-              {pilihan.label}
-            </button>
-          ))}
-        </div>
+            { nilai: true, label: "Belum dibaca", jumlah: jumlahBelum },
+          ]}
+          nilai={hanyaBelum}
+          onUbah={pilihFilter}
+        />
         {jumlahBelum > 0 ? (
           <Button
             variant="outline"
@@ -85,21 +76,7 @@ export function DaftarNotifikasi() {
               </li>
             ))}
           </ul>
-          {data.meta.last_page > 1 ? (
-            <nav aria-label="Halaman notifikasi" className="mt-4 flex items-center justify-between gap-3">
-              <Button variant="outline" disabled={halaman <= 1} onClick={() => void setHalaman(halaman - 1)}>
-                <ChevronLeft aria-hidden="true" />
-                Sebelumnya
-              </Button>
-              <p className="text-sm text-muted-foreground">
-                Halaman {data.meta.current_page} dari {data.meta.last_page}
-              </p>
-              <Button variant="outline" disabled={halaman >= data.meta.last_page} onClick={() => void setHalaman(halaman + 1)}>
-                Berikutnya
-                <ChevronRight aria-hidden="true" />
-              </Button>
-            </nav>
-          ) : null}
+          <Paginasi meta={data.meta} onUbah={(nomor) => void setHalaman(nomor)} label="Halaman notifikasi" />
         </>
       )}
     </div>

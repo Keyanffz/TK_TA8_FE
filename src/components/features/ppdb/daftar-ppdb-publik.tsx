@@ -1,14 +1,13 @@
 "use client";
 
-import { Check, Copy } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
-import { toast } from "sonner";
 
 import { FormPendaftaran } from "@/components/features/ppdb/form-pendaftaran";
 import { keBodyPendaftaran } from "@/components/features/ppdb/skema-pendaftaran";
 import { Bintang } from "@/components/shared/ornamen/bintang";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { TombolSalin } from "@/components/shared/tombol-salin";
+import { buttonVariants } from "@/components/ui/button";
 import { ambilData } from "@/lib/api/ambil-data";
 import { api } from "@/lib/api/client";
 import { keFormData } from "@/lib/api/multipart";
@@ -19,18 +18,7 @@ import type { PendaftaranPublik } from "@/types/domain";
 type Hasil = { pendaftaran: PendaftaranPublik; tanggalLahir: string };
 
 function BuktiPendaftaran({ pendaftaran, tanggalLahir }: Hasil) {
-  const [tersalin, setTersalin] = useState(false);
   const urlStatus = `/ppdb/status?kode=${encodeURIComponent(pendaftaran.kode)}`;
-
-  const salin = async () => {
-    try {
-      await navigator.clipboard.writeText(pendaftaran.kode);
-      setTersalin(true);
-    } catch (penyebab) {
-      console.error("Menyalin kode gagal:", penyebab);
-      toast.error("Kode tidak bisa disalin otomatis. Catat kode secara manual.");
-    }
-  };
 
   return (
     <section aria-labelledby="judul-bukti" className="gerak-masuk rounded-xl border-2 border-primary bg-card p-6 shadow-md">
@@ -43,10 +31,7 @@ function BuktiPendaftaran({ pendaftaran, tanggalLahir }: Hasil) {
       </h2>
       <div className="mt-4 flex flex-wrap items-center gap-3 rounded-lg bg-highlight-soft px-4 py-3">
         <p className="font-heading text-xl font-extrabold tracking-wider tabular-nums">{pendaftaran.kode}</p>
-        <Button type="button" variant="outline" size="sm" onClick={() => void salin()}>
-          {tersalin ? <Check aria-hidden="true" /> : <Copy aria-hidden="true" />}
-          {tersalin ? "Tersalin" : "Salin Kode"}
-        </Button>
+        <TombolSalin teks={pendaftaran.kode} label="Salin Kode" />
       </div>
       <p className="mt-4 text-sm">
         Untuk memantau status, buka halaman Cek Status lalu masukkan kode ini dan tanggal lahir anak ({tanggalLahir}). Foto
