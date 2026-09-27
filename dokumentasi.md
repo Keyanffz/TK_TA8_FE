@@ -12,7 +12,7 @@ Website publik dan dashboard sistem informasi TK Tarbiyathul Athfal 8 (TK Muslim
 | Penyesuaian login wali NIS (sebelum Fase 4) | Selesai |
 | 3. Shell dashboard | Selesai (review Fase 3 tanpa revisi) |
 | 4. Master data | Selesai (dikerjakan berturut-turut dengan Fase 5, belum direview) |
-| 5. Keuangan | Belum |
+| 5. Keuangan | Selesai (dikerjakan berturut-turut dengan Fase 4, belum direview) |
 | 6. Akademik & komunikasi | Belum |
 | 7. PPDB, CMS, pengaturan | Belum |
 | 8. Integrasi & polish | Belum |
@@ -162,6 +162,19 @@ Request dari Server Component ke endpoint publik (landing, ISR) tidak membawa `X
 - **Wali murid**: `PUT /wali-murid/{id}` hanya mengirim field yang berubah. Nomor HP, alamat, dan pekerjaan wajib kalau sebelumnya sudah terisi, boleh tetap kosong untuk akun otomatis yang belum onboarding. Dialog reset password menyebut anak yang tanggal lahirnya menjadi password (kontak utama pertama); wali yang bukan kontak utama diberi keterangan bahwa backend akan menolak.
 - **Banner beranda wali** ada di `/dashboard/pengaturan` (satu-satunya bagian di halaman itu sampai Fase 7). `GET /pengaturan` bertipe objek bebas, jadi `beranda.info_wali` dibaca dengan zod (`skemaInfoWali`); kalau bentuknya tidak cocok, form mulai dari keadaan nonaktif. Pesan validasi backend berkunci `items.beranda.info_wali.<field>` dipasang ke field berdasarkan akhiran kuncinya.
 
+## Keputusan Fase 5
+
+- **Satu route, isi per peran**: `/dashboard/tagihan` untuk wali berisi kartu tagihan anak aktif (tab Belum lunas/Lunas, total belum dibayar di atas); untuk petugas keuangan dan guru berisi tabel dengan saringan (status, bulan, kelas, jenis, pencarian). `/dashboard/tagihan/[id]` memakai `DetailTagihan` dengan prop `peran` (`wali`, `keuangan`, `kepala-sekolah`, `guru`).
+- Tagihan anak untuk wali diambil sekaligus (`per_page` 100, satu anak paling banyak belasan tagihan per tahun) lalu dikelompokkan di browser, karena `filter[status]` hanya menerima satu status.
+- **Kapan tagihan bisa dibayar/diubah/dibatalkan**: `tagihanTerbuka()` = `belum_bayar` atau `terlambat` (sama dengan pemeriksaan backend: bukan lunas, bukan dibatalkan, tidak ada pembayaran menunggu). Aktifkan kembali hanya tampil untuk Kepala Sekolah pada tagihan `dibatalkan`.
+- **Bukti transfer wali** hanya gambar (backend menolak PDF di sini); foto dikecilkan di browser. Nama pemilik rekening terisi nama wali dari sesi sebagai awal. `metode: "transfer"` ikut dikirim karena wajib di tipe `BayarTagihanRequest`, meski backend tidak memakainya untuk wali.
+- **Catat pembayaran** oleh petugas: untuk tunai hanya `metode` dan `tanggal_bayar` yang dikirim (bank, pengirim, dan bukti dilarang backend untuk tunai).
+- **Ubah tagihan** hanya mengirim field yang berubah. Jatuh tempo yang tidak diubah boleh sudah lewat; yang diubah paling cepat hari ini. Toast memberi tahu kalau potongan membuat tagihan langsung lunas.
+- **Antrean verifikasi** (`/dashboard/pembayaran`, tab Menunggu Verifikasi) urut dari yang paling lama menunggu (`sort=created_at`), bukti tampil besar dan bisa diperbesar. Terima/tolak juga tersedia di riwayat pembayaran detail tagihan. Wali di route yang sama melihat riwayat pembayarannya dengan kwitansi.
+- **Laporan**: rentang bawaan dari tanggal mulai tahun ajaran aktif sampai hari ini (disimpan di URL). Backend menghitung tagihan berdasarkan jatuh tempo dan pemasukan berdasarkan tanggal bayar; keterangan di kartu ringkasan menyebut ini. Grafik: batang bertumpuk terbayar + belum terbayar per bulan (jumlahnya total tagihan). Warna `--grafik-terbayar` `#0A6E04` dan `--grafik-belum` `#D08A1A` diperiksa dengan validator palet skill dataviz: lolos pemisahan buta warna (ΔE protan 15,4) dan batas penglihatan normal; kontras oranye 2,86:1 di bawah 3:1, jadi legenda dan tabel per bulan selalu tampil. Satu sumbu Y, tooltip per batang.
+- **Tunggakan** menampilkan kontak utama wali dengan tautan `tel:`. Tombol "Kirim pengumuman" (B4) belum dibuat karena form pengumuman baru ada di Fase 6; akan ditambahkan di sana dengan prefill target murid.
+- `PilihMurid` (cari murid aktif, pilih satu atau banyak) dipakai tagihan sekali bayar, keringanan, dan penempatan murid; `TambahMuridKelas` Fase 4 ikut dipindah ke komponen ini.
+
 ## Audit data dashboard wali (revisi poin 4)
 
 Setiap data yang tampil ke wali dan halaman Kepala Sekolah yang mengelolanya:
@@ -289,7 +302,14 @@ Andika hanya punya bobot 400 dan 700, jadi `font-semibold` tampil sebagai 700.
 | `/dashboard/murid`, `/dashboard/murid/baru`, `/dashboard/murid/[id]`, `/dashboard/murid/[id]/ubah` | SA, G (murid kelasnya, lihat saja) | Tabel + saringan; detail, kartu akun, wali tertaut (ubah hubungan, kontak utama, lepas); tambah/ubah/hapus (SA) |
 | `/dashboard/wali-murid`, `/dashboard/wali-murid/[id]` | SA | Daftar wali; ubah data, aktif/nonaktif, reset password, anak tertaut |
 | `/dashboard/pengaturan` | SA | Banner beranda wali (tab lain di Fase 7) |
-| `/dashboard/*` lain | | 404 di dalam kerangka dashboard (`[...lainnya]`); halamannya dibuat di Fase 5–7 |
+| `/dashboard/tagihan` | SA, G (kelasnya, lihat saja), W | W: kartu tagihan anak aktif. K: tabel + saringan, tagihan sekali bayar; SA juga generate bulanan |
+| `/dashboard/tagihan/[id]` | SA, G, W | Detail, riwayat pembayaran, kwitansi. W: rekening sekolah + unggah bukti. K: catat pembayaran, ubah, terima/tolak. SA: batalkan, aktifkan kembali |
+| `/dashboard/pembayaran` | K, W | K: antrean verifikasi + semua pembayaran dengan saringan. W: riwayat + kwitansi |
+| `/dashboard/keuangan/jenis-tagihan` | SA | Jenis tagihan per tahun ajaran |
+| `/dashboard/keuangan/keringanan` | K | Keringanan persen/rupiah per murid dan jenis tagihan |
+| `/dashboard/keuangan/laporan` | K | Ringkasan, grafik per bulan, tabel per bulan dan per jenis, unduh Excel |
+| `/dashboard/keuangan/tunggakan` | K | Murid dengan tagihan terlambat dan kontak walinya |
+| `/dashboard/*` lain | | 404 di dalam kerangka dashboard (`[...lainnya]`); halamannya dibuat di Fase 6–7 |
 | `/api/auth/login`, `/api/auth/login-wali`, `/api/auth/logout`, `/api/auth/sesi-habis` | route handler | BFF sesi |
 | `/api/proxy/[...path]` | route handler | Proxy ke backend |
 
@@ -309,7 +329,41 @@ Tempat deploy belum ditentukan. Syarat yang sudah pasti:
 
 ## Changelog
 
-### Fase 4 (branch `fe/fase-4-5`)
+### Fase 5 (branch `fe/fase-4-5`)
+
+File baru:
+
+- `src/lib/api/{tagihan,pembayaran,jenis-tagihan,keringanan,laporan,segarkan-keuangan}.ts`.
+- `src/components/shared/pilih-murid.tsx`.
+- `src/components/features/tagihan/{tagihan-wali,tabel-tagihan,detail-tagihan,aksi-tagihan,rekening-sekolah,form-bukti-transfer,riwayat-pembayaran,dialog-ubah-tagihan,dialog-catat-pembayaran,dialog-tagihan-sekali,dialog-generate-tagihan,tagihan-murid}.tsx`.
+- `src/components/features/pembayaran/{pembayaran-sekolah,pembayaran-wali,antrean-verifikasi,riwayat-pembayaran-sekolah,aksi-verifikasi,bukti-transfer,tombol-kwitansi}.tsx`.
+- `src/components/features/keuangan/{daftar-jenis-tagihan,form-jenis-tagihan,daftar-keringanan,form-keringanan}.tsx`, `src/components/features/laporan/{laporan-keuangan,grafik-tagihan-bulanan,daftar-tunggakan}.tsx`.
+- Halaman `src/app/dashboard/{tagihan,tagihan/[id],pembayaran,keuangan/jenis-tagihan,keuangan/keringanan,keuangan/laporan,keuangan/tunggakan}/page.tsx`.
+
+File yang diubah:
+
+- `src/lib/api/query-keys.ts` (key keuangan), `src/lib/tagihan.ts` (`tagihanTerbuka()`), `src/app/globals.css` (`--grafik-terbayar`, `--grafik-belum`).
+- `src/app/dashboard/murid/[id]/page.tsx`: bagian tagihan di detail murid. `src/components/features/kelas/tambah-murid-kelas.tsx`: memakai `PilihMurid`.
+- `src/components/features/beranda/kepala-sekolah/perlu-tindakan.tsx`: guru menunggu persetujuan membuka `/dashboard/guru?status=pending`.
+
+Pengujian Fase 5 (dev server ke backend lokal, Firefox headless):
+
+- `lint`, `typecheck`, `build`, `check:slop` bersih (build sempat gagal di prerender `/login` saat backend mati setelah laptop restart, lalu lolos setelah backend hidup lagi). Uji setelah restart memakai `next start`.
+- Alur bayar sampai lunas pada tagihan 181 (Uang Kegiatan Rika, `terlambat`): wali `TA20260001` di HP membuka detail tagihan, kirim kosong → "Unggah foto atau tangkapan layar bukti transfer." dan "Bank pengirim wajib diisi."; unggah foto + bank BRI → toast "Bukti transfer terkirim...", status Menunggu verifikasi. Kepala Sekolah: tab Menunggu Verifikasi menunjukkan 6; terima di detail tagihan → Lunas, pembayaran Diterima; Unduh Kwitansi → 200 `application/pdf`.
+- Catat tunai tagihan 129 (Nardi) → "Pembayaran Rp 150.000 tercatat, tagihan lunas.".
+- Ubah tagihan 130 (Endra): potongan Rp 200.000 → "Potongan paling besar Rp 150.000."; jatuh tempo 1 September → "Jatuh tempo baru paling cepat hari ini."; jatuh tempo 10 Oktober 2026 → status kembali Belum dibayar.
+- Batalkan tagihan 139 (Pia) tanpa alasan → pesan wajib; dengan alasan → Dibatalkan; aktifkan kembali → toast "aktif kembali dan berstatus terlambat". Catatan tagihan itu sekarang berisi alasan uji (backend tidak menghapus catatan saat aktifkan).
+- Tolak satu bukti di antrean dengan alasan → antrean 5 → 4, riwayat tersaring status Ditolak lewat `?tab=riwayat&status=ditolak`.
+- Tagihan sekali bayar: validasi jenis, kelas, jatuh tempo; Uang Kegiatan untuk Rika → "0 tagihan dibuat, 1 murid dilewati...". Generate September 2026 → "0 tagihan dibuat, 60 dilewati karena sudah ada." (tidak menambah data).
+- Laporan: ringkasan dan tabel tampil (83% lunas), Unduh Excel → 200 `.xlsx`, rentang terbalik → pesan di field. Tunggakan: 23 murid, total Rp 5.850.000. Jenis tagihan: validasi form. Keringanan: validasi form, persen 150 ditolak di browser, 50% untuk Nardi tersimpan lalu dihapus.
+- Guru petugas keuangan `siti.rahmawati`: tombol Buat Tagihan Sekali Bayar ada, Generate tidak; antrean pembayaran terbuka; detail tagihan punya Catat Pembayaran dan Ubah Tagihan tanpa Batalkan; `/dashboard/keuangan/jenis-tagihan` → beranda. Guru biasa `nur.aini`: tagihan TK A1 saja (60 tagihan), detail tanpa tombol aksi, `/dashboard/pembayaran` → beranda.
+- Tidak ada error di konsol browser selama uji Kepala Sekolah.
+- Data backend yang berubah karena pengujian Fase 5: tagihan 181 dan 129 lunas, tagihan 130 jatuh tempo 10 Oktober, catatan tagihan 139, satu bukti transfer seed ditolak.
+- Perbaikan setelah melihat screenshot: kartu total di `/dashboard/tagihan` wali memerah kalau ada tagihan terlambat (sama dengan beranda); judul kolom "L/P" di tabel murid menjadi "Jenis kelamin".
+- Belum diuji: tambah/ubah jenis tagihan sampai tersimpan, tagihan sekali bayar yang benar-benar membuat tagihan baru, catat transfer dengan bukti oleh petugas, wali unggah ulang setelah ditolak, tampilan HP halaman petugas keuangan.
+
+Screenshot review ada di `docs/review/fase-4-5/` (diambil dari `next start`, Firefox headless): `1-login-wali-hp`, `2-ganti-password-wajib-hp`, `3-ppdb-publik-hp`, `4-tabel-murid`, `5-detail-murid`, `6-antrean-verifikasi`, `7-tagihan-wali-hp`, `7b-detail-tagihan-wali-hp`, `8-laporan-keuangan`.
+
 
 File baru:
 
