@@ -13,7 +13,7 @@ export default async function BerandaPage() {
   return (
     <main className="mx-auto flex max-w-3xl flex-col gap-4 px-4 py-12">
       <h1 className="text-xl font-semibold">Halo, {user.name}</h1>
-      <p className="text-muted-foreground">Kamu masuk sebagai {LABEL_ROLE[user.role]}.</p>
+      <p className="text-muted-foreground">Anda masuk sebagai {LABEL_ROLE[user.role]}.</p>
       <div>
         <TombolKeluar />
       </div>
