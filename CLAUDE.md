@@ -6,3 +6,8 @@ Aturan kerja untuk repo frontend ini, berlaku di setiap sesi.
 2. Kerjakan satu fase (Bagian D) saja. Di akhir fase jalankan pengecekan yang diwajibkan, perbarui `dokumentasi.md`, laporkan hasilnya, lalu berhenti dan tunggu konfirmasi sebelum lanjut ke fase berikutnya.
 3. Patuhi Bagian C (anti AI-slop) di semua kode, teks UI, tampilan, dokumentasi, dan pesan commit.
 4. Laporan akhir fase (dan balasan ke pemilik repo) ditulis dalam Bahasa Indonesia.
+
+## Hemat pengujian
+- Pengecekan otomatis (lint, typecheck, build, check:slop) tetap dijalankan penuh. Tampilkan hanya ringkasan dan error, jangan seluruh output.
+- Uji manual di browser dan screenshot hanya untuk halaman yang baru, berubah, atau belum pernah diuji, plus alur yang langsung terkait. Fitur yang sudah lolos uji di sesi sebelumnya dan tidak disentuh tidak perlu diuji ulang.
+- Jangan membaca ulang file besar (api.d.ts, package-lock.json) kecuali perlu.
