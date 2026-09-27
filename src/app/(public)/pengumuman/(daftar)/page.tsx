@@ -40,7 +40,7 @@ export default async function PengumumanPage({ searchParams }: PageProps<"/pengu
                     {item.published_at ? <time dateTime={item.published_at}>{formatTanggal(item.published_at)}</time> : null}
                   </p>
                   <h2 className="mt-1 text-lg font-semibold">
-                    <Link href={`/pengumuman/${item.slug}`} className="hover:text-primary hover:underline">
+                    <Link href={`/pengumuman/${item.slug}`} className="hover:text-primary-strong hover:underline">
                       {item.judul}
                     </Link>
                   </h2>

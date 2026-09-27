@@ -20,7 +20,7 @@ export default async function DetailPengumumanPage({ params }: PageProps<"/pengu
 
   return (
     <article className="mx-auto max-w-6xl px-4 py-10 sm:px-6 md:py-14">
-      <Link href="/pengumuman" className="inline-flex items-center gap-1 text-sm font-semibold text-primary hover:underline">
+      <Link href="/pengumuman" className="inline-flex items-center gap-1 text-sm font-semibold text-primary-strong hover:underline">
         <ChevronLeft aria-hidden="true" className="size-4" />
         Semua pengumuman
       </Link>

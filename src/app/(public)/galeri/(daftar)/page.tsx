@@ -39,7 +39,7 @@ export default async function GaleriPage({ searchParams }: PageProps<"/galeri">)
                       />
                     ) : null}
                   </div>
-                  <h2 className="mt-3 font-semibold group-hover:text-primary group-hover:underline">{album.judul}</h2>
+                  <h2 className="mt-3 font-semibold group-hover:text-primary-strong group-hover:underline">{album.judul}</h2>
                   <p className="text-sm text-muted-foreground">
                     {formatTanggal(album.tanggal)}
                     {album.jumlah_foto !== undefined ? ` · ${album.jumlah_foto} foto` : null}

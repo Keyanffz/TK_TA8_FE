@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 
+import { Sulur } from "@/components/shared/ornamen/sulur";
 import { cn } from "@/lib/utils";
 
 type JudulBagianProps = {
@@ -8,28 +9,24 @@ type JudulBagianProps = {
   deskripsi?: string;
   aksi?: ReactNode;
   className?: string;
+  /** Untuk section berlatar hijau. */
+  terang?: boolean;
 };
 
-/** Judul section landing dengan garis kuning bergelombang (Arah A). */
-export function JudulBagian({ id, judul, deskripsi, aksi, className }: JudulBagianProps) {
+/** Judul section landing dengan sulur yang digambar saat masuk layar. */
+export function JudulBagian({ id, judul, deskripsi, aksi, className, terang }: JudulBagianProps) {
   return (
-    <div className={cn("mb-8 flex flex-wrap items-end justify-between gap-4", className)}>
+    <div className={cn("mb-10 flex flex-wrap items-end justify-between gap-4", className)}>
       <div>
-        <h2 id={id} className="text-xl font-semibold md:text-2xl">
+        <h2 id={id} className={cn("text-xl font-extrabold md:text-2xl", terang && "text-primary-foreground")}>
           {judul}
         </h2>
-        <svg
-          aria-hidden="true"
-          viewBox="0 0 120 12"
-          className="mt-2 h-3 w-28 text-highlight"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="4"
-          strokeLinecap="round"
-        >
-          <path d="M2 7 Q 12 1 22 7 T 42 7 T 62 7 T 82 7 T 102 7 T 118 6" />
-        </svg>
-        {deskripsi ? <p className="mt-3 max-w-prose text-muted-foreground">{deskripsi}</p> : null}
+        <Sulur warnaBatang={terang ? "text-primary-foreground" : "text-primary"} />
+        {deskripsi ? (
+          <p className={cn("mt-3 max-w-prose", terang ? "text-primary-foreground/90" : "text-muted-foreground")}>
+            {deskripsi}
+          </p>
+        ) : null}
       </div>
       {aksi}
     </div>

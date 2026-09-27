@@ -32,10 +32,11 @@ export default async function LandingPage() {
     ambilAgendaMendatang(JUMLAH_AGENDA),
   ]);
   const kepalaSekolah = guru.find((orang) => orang.jabatan === JABATAN_KEPALA_SEKOLAH) ?? null;
+  const adaGuruBerfoto = guru.some((orang) => orang.foto_url);
 
   return (
     <>
-      <Hero profil={profil} />
+      <Hero profil={profil} warnaTepi={ppdb.dibuka ? "text-highlight" : "text-background"} />
       {ppdb.dibuka ? (
         <PitaPpdb
           tahunAjaran={ppdb.tahun_ajaran?.nama ?? null}
@@ -48,7 +49,7 @@ export default async function LandingPage() {
       {profil.program.length > 0 ? <BagianProgram program={profil.program} /> : null}
       {profil.keunggulan.length > 0 ? <BagianKeunggulan keunggulan={profil.keunggulan} /> : null}
       {profil.fasilitas.length > 0 ? <BagianFasilitas fasilitas={profil.fasilitas} /> : null}
-      {guru.length > 0 ? <BagianGuru guru={guru} /> : null}
+      {adaGuruBerfoto ? <BagianGuru guru={guru} /> : null}
       {galeri.data.length > 0 ? <GaleriTerbaru album={galeri.data} /> : null}
       <BagianPengumumanAgenda pengumuman={pengumuman.data} agenda={agenda} />
       <BagianKontak profil={profil} />

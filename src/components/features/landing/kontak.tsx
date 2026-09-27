@@ -1,6 +1,9 @@
 import { Mail, MapPin, Phone } from "lucide-react";
 
 import { JudulBagian } from "@/components/shared/judul-bagian";
+import { Muncul } from "@/components/shared/muncul";
+import { PolaGeometri } from "@/components/shared/ornamen/pola-geometri";
+import { TepiBergelombang } from "@/components/shared/ornamen/tepi-bergelombang";
 import type { ProfilSekolah } from "@/lib/api/pengaturan";
 import { cn } from "@/lib/utils";
 
@@ -22,27 +25,29 @@ export function BagianKontak({ profil }: { profil: ProfilSekolah }) {
   const telepon = profil.telepon?.replace(/[^\d+]/g, "");
 
   return (
-    <section aria-labelledby="judul-kontak" id="kontak" className="scroll-mt-16 border-t border-border">
-      <div className={cn("mx-auto grid max-w-6xl gap-10 px-4 py-16 sm:px-6 md:py-24", peta && "md:grid-cols-2")}>
+    <section aria-labelledby="judul-kontak" id="kontak" className="relative isolate scroll-mt-16 bg-primary text-primary-foreground">
+      <TepiBergelombang className="rotate-180 text-background" />
+      <PolaGeometri className="-z-10 text-primary-foreground/[0.07]" />
+      <div className={cn("mx-auto grid max-w-6xl gap-10 px-4 py-14 sm:px-6 md:py-20", peta && "md:grid-cols-2")}>
         <div>
-          <JudulBagian id="judul-kontak" judul="Kontak" />
-          <dl className={cn("grid gap-6", !peta && "md:grid-cols-3")}>
+          <JudulBagian id="judul-kontak" judul="Kontak" terang />
+          <Muncul as="dl" efek="pop" className={cn("grid gap-6", !peta && "md:grid-cols-3")}>
             {profil.alamat ? (
               <div className="flex gap-3">
-                <MapPin aria-hidden="true" className="mt-0.5 size-5 shrink-0 text-primary" />
+                <MapPin aria-hidden="true" className="mt-0.5 size-5 shrink-0 text-bintang" />
                 <div>
-                  <dt className="text-sm text-muted-foreground">Alamat</dt>
+                  <dt className="text-sm text-primary-foreground/85">Alamat</dt>
                   <dd>{profil.alamat}</dd>
                 </div>
               </div>
             ) : null}
             {profil.telepon ? (
               <div className="flex gap-3">
-                <Phone aria-hidden="true" className="mt-0.5 size-5 shrink-0 text-primary" />
+                <Phone aria-hidden="true" className="mt-0.5 size-5 shrink-0 text-bintang" />
                 <div>
-                  <dt className="text-sm text-muted-foreground">Telepon</dt>
+                  <dt className="text-sm text-primary-foreground/85">Telepon</dt>
                   <dd>
-                    <a href={`tel:${telepon}`} className="hover:text-primary hover:underline">
+                    <a href={`tel:${telepon}`} className="font-bold underline-offset-4 hover:underline">
                       {profil.telepon}
                     </a>
                   </dd>
@@ -51,18 +56,18 @@ export function BagianKontak({ profil }: { profil: ProfilSekolah }) {
             ) : null}
             {profil.email ? (
               <div className="flex gap-3">
-                <Mail aria-hidden="true" className="mt-0.5 size-5 shrink-0 text-primary" />
+                <Mail aria-hidden="true" className="mt-0.5 size-5 shrink-0 text-bintang" />
                 <div>
-                  <dt className="text-sm text-muted-foreground">Email</dt>
+                  <dt className="text-sm text-primary-foreground/85">Email</dt>
                   <dd>
-                    <a href={`mailto:${profil.email}`} className="hover:text-primary hover:underline">
+                    <a href={`mailto:${profil.email}`} className="font-bold underline-offset-4 hover:underline">
                       {profil.email}
                     </a>
                   </dd>
                 </div>
               </div>
             ) : null}
-          </dl>
+          </Muncul>
         </div>
         {peta ? (
           <iframe
@@ -70,7 +75,7 @@ export function BagianKontak({ profil }: { profil: ProfilSekolah }) {
             title={`Peta lokasi ${profil.namaSekolah}`}
             loading="lazy"
             referrerPolicy="no-referrer-when-downgrade"
-            className="aspect-[4/3] w-full rounded-lg border border-border"
+            className="aspect-[4/3] w-full rounded-lg border-4 border-card bg-card shadow-md"
           />
         ) : null}
       </div>

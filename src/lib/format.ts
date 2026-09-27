@@ -63,3 +63,9 @@ export function formatTanggalWaktu(nilai: string): string {
 export function formatRelatif(nilai: string): string {
   return formatDistanceToNowStrict(new Date(nilai), { addSuffix: true, locale: id });
 }
+
+/** Satu tanggal, atau "15 Oktober 2026 – 17 Oktober 2026" untuk kegiatan beberapa hari. */
+export function rentangTanggal(mulai: string, selesai: string): string {
+  if (mulai === selesai) return formatTanggal(mulai);
+  return `${formatTanggal(mulai)} – ${formatTanggal(selesai)}`;
+}
