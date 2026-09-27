@@ -9,7 +9,8 @@ Website publik dan dashboard sistem informasi TK Tarbiyathul Athfal 8 (TK Muslim
 | 0. Analisis | Selesai, rencana disetujui (Arah desain A "Buku Cerita") |
 | 1. Fondasi | Selesai |
 | 2. Publik & auth | Selesai; revisi setelah review (login terpisah, warna, font, gerak) menunggu review |
-| 3. Shell dashboard | Selesai, menunggu review desain beranda (C7) |
+| Penyesuaian login wali NIS (sebelum Fase 4) | Selesai |
+| 3. Shell dashboard | Selesai (review Fase 3 tanpa revisi) |
 | 4. Master data | Belum |
 | 5. Keuangan | Belum |
 | 6. Akademik & komunikasi | Belum |
@@ -36,7 +37,6 @@ Mode mock tidak dipakai: `api.json` final dari backend sudah tersedia sejak Fase
 | recharts | 3.10.1 | |
 | nuqs | 2.10.1 | |
 | openapi-typescript, openapi-fetch | 7.13.0, 0.17.0 | |
-| @react-oauth/google | 0.13.5 | |
 | @tiptap/react, @tiptap/starter-kit, @tiptap/pm | 3.31.3 | |
 | date-fns | 4.4.0 | |
 | sonner | 2.0.8 | |
@@ -75,13 +75,13 @@ Perintah lain:
 |---|---|---|
 | `BE_API_URL` | server (route handler, Server Component, `next.config.ts`) | Base URL API termasuk `/api/v1`. Harus alamat yang juga bisa dibuka browser, karena signed URL file private dibentuk backend dari host request yang diterimanya. Origin-nya juga dipakai untuk `images.remotePatterns` (`/storage/**`). |
 | `API_SPEC_PATH` | `npm run gen:api` | Path atau URL `api.json`. Lokal: `../TK_TA8_BE/storage/api-docs/api.json`. |
-| `NEXT_PUBLIC_GOOGLE_CLIENT_ID` | browser (tombol Google) | Sama dengan `GOOGLE_CLIENT_ID` di backend. Belum diisi di lokal. |
 
 ## Arsitektur
 
 ### Autentikasi (BFF)
 
-- Browser tidak pernah memegang token. `POST /api/auth/login` dan `POST /api/auth/google` meneruskan body ke backend (ditambah `perangkat: "web"`), lalu menyimpan token di cookie `tk_token` (httpOnly, `secure` di produksi, sameSite lax, 30 hari) dan `tk_role` (bukan httpOnly, hanya nama role). Respons ke browser berisi `user` (dan `is_new` untuk Google) tanpa token.
+- Browser tidak pernah memegang token. `POST /api/auth/login` (email) dan `POST /api/auth/login-wali` (NIS anak) meneruskan body ke backend (ditambah `perangkat: "web"`), lalu menyimpan token di cookie `tk_token` (httpOnly, `secure` di produksi, sameSite lax, 30 hari) dan `tk_role` (bukan httpOnly, hanya nama role). Respons ke browser berisi `user` tanpa token.
+- Tujuan setelah masuk (`tujuanSetelahMasuk()`): `wajib_ganti_password` → `/dashboard/ganti-password`; wali dengan `profil_lengkap = false` → `/dashboard/onboarding`; selain itu `?next=`.
 - `POST /api/auth/logout` memanggil `/auth/logout` backend lalu menghapus `tk_token`, `tk_role`, `tk_anak`. Cookie tetap dihapus walau backend tidak bisa dihubungi.
 - `GET /api/auth/sesi-habis?next=` menghapus cookie lalu redirect ke `/login?next=`. Dipakai layout dashboard saat `/auth/me` menolak token, karena Server Component tidak bisa menghapus cookie.
 - `/api/proxy/[...path]` meneruskan method, query, header `Content-Type`/`Content-Length`, dan body (stream, termasuk multipart dan PUT multipart) ke `{BE_API_URL}/...` dengan `Authorization: Bearer` dari cookie. Respons diteruskan sebagai stream beserta `Content-Type`, `Content-Disposition`, `Cache-Control`, `Retry-After`, dan header rate limit. Backend membalas 401 → cookie sesi dihapus.
@@ -100,7 +100,8 @@ Request dari Server Component ke endpoint publik (landing, ISR) tidak membawa `X
 ### Route guard
 
 - `src/proxy.ts` (matcher `/dashboard/:path*`, `/login`, `/login/:path*`): tanpa cookie `tk_token` ke `/dashboard/*` → `/login?next=...`; sudah punya cookie buka `/login` atau `/login/*` → `/dashboard`. `/api` sengaja tidak dicocokkan karena proxy Next.js membatasi body 10 MB (`proxyClientMaxBodySize`), sedangkan unggahan kegiatan bisa lebih besar.
-- `src/app/dashboard/layout.tsx` memanggil `ambilSesi()` (`GET /auth/me`, di-cache per request). Token ditolak (401 atau `ACCOUNT_*`) → `/api/auth/sesi-habis`.
+- `src/app/dashboard/layout.tsx` memanggil `ambilSesi()` (`GET /auth/me`, di-cache per request). Token ditolak (401 atau `ACCOUNT_*`) → `/api/auth/sesi-habis`. Urutan wajib wali: `wajib_ganti_password` → semua path selain `/dashboard/ganti-password` diarahkan ke sana; lalu `profil_lengkap = false` → `/dashboard/onboarding`. Kedua halaman itu tampil tanpa menu (`KerangkaTanpaMenu`).
+- Layout tidak dirender ulang saat navigasi di browser, jadi `Providers` juga menangani `PASSWORD_WAJIB_DIGANTI` dari query/mutation mana pun dengan mengarahkan ke `/dashboard/ganti-password`.
 - Otorisasi sebenarnya tetap di backend.
 
 ### Data fetching
@@ -125,8 +126,7 @@ Request dari Server Component ke endpoint publik (landing, ISR) tidak membawa `X
 - Peta hanya ditampilkan untuk URL `https` dengan host `www.google.com` atau `maps.google.com`.
 - HTML dari CMS/pengumuman dirender apa adanya (`KontenHtml`) karena backend sudah menyanitasinya dengan Purify; gayanya di kelas `.konten-html` (`globals.css`).
 - Skeleton `loading.tsx` hanya dipasang di route group `pengumuman/(daftar)` dan `galeri/(daftar)`. Kalau dipasang di level `(public)`, halaman detail sudah mengirim status 200 sebelum `notFound()` dipanggil, sehingga slug yang tidak ada tidak membalas 404.
-- Login dipisah (revisi review Fase 2): `/login` halaman pilihan, `/login/wali` (Google), `/login/guru` (email + password). `?next=` dibawa dari halaman pilihan. Semua tautan memakai `RUTE_LOGIN`/`urlLogin()` (`src/lib/auth/rute-login.ts`). Kode `ACCOUNT_PENDING` → `/menunggu-persetujuan`; `ACCOUNT_REJECTED`, `ACCOUNT_INACTIVE`, dan `TOO_MANY_REQUESTS` ditampilkan di atas form dengan pesan dari backend (termasuk alasan penolakan dan lama tunggu); `VALIDATION_ERROR` dipasang ke field.
-- `NEXT_PUBLIC_GOOGLE_CLIENT_ID` kosong → `/login/wali` menampilkan pesan bahwa login Google belum disiapkan sekolah, tanpa memuat script Google.
+- Login dipisah (revisi review Fase 2): `/login` halaman pilihan, `/login/wali` (NIS anak + password, sejak penyesuaian sebelum Fase 4; sebelumnya Google), `/login/guru` (email + password). `?next=` dibawa dari halaman pilihan. Semua tautan memakai `RUTE_LOGIN`/`urlLogin()` (`src/lib/auth/rute-login.ts`). Kode `ACCOUNT_PENDING` → `/menunggu-persetujuan`; `ACCOUNT_REJECTED`, `ACCOUNT_INACTIVE`, dan `TOO_MANY_REQUESTS` ditampilkan di atas form dengan pesan dari backend (termasuk alasan penolakan dan lama tunggu); `VALIDATION_ERROR` dipasang ke field.
 - Validasi form di browser mengikuti aturan backend (`src/lib/auth/skema.ts`): password minimal 8 karakter berisi huruf dan angka, nomor HP diawali 08 dengan 10–15 angka. Backend tetap pemeriksa akhir.
 - Pendaftaran guru, lupa password, dan reset password memanggil backend lewat `/api/proxy` (endpoint publik tanpa token).
 
@@ -158,20 +158,20 @@ Setiap data yang tampil ke wali dan halaman Kepala Sekolah yang mengelolanya:
 | Nama dan logo sekolah (topbar, sidebar, onboarding) | `profil.nama_sekolah`, `profil.logo` | `/dashboard/website` tab Profil Sekolah | 7 | Endpoint ada |
 | Kartu anak: nama lengkap, panggilan, foto, NIS, tanggal lahir, jenis kelamin | `murid` | `/dashboard/murid/[id]` (edit + foto) | 4 | Endpoint ada |
 | Kelas anak | `kelas`, `kelas_murid` | `/dashboard/kelas/[id]` (penempatan), `/dashboard/tahun-ajaran` (kenaikan) | 4 | Endpoint ada |
-| Hubungan wali dengan anak, kontak utama | `murid_wali` | `/dashboard/murid/[id]` bagian wali | 4 | **Kurang**: SA hanya bisa melepas tautan; hubungan dan kontak utama tidak bisa diubah |
-| Tagihan aktif, total belum dibayar, status, jatuh tempo | `tagihan` | `/dashboard/tagihan` (tagihan sekali, generate, batalkan), `/dashboard/keuangan/jenis-tagihan`, `/dashboard/keuangan/keringanan` | 5 | **Kurang**: tagihan tidak bisa diubah; tagihan bulanan yang dibatalkan tidak bisa dibuat ulang untuk bulan yang sama |
+| Hubungan wali dengan anak, kontak utama | `murid_wali` | `/dashboard/murid/[id]` bagian wali | 4 | Endpoint ada (`PATCH /murid/{id}/wali/{wali_murid_id}`) |
+| Tagihan aktif, total belum dibayar, status, jatuh tempo | `tagihan` | `/dashboard/tagihan` (tagihan sekali, generate, batalkan), `/dashboard/keuangan/jenis-tagihan`, `/dashboard/keuangan/keringanan` | 5 | Endpoint ada (`PUT /tagihan/{id}`, `POST /tagihan/{id}/aktifkan`) |
 | Rekening sekolah di detail tagihan | `keuangan.rekening` | `/dashboard/pengaturan` tab Rekening | 7 | Endpoint ada |
 | Riwayat pembayaran, kwitansi | `pembayaran` | `/dashboard/pembayaran` (verifikasi, catat tunai) | 5 | Endpoint ada |
-| Kegiatan kelas: judul, tema, deskripsi, tanggal, foto | `kegiatan_kelas`, `kegiatan_foto` | `/dashboard/kegiatan/[id]` (SA boleh mengubah semua) | 6 | **Kurang**: caption dan urutan foto tidak bisa diubah lewat API |
+| Kegiatan kelas: judul, tema, deskripsi, tanggal, foto | `kegiatan_kelas`, `kegiatan_foto` | `/dashboard/kegiatan/[id]` (SA boleh mengubah semua) | 6 | Endpoint ada (`PUT /kegiatan-foto/{id}`) |
 | Pengumuman | `pengumuman` | `/dashboard/pengumuman` (SA semua target, pin, draft) | 6 | Endpoint ada; lampiran belum bisa diunggah (sudah dicatat BE) |
 | Agenda sekolah | `agenda` | `/dashboard/agenda` | 6 | Endpoint ada |
-| Rapor terbaru dan PDF | `rapor`, `rapor_detail`, `elemen_penilaian` | `/dashboard/rapor` (review, terbitkan, minta revisi), `/dashboard/pengaturan` tab Elemen Penilaian | 6, 7 | **Kurang**: SA tidak bisa mengubah isi rapor buatan guru dan rapor terbit tidak bisa ditarik untuk dibetulkan |
+| Rapor terbaru dan PDF | `rapor`, `rapor_detail`, `elemen_penilaian` | `/dashboard/rapor` (review, terbitkan, minta revisi), `/dashboard/pengaturan` tab Elemen Penilaian | 6, 7 | Endpoint ada (`PUT /rapor/{id}` untuk SA saat diajukan, `POST /rapor/{id}/tarik`) |
 | Info dan status PPDB | `ppdb.*`, `pendaftaran` | `/dashboard/pengaturan` tab PPDB, `/dashboard/ppdb` | 7 | Endpoint ada |
 | Notifikasi | dibuat sistem dari aksi di atas | tidak dikelola langsung | | Sesuai desain |
-| Banner / teks info khusus di beranda wali | tidak ada | usulan: `/dashboard/website` tab Beranda Wali | 7 | **Butuh endpoint baru** |
-| Data wali (alamat, pekerjaan, NIK) | `wali_murid` | `/dashboard/wali-murid` (lihat + status) | 4 | **Kurang**: tidak ada di `GET /auth/me`, jadi wali tidak bisa melihat atau mengubahnya setelah onboarding; SA juga tidak bisa mengubahnya |
+| Banner / teks info khusus di beranda wali | `beranda.info_wali` → `info_sekolah` | `/dashboard/pengaturan` tab Beranda Wali | 4–5 | Endpoint ada; banner tampil di beranda wali |
+| Data wali (alamat, pekerjaan, NIK) | `wali_murid` | `/dashboard/wali-murid/[id]` (ubah data, status, reset password); wali sendiri di `/dashboard/profil` | 4 | Endpoint ada; form wali di profil sudah dibuat |
 
-Usulan endpoint untuk backend (belum dikerjakan; FE tidak mengubah BE):
+Usulan endpoint yang dikirim ke backend setelah Fase 3 (semua sudah dikerjakan backend dengan penyesuaian, lihat Bagian A):
 
 1. **Info beranda wali**: kunci pengaturan baru `beranda.info_wali` = `{ aktif: bool, judul: string, isi: string (maks ±500 karakter), nada: "info" | "penting", berlaku_sampai: date | null }`, disimpan lewat `PUT /pengaturan` (grup baru `beranda`), dan ikut di respons `GET /dashboard` wali sebagai `info_sekolah: { judul, isi, nada } | null` (null kalau tidak aktif atau lewat `berlaku_sampai`). Wali tidak perlu akses ke `/pengaturan`.
 2. **Ubah tagihan**: `PUT /tagihan/{id}` (K atau SA) `{ jatuh_tempo?, potongan?, catatan? }` untuk status `belum_bayar`/`terlambat`, menghitung ulang `total` dan status terlambat. Atau: `generate` dan `POST /tagihan` membuat ulang tagihan yang sebelumnya `dibatalkan` untuk periode yang sama (unique index `murid_id, jenis_tagihan_id, periode` perlu disesuaikan).
@@ -256,18 +256,22 @@ Andika hanya punya bobot 400 dan 700, jadi `font-semibold` tampil sebagai 700.
 | `/` | publik | Landing: hero, pita PPDB (jika dibuka), profil (sambutan, visi-misi, sejarah), program, keunggulan, fasilitas, guru, galeri terbaru, pengumuman + agenda, kontak + peta. Section yang datanya kosong di CMS tidak ditampilkan. ISR 5 menit. |
 | `/pengumuman`, `/pengumuman/[slug]` | publik | Daftar berpaginasi (`?page=`) dan detail pengumuman publik |
 | `/galeri`, `/galeri/[slug]` | publik | Daftar album berpaginasi dan detail album dengan lightbox (panah kiri/kanan, Esc) |
-| `/ppdb` | publik | Status buka/tutup, jadwal, kuota, sisa kuota, info HTML; tombol ke `/login/wali?next=/dashboard/ppdb` |
+| `/ppdb` | publik | Status buka/tutup, jadwal, kuota, sisa kuota, info HTML; tombol ke `/ppdb/daftar` dan tautan cek status |
+| `/ppdb/daftar` | publik | Form pendaftaran 4 langkah tanpa login (`POST /public/pendaftaran`); setelah terkirim tampil kode pendaftaran + salin. PPDB tutup/kuota penuh → pesan tanpa form |
+| `/ppdb/status?kode=` | publik | Cek status dengan kode + tanggal lahir anak (`GET /public/pendaftaran/status`) |
 | `/login` | publik (sudah masuk → `/dashboard`) | Pilihan "Orang Tua / Wali Murid" atau "Guru & Kepala Sekolah"; `?next=` diteruskan |
-| `/login/wali` | publik (sudah masuk → `/dashboard`) | Login Google wali murid |
+| `/login/wali` | publik (sudah masuk → `/dashboard`) | NIS anak + password wali murid |
 | `/login/guru` | publik (sudah masuk → `/dashboard`) | Email + password, tautan daftar guru dan lupa password |
 | `/daftar-guru`, `/lupa-password`, `/reset-password?token=&email=`, `/menunggu-persetujuan` | publik | Alur akun guru/Kepala Sekolah |
 | `/dashboard` | SA, G, W | Beranda per role (B5): SA panel Perlu Tindakan, statistik, keuangan bulan ini, grafik pemasukan; G kelas diampu, progres rapor, tagihan kelas; W kartu anak, kartu tagihan, rapor terbaru, kegiatan, pengumuman, agenda |
-| `/dashboard/onboarding` | W (profil belum lengkap) | Lengkapi nomor HP, alamat, pekerjaan, NIK opsional. Tanpa menu; wali yang sudah lengkap diarahkan ke beranda |
-| `/dashboard/anak` | W | Kartu anak tertaut + form tautkan anak (kode, tanggal lahir, hubungan) |
+| `/dashboard/ganti-password` | pengguna dengan `wajib_ganti_password` | Ganti password awal (tanggal lahir anak). Tanpa menu, dengan tombol Keluar; yang tidak wajib diarahkan ke beranda |
+| `/dashboard/onboarding` | W (profil belum lengkap) | Lengkapi nama, nomor HP, alamat, pekerjaan, NIK opsional. Tanpa menu; wali yang sudah lengkap diarahkan ke beranda |
+| `/dashboard/anak` | W | Kartu anak tertaut + form Tambah Anak (NIS, tanggal lahir, hubungan) |
+| `/dashboard/ppdb`, `/dashboard/ppdb/daftar` | W (SA: 404 sampai Fase 7) | Pendaftaran milik wali + form yang sama dengan form publik (`POST /pendaftaran`), nomor HP dan alamat terisi dari profil |
 | `/dashboard/notifikasi` | SA, G, W | Semua notifikasi berpaginasi (`?page=`), saring belum dibaca (`?belum=true`), tandai semua dibaca |
-| `/dashboard/profil` | SA, G, W | Nama, nomor HP, foto profil; ganti password (SA, G) |
+| `/dashboard/profil` | SA, G, W | Nama, nomor HP, foto profil, ganti password; wali juga alamat, pekerjaan, NIK (username NIS ditampilkan, tidak bisa diubah) |
 | `/dashboard/*` lain | | 404 di dalam kerangka dashboard (`[...lainnya]`); halamannya dibuat di Fase 4–7 |
-| `/api/auth/login`, `/api/auth/google`, `/api/auth/logout`, `/api/auth/sesi-habis` | route handler | BFF sesi |
+| `/api/auth/login`, `/api/auth/login-wali`, `/api/auth/logout`, `/api/auth/sesi-habis` | route handler | BFF sesi |
 | `/api/proxy/[...path]` | route handler | Proxy ke backend |
 
 Route lain mengikuti B4 dan ditambahkan per fase. `/api/auth/me` tidak dibuat (disetujui di Fase 0): sesi dibaca lewat `/api/proxy/auth/me`. `/api/revalidate` (disetujui di Fase 0) dibuat di Fase 7 bersama penyimpanan CMS; tag cache publik sudah disiapkan di `TAG_PUBLIK` (`src/lib/constants/sekolah.ts`).
@@ -285,6 +289,51 @@ Tempat deploy belum ditentukan. Syarat yang sudah pasti:
 5. Batas body di reverse proxy minimal 55 MB (unggahan kegiatan 10 foto × 5 MB), sama dengan `post_max_size` backend.
 
 ## Changelog
+
+### Penyesuaian login wali NIS (branch `fe/fase-4-5`, sebelum Fase 4)
+
+Backend mengganti login Google dengan login NIS anak + password, menghapus kode tautan, dan membuka PPDB tanpa login (Bagian A, commit `1d8355c` di `main`, sudah di-merge).
+
+File baru:
+
+- `src/app/api/auth/login-wali/route.ts`: BFF `POST /auth/login-wali` (menggantikan `api/auth/google`).
+- `src/components/features/auth/{form-login-wali,tombol-keluar}.tsx`: form NIS + password (NIS dinormalkan huruf besar tanpa spasi), tombol keluar untuk halaman tanpa menu.
+- `src/app/dashboard/ganti-password/page.tsx`, `src/components/layout/dashboard/kerangka-tanpa-menu.tsx`: halaman ganti password wajib; kerangka tanpa menu dipakai bersama onboarding.
+- `src/components/features/wali/form-tambah-anak.tsx` (menggantikan `form-tautkan-anak.tsx`): `POST /wali/tambah-anak`. NIS/tanggal lahir salah → pesan backend di field NIS; anak sudah tertaut/tidak aktif dan batas percobaan → kotak pesan.
+- `src/components/features/ppdb/`: `form-pendaftaran` (4 langkah: data anak, orang tua, dokumen, periksa), `langkah-{data-anak,orang-tua,dokumen}`, `ringkasan-pendaftaran`, `penanda-langkah`, `skema-pendaftaran` (aturan sama dengan `BuatPendaftaranRequest`), `daftar-ppdb-publik`, `daftar-ppdb-wali`, `cek-status-ppdb`, `hasil-status-ppdb`, `pendaftaran-saya`.
+- `src/app/(public)/ppdb/{daftar,status}/page.tsx`, `src/app/dashboard/ppdb/{page,daftar/page}.tsx`.
+- `src/components/shared/{zona-unggah,kolom-radio}.tsx`, `KolomPilih` di `kolom-teks.tsx`, `src/lib/api/multipart.ts` (`keFormData`).
+- Dari branch lokal `simpan/banner-data-wali` (cherry-pick `588a511`, branch sudah dihapus): `src/components/features/beranda/wali/info-sekolah.tsx` (banner `info_sekolah`, isi teks biasa dengan baris baru), `src/components/features/wali/form-data-wali.tsx` (alamat, pekerjaan, NIK di profil).
+
+File yang dihapus: `src/app/api/auth/google/route.ts`, `src/components/features/auth/masuk-google.tsx`, `src/components/features/wali/form-tautkan-anak.tsx`; paket `@react-oauth/google`; variabel `NEXT_PUBLIC_GOOGLE_CLIENT_ID`.
+
+File yang diubah:
+
+- `src/types/api.d.ts`: generate ulang. `scripts/gen-api.mjs` sekarang memakai API Node openapi-typescript dengan `transform`: field `format: binary` menjadi `Blob` (`Blob | null` kalau nullable), supaya `File` bisa masuk body multipart tanpa cast. Selain 20 baris itu isinya sama dengan hasil CLI.
+- `src/lib/auth/{masuk,bff,path}.ts`, `src/components/providers.tsx`, `src/app/dashboard/layout.tsx`: login NIS, `tujuanSetelahMasuk()` dengan ganti password wajib, `RUTE_GANTI_PASSWORD`, penanganan `PASSWORD_WAJIB_DIGANTI`. `src/types/domain.ts`, `src/lib/api/errors.ts`: kode error baru, alias `Pendaftaran`, `PendaftaranPublik`.
+- `src/components/features/profil/form-ganti-password.tsx`: prop `wajib` (label "Password awal", setelah berhasil ambil ulang `/auth/me` lalu lanjut ke onboarding/beranda). `form-profil.tsx`: username NIS untuk wali, `skemaNama`.
+- `src/components/features/wali/{form-onboarding,form-data-wali}.tsx`: `PUT /wali/profil` wajib `nama` dan `no_hp`. Onboarding menambah kolom nama (terisi nama sementara "Wali ..."); form data wali mengambil nama dan nomor HP dari sesi.
+- `src/app/dashboard/profil/page.tsx`: catatan "Masuk dengan Google" dihapus, ganti password untuk semua role.
+- `src/app/(auth)/login/{page,wali/page,guru/page}.tsx`, `lupa-password/page.tsx`, `src/app/(public)/ppdb/page.tsx`, `beranda-wali.tsx`, `anak-switcher.tsx`, `daftar-anak.tsx`, `src/app/dashboard/anak/page.tsx`: teks login NIS, Tambah Anak, dan PPDB publik.
+- `src/lib/gambar.ts`: `kompresGambar()` membungkus hasil menjadi `File` (browser-image-compression kadang mengembalikan Blob biasa, yang membuat validasi `instanceof File` gagal tanpa pesan). `src/lib/constants/label.ts`: `HUBUNGAN`, `OPSI_HUBUNGAN`, `OPSI_JENIS_KELAMIN`, `AGAMA`.
+- `PROMPT_FE_TK.md`: B1, B2, B3, B4, B6, contoh pesan C3, glosarium C4 (baris Kode Tautan dihapus mengikuti backend), fase di D.
+
+Keputusan:
+
+- Halaman ganti password wajib ada di dalam `/dashboard` (bukan grup auth) karena butuh sesi dan dijaga layout yang sama.
+- `/dashboard/ppdb` untuk Kepala Sekolah masih 404 (Fase 7); bagian wali dibuat sekarang karena diminta bersama PPDB publik.
+- Tombol "Lanjut" dan "Kirim Pendaftaran" diberi `key` berbeda. Tanpa itu React memakai ulang elemen tombol yang sama dan mengubah `type` menjadi `submit` di tengah klik, sehingga "Lanjut ke Periksa" langsung mengirim form (ditemukan saat uji; pendaftaran uji PPDB-2027-0006 sampai 0010 terkirim karena bug ini).
+- Pilihan agama memakai enam agama di data kependudukan (`AGAMA`); backend menyimpannya sebagai teks bebas maksimal 20 karakter.
+
+Pengujian (dev server ke backend lokal, Firefox 155 headless lewat puppeteer-core di luar repo):
+
+- `lint`, `typecheck`, `build`, `check:slop` bersih.
+- Login wali: kosong → "NIS anak wajib diisi." dan "Password wajib diisi."; `ta2026 0001` + password salah → "NIS atau password salah." dari backend; `TA20260001`/`wali2026` → beranda.
+- Ganti password wajib (akun `TA20250022`, password awal `31102021`): login → `/dashboard/ganti-password`; membuka `/dashboard/tagihan` dan `/dashboard/onboarding` kembali ke halaman itu; `/api/proxy/dashboard` → 403 `PASSWORD_WAJIB_DIGANTI`. Setelah ganti → onboarding (nama terisi "Wali Jaga"; kosong → empat pesan field) → beranda dengan banner info sekolah.
+- Tambah anak (akun yang sama): tanggal lahir salah → pesan di field NIS; anak sendiri → kotak pesan "Jaga sudah tertaut ke akun Anda."; `TA20250023` benar → toast, kartu anak kedua muncul.
+- PPDB publik: validasi langkah 1 (tujuh pesan), dokumen kosong (tiga pesan), file teks ditolak, PDF ditolak di kolom pas foto, NIK yang sudah terdaftar → pesan backend, batas 3 per jam → pesan 429 backend, kirim berhasil → kode `PPDB-2027-0011`. Cek status: tanggal salah → pesan tidak cocok; `0011` → Diajukan; `0004` → ditolak dengan alasan; `0005` → "Selamat, pendaftaran diterima. ...".
+- Wali `TA20260001` di `/dashboard/ppdb` melihat pendaftarannya (`PPDB-2027-0001`); form `/dashboard/ppdb/daftar` terbuka. Kiriman dari dashboard wali tidak diuji supaya tidak menambah data demo.
+- Data backend yang berubah karena pengujian: `TA20250022` sudah ganti password (sekarang `31102021a`) dan profilnya "Slamet Riyadi"; `TA20250023` ditambahkan ke akun itu sehingga akun otomatis `TA20250023` dinonaktifkan backend; pendaftaran PPDB uji `PPDB-2027-0006` sampai `0011` (semua "Aisyah", status diajukan). Akun `TA20250030` tidak disentuh.
 
 ### Sebelum Fase 4 (branch `fe/fase-4-5`)
 
