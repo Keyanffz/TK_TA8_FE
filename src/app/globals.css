@@ -12,6 +12,7 @@
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
   --color-primary-strong: var(--primary-strong);
+  --color-primary-deep: var(--primary-deep);
   --color-primary-soft: var(--primary-soft);
   --color-primary-soft-strong: var(--primary-soft-strong);
   --color-secondary: var(--secondary);
@@ -24,6 +25,7 @@
   --color-highlight-foreground: var(--highlight-foreground);
   --color-highlight-soft: var(--highlight-soft);
   --color-highlight-strong: var(--highlight-strong);
+  --color-bintang: var(--bintang);
   --color-destructive: var(--destructive);
   --color-destructive-strong: var(--destructive-strong);
   --color-border: var(--border);
@@ -47,8 +49,8 @@
   --color-chart-4: var(--chart-4);
   --color-chart-5: var(--chart-5);
 
-  --font-sans: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
-  --font-heading: var(--font-fraunces), ui-serif, Georgia, serif;
+  --font-sans: var(--font-andika), ui-sans-serif, system-ui, sans-serif;
+  --font-heading: var(--font-baloo), ui-rounded, ui-sans-serif, system-ui, sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
 
   /* Skala tipografi dibatasi 6 ukuran (C7). */
@@ -63,8 +65,8 @@
   --text-lg--line-height: 1.75rem;
   --text-xl: 1.75rem;
   --text-xl--line-height: 2.25rem;
-  --text-2xl: 2.5rem;
-  --text-2xl--line-height: 3rem;
+  --text-2xl: 2.75rem;
+  --text-2xl--line-height: 3.125rem;
 
   --radius-sm: calc(var(--radius) * 0.5);
   --radius-md: calc(var(--radius) * 0.84);
@@ -78,37 +80,41 @@
 }
 
 :root {
-  /* Hijau dan kuning diturunkan dari logo sekolah (#0D8905, #FFF001),
-     digelapkan seperlunya supaya teks putih di atas hijau memenuhi AA. */
+  /* Hijau dan kuning persis dari logo sekolah. Teks putih di atas #0d8905
+     4,57:1 (AA). primary-strong untuk hover dan teks hijau kecil di latar terang,
+     primary-deep untuk blok gelap (footer, sidebar). */
   --background: #fbf8f1;
   --foreground: #1f2a24;
   --card: #ffffff;
   --card-foreground: #1f2a24;
   --popover: #ffffff;
   --popover-foreground: #1f2a24;
-  --primary: #0a7a0a;
+  --primary: #0d8905;
   --primary-foreground: #ffffff;
-  --primary-strong: #075f0b;
-  --primary-soft: #e7f3e4;
-  --primary-soft-strong: #d8ecd3;
+  --primary-strong: #0a6e04;
+  --primary-deep: #07520a;
+  --primary-soft: #e6f4e1;
+  --primary-soft-strong: #d3ebcb;
   --secondary: #f3efe6;
   --secondary-foreground: #1f2a24;
   --muted: #f3efe6;
   --muted-foreground: #5f6b63;
-  --accent: #e7f3e4;
-  --accent-foreground: #075f0b;
-  --highlight: #f9d923;
+  --accent: #e6f4e1;
+  --accent-foreground: #0a6e04;
+  --highlight: #ffe600;
   --highlight-foreground: #3a3000;
-  --highlight-soft: #fff7cc;
-  --highlight-strong: #ecc812;
+  --highlight-soft: #fff8c2;
+  --highlight-strong: #f2d500;
+  /* Kuning bintang logo, hanya untuk ornamen di atas hijau (bukan teks kecil). */
+  --bintang: #fff001;
   --destructive: #b42318;
   --destructive-strong: #962016;
   --border: #e4dfd3;
   --input: #d6d0c2;
-  --ring: #0a7a0a;
+  --ring: #0a6e04;
 
-  --status-sukses: #075f0b;
-  --status-sukses-soft: #e7f3e4;
+  --status-sukses: #0a6e04;
+  --status-sukses-soft: #e6f4e1;
   --status-menunggu: #8a5a00;
   --status-menunggu-soft: #fdf1d3;
   --status-bahaya: #b42318;
@@ -118,7 +124,7 @@
   --status-netral: #5f6b63;
   --status-netral-soft: #eeede8;
 
-  --chart-1: #0a7a0a;
+  --chart-1: #0d8905;
   --chart-2: #e0b800;
   --chart-3: #3e5c76;
   --chart-4: #8a5a00;
@@ -142,7 +148,6 @@
   h2,
   h3 {
     font-family: var(--font-heading);
-    font-variation-settings: "SOFT" 100;
     text-wrap: balance;
   }
   :focus-visible {
@@ -177,13 +182,286 @@
     @apply mt-1;
   }
   .konten-html a {
-    @apply font-medium text-primary underline underline-offset-4;
+    @apply font-bold text-primary-strong underline underline-offset-4;
   }
   .konten-html strong {
     @apply font-semibold;
   }
   .konten-html blockquote {
     @apply border-l-4 border-highlight pl-4 text-muted-foreground;
+  }
+}
+
+/*
+ * Gerak (C7). Ornamen dekoratif dan efek muncul hanya aktif kalau pengguna tidak
+ * meminta gerak dikurangi. Efek muncul dipasang lewat komponen <Muncul>, yang
+ * menandai elemen dengan data-siap (disembunyikan) lalu data-terlihat="gerak"
+ * saat masuk layar. Elemen yang sudah terlihat saat halaman dimuat mendapat
+ * data-terlihat="awal" dan tidak dianimasikan, jadi tidak ada kedipan.
+ */
+@property --angka {
+  syntax: "<integer>";
+  inherits: false;
+  initial-value: 0;
+}
+
+@layer components {
+  .angka-naik {
+    --angka: var(--nilai);
+    counter-reset: angka var(--angka);
+    font-variant-numeric: tabular-nums;
+  }
+  .angka-naik::after {
+    content: counter(angka);
+  }
+
+  /* Umpan balik hover yang cepat, tetap ada walau gerak dekoratif dimatikan. */
+  .angkat {
+    transition:
+      transform 220ms cubic-bezier(0.34, 1.56, 0.64, 1),
+      rotate 220ms cubic-bezier(0.34, 1.56, 0.64, 1),
+      box-shadow 220ms ease-out;
+  }
+  .angkat:hover {
+    transform: translateY(-4px) rotate(var(--miring-hover, -0.6deg));
+    box-shadow: var(--shadow-md);
+  }
+
+  [data-muncul] > :nth-child(2) { --i: 1; }
+  [data-muncul] > :nth-child(3) { --i: 2; }
+  [data-muncul] > :nth-child(4) { --i: 3; }
+  [data-muncul] > :nth-child(5) { --i: 4; }
+  [data-muncul] > :nth-child(6) { --i: 5; }
+  [data-muncul] > :nth-child(7) { --i: 6; }
+  [data-muncul] > :nth-child(n + 8) { --i: 7; }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .gerak-kelip {
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: kelip var(--durasi, 3.2s) ease-in-out var(--tunda, 0s) infinite;
+  }
+  .gerak-melayang {
+    animation: melayang var(--durasi, 7s) ease-in-out var(--tunda, 0s) infinite;
+  }
+  .gerak-putar {
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: putar var(--durasi, 120s) linear infinite;
+  }
+  .gerak-napas {
+    animation: napas var(--durasi, 9s) ease-in-out infinite;
+  }
+  .gerak-ayun {
+    transform-origin: top center;
+    animation: ayun var(--durasi, 3.6s) ease-in-out var(--tunda, 0s) infinite;
+  }
+  .putar-saat-hover {
+    transition: rotate 600ms cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  .putar-saat-hover:hover,
+  :hover > .putar-saat-hover {
+    rotate: 144deg;
+  }
+  .group:hover .lompat-saat-hover {
+    animation: lompat 620ms cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  .group:hover .naik-saat-hover {
+    translate: 0 -8px;
+    rotate: 72deg;
+  }
+  .naik-saat-hover {
+    transform-box: fill-box;
+    transform-origin: center;
+    transition:
+      translate 420ms cubic-bezier(0.34, 1.56, 0.64, 1),
+      rotate 420ms cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  /* Masuk saat halaman dimuat, untuk bagian paling atas (hero, beranda). */
+  .gerak-masuk {
+    animation: masuk-pop 560ms cubic-bezier(0.34, 1.56, 0.64, 1) calc(var(--i, 0) * 90ms) both;
+  }
+  .gerak-masuk-naik {
+    animation: masuk-naik 480ms cubic-bezier(0.22, 1, 0.36, 1) calc(var(--i, 0) * 90ms) both;
+  }
+  .gerak-masuk .angka-naik,
+  .angka-naik.gerak-hitung {
+    animation: hitung 1100ms cubic-bezier(0.2, 0.7, 0.2, 1) 200ms both;
+  }
+
+  [data-muncul][data-siap]:not([data-terlihat]) > * {
+    opacity: 0;
+  }
+  [data-terlihat="gerak"] > * {
+    animation-duration: 560ms;
+    animation-fill-mode: both;
+    animation-delay: calc(var(--i, 0) * 80ms);
+  }
+  [data-muncul="pop"][data-terlihat="gerak"] > * {
+    animation-name: masuk-pop;
+    animation-timing-function: cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  [data-muncul="jatuh"][data-terlihat="gerak"] > * {
+    animation-name: masuk-jatuh;
+    animation-duration: 640ms;
+    animation-timing-function: cubic-bezier(0.34, 1.4, 0.64, 1);
+  }
+  [data-muncul="balik"] {
+    perspective: 600px;
+  }
+  [data-muncul="balik"][data-terlihat="gerak"] > * {
+    transform-origin: top center;
+    animation-name: masuk-balik;
+    animation-timing-function: cubic-bezier(0.34, 1.3, 0.64, 1);
+  }
+  [data-muncul="geser"][data-terlihat="gerak"] > * {
+    animation-name: masuk-geser;
+    animation-duration: 480ms;
+    animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  [data-terlihat="gerak"] .angka-naik {
+    animation: hitung 1100ms cubic-bezier(0.2, 0.7, 0.2, 1) 150ms both;
+  }
+  /* Sulur di bawah judul digambar dari kiri ke kanan. */
+  [data-muncul="gambar"][data-siap] .garis-sulur {
+    stroke-dasharray: 1;
+    stroke-dashoffset: 1;
+  }
+  [data-muncul="gambar"][data-siap]:not([data-terlihat]) > * {
+    opacity: 1;
+  }
+  [data-muncul="gambar"][data-terlihat="gerak"] .garis-sulur {
+    transition: stroke-dashoffset 1100ms cubic-bezier(0.45, 0, 0.2, 1);
+    stroke-dashoffset: 0;
+  }
+  [data-muncul="gambar"][data-siap] .daun-sulur {
+    transform-box: fill-box;
+    transform-origin: bottom center;
+    scale: 0;
+  }
+  [data-muncul="gambar"][data-terlihat="gerak"] .daun-sulur {
+    transition: scale 420ms cubic-bezier(0.34, 1.56, 0.64, 1) calc(500ms + var(--i, 0) * 120ms);
+    scale: 1;
+  }
+}
+
+@keyframes kelip {
+  0%,
+  100% {
+    opacity: 1;
+    scale: 1;
+  }
+  45% {
+    opacity: 0.45;
+    scale: 0.72;
+  }
+  55% {
+    opacity: 0.6;
+    scale: 0.8;
+  }
+}
+@keyframes melayang {
+  0%,
+  100% {
+    translate: 0 0;
+  }
+  50% {
+    translate: 0 -10px;
+  }
+}
+@keyframes putar {
+  to {
+    rotate: 360deg;
+  }
+}
+@keyframes napas {
+  0%,
+  100% {
+    scale: 1;
+    rotate: 0deg;
+  }
+  50% {
+    scale: 1.04;
+    rotate: 6deg;
+  }
+}
+@keyframes ayun {
+  0%,
+  100% {
+    rotate: -4deg;
+  }
+  50% {
+    rotate: 4deg;
+  }
+}
+@keyframes lompat {
+  0%,
+  100% {
+    translate: 0 0;
+  }
+  40% {
+    translate: 0 -9px;
+  }
+  70% {
+    translate: 0 1px;
+  }
+}
+@keyframes masuk-pop {
+  from {
+    opacity: 0;
+    scale: 0.82;
+  }
+  to {
+    opacity: 1;
+    scale: 1;
+  }
+}
+@keyframes masuk-naik {
+  from {
+    opacity: 0;
+    translate: 0 16px;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+@keyframes masuk-jatuh {
+  from {
+    opacity: 0;
+    translate: 0 -28px;
+    rotate: -8deg;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+    rotate: 0deg;
+  }
+}
+@keyframes masuk-balik {
+  from {
+    opacity: 0;
+    transform: rotateX(-95deg);
+  }
+  to {
+    opacity: 1;
+    transform: rotateX(0deg);
+  }
+}
+@keyframes masuk-geser {
+  from {
+    opacity: 0;
+    translate: -24px 0;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+@keyframes hitung {
+  from {
+    --angka: 0;
   }
 }
 

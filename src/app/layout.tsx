@@ -1,20 +1,23 @@
 import type { Metadata, Viewport } from "next";
-import { Fraunces, Plus_Jakarta_Sans } from "next/font/google";
+import { Andika, Baloo_2 } from "next/font/google";
 
 import { Providers } from "@/components/providers";
 
 import "./globals.css";
 
-const jakarta = Plus_Jakarta_Sans({
+// Andika dirancang SIL untuk pembaca pemula (bentuk a dan g seperti tulisan tangan
+// di sekolah, l/I/1 mudah dibedakan). Hanya punya bobot 400 dan 700.
+const andika = Andika({
   subsets: ["latin"],
-  variable: "--font-jakarta",
+  weight: ["400", "700"],
+  variable: "--font-andika",
   display: "swap",
 });
 
-const fraunces = Fraunces({
+const baloo = Baloo_2({
   subsets: ["latin"],
-  variable: "--font-fraunces",
-  axes: ["SOFT", "opsz"],
+  weight: ["500", "600", "700", "800"],
+  variable: "--font-baloo",
   display: "swap",
 });
 
@@ -28,12 +31,12 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#0a7a0a",
+  themeColor: "#0d8905",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="id" className={`${jakarta.variable} ${fraunces.variable}`}>
+    <html lang="id" className={`${andika.variable} ${baloo.variable}`}>
       <body className="min-h-dvh">
         <Providers>{children}</Providers>
       </body>

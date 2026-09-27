@@ -4,17 +4,18 @@ import { cn } from "cn"
 import { Slot } from "radix-ui"
 
 const buttonVariants = cva(
-  "inline-flex shrink-0 items-center justify-center gap-2 rounded-md border font-semibold whitespace-nowrap transition-colors duration-150 outline-none select-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+  "inline-flex shrink-0 items-center justify-center gap-2 rounded-md border font-heading font-bold whitespace-nowrap transition-[color,background-color,border-color,scale] duration-150 outline-none active:scale-[0.97] select-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
   {
     variants: {
       variant: {
         default: "border-transparent bg-primary text-primary-foreground hover:bg-primary-strong",
         highlight: "border-transparent bg-highlight text-highlight-foreground hover:bg-highlight-strong",
         outline: "border-input bg-card text-foreground hover:bg-muted",
+        terang: "border-primary-foreground/70 bg-transparent text-primary-foreground hover:bg-primary-foreground/15",
         secondary: "border-transparent bg-primary-soft text-primary-strong hover:bg-primary-soft-strong",
         ghost: "border-transparent text-foreground hover:bg-muted",
         destructive: "border-transparent bg-destructive text-white hover:bg-destructive-strong",
-        link: "h-auto border-transparent px-0 text-primary underline-offset-4 hover:underline",
+        link: "h-auto border-transparent px-0 text-primary-strong underline-offset-4 hover:underline",
       },
       size: {
         default: "h-10 px-4 text-sm",
