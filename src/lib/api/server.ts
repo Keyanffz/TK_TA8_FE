@@ -3,6 +3,7 @@ import "server-only";
 import createClient from "openapi-fetch";
 
 import { beApiUrl } from "@/lib/api/be";
+import { serialisasiQuery } from "@/lib/api/query-string";
 import type { paths } from "@/types/api";
 
 type OpsiServer = {
@@ -24,6 +25,7 @@ export function apiServer({ token, revalidate, tags }: OpsiServer = {}) {
   return createClient<paths>({
     baseUrl: beApiUrl(),
     headers: token ? { Authorization: `Bearer ${token}`, Accept: "application/json" } : { Accept: "application/json" },
+    querySerializer: serialisasiQuery,
     fetch: (request) => fetch(request, cache),
   });
 }
