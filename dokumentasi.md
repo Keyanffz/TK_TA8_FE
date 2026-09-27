@@ -139,7 +139,7 @@ Request dari Server Component ke endpoint publik (landing, ISR) tidak membawa `X
 - **Anak aktif**: cookie `tk_anak` (ditulis dari browser), dibaca layout server sebagai nilai awal, disimpan di konteks `AnakAktifProvider`. Id yang tidak ada di daftar anak sesi diganti anak pertama. Beranda wali memanggil `GET /dashboard?murid_id=` dengan query key `["dashboard", muridId]`, jadi ganti anak tidak perlu memuat ulang halaman.
 - **Data dashboard** diambil di browser lewat React Query (`src/lib/api/dashboard.ts`), dengan kerangka skeleton saat memuat dan `GalatMuat` (pesan + Muat Ulang) saat gagal. Bentuk `data` (anyOf tiga bentuk) dipastikan lewat kunci khas: `statistik` (SA), `kelas_saya` (G), `tagihan_aktif` (W).
 - **Notifikasi**: badge `GET /notifikasi/belum-dibaca` diperbarui tiap 60 detik (React Query tidak menjalankan interval di tab latar belakang); popover memuat 6 notifikasi terbaru hanya saat dibuka. Klik notifikasi menandai dibaca lalu membuka `url` dari backend.
-- **Query string**: `serialisasiQuery()` (`src/lib/api/query-string.ts`) dipakai client browser dan server. Boolean dikirim `1`/`0` karena validasi `boolean` Laravel menolak `true`/`false` di query string (lihat temuan backend).
+- **Query string**: `serialisasiQuery()` (`src/lib/api/query-string.ts`) dipakai client browser dan server. Array dikirim `kunci[]=`, nilai kosong (`undefined`, `null`, string kosong) tidak dikirim. Boolean dikirim `true`/`false` apa adanya (backend menerimanya sejak revisi audit).
 - **Beranda wali**: satu hal terpenting adalah kartu tagihan (total belum dibayar besar, tombol "Bayar Sekarang" ke detail tagihan kalau hanya satu, ke daftar kalau lebih). Kartu memerah dengan judul "Ada tagihan yang lewat jatuh tempo" kalau ada status `terlambat`; tagihan `menunggu_verifikasi` diberi catatan bahwa bukti sedang diperiksa. Tanpa tagihan aktif tampil "Semua tagihan ... sudah lunas". Wali tanpa anak tertaut melihat ajakan Tautkan Anak / Daftar PPDB. Di desktop agenda mengisi kolom samping tagihan; di HP agenda paling bawah (urutan B5).
 - **Beranda guru**: kartu kelas diampu (jumlah murid menghitung naik) dan kartu "Verifikasi Pembayaran" untuk guru petugas keuangan (`pembayaran_menunggu` bukan null). Progres rapor satu batang per status terhadap `total` (murid aktif), ditambah jumlah yang belum dibuat. "Tagihan Jatuh Tempo Bulan Ini" menampilkan persen lunas dari `keuangan_kelas` (jumlah tagihan, bukan rupiah; hanya dilihat).
 - **Beranda Kepala Sekolah**: panel "Perlu Tindakan" di blok hijau (kartu kuning untuk yang jumlahnya lebih dari 0, tautan ke halaman terkait), empat angka statistik, keuangan bulan ini dengan batang persen lunas, grafik pemasukan 12 bulan (Recharts, satu seri berwarna `primary`, tooltip per batang, tabel tersembunyi untuk pembaca layar), pengumuman dan agenda.
@@ -182,10 +182,9 @@ Usulan endpoint untuk backend (belum dikerjakan; FE tidak mengubah BE):
 
 ## Temuan backend dari Fase 3
 
-- `GET /notifikasi?filter[dibaca]=true|false` ditolak 422 ("Filter.dibaca harus bernilai true atau false."), padahal OpenAPI menulis parameternya `boolean`. Hanya `1`/`0` yang diterima. FE mengirim `1`/`0` lewat `serialisasiQuery()`.
-- Di `api.json`, item array yang memakai Resource lewat `allOf` (misalnya `pengumuman_terbaru`, `kegiatan_terbaru`, `tagihan_aktif` di `GET /dashboard`, dan data banyak endpoint daftar) ditulis sebagai `Resource & Record<string, never>` oleh openapi-typescript, sehingga semua field bertipe `never` kalau dibaca dari tipe `operations`. Tipe yang dikembalikan openapi-fetch tidak terpengaruh, jadi FE mengambil tipe dari hasil pemanggilan. Sebaiknya skema tambahan kosong di `allOf` dihapus di Scramble.
+- Sudah diperbaiki backend (revisi audit): `filter[dibaca]` menerima `true`/`false`, dan `api.json` tidak lagi memakai `allOf`. Konversi boolean ke `1`/`0` dan pengambilan tipe dari hasil pemanggilan sudah dihapus (lihat Changelog "Sebelum Fase 4").
 - Tiga wali pendaftar PPDB demo memakai email domain sungguhan (`@gmail.com`, `@gmail.co.id`, `@yahoo.co.id`) dari `UserFactory::freeEmail()`, sedangkan wali demo lain memakai `@wali.tkta8.test`. Kalau mailer diaktifkan, email bisa terkirim ke alamat nyata.
-- Pesan validasi `current_password` di `PUT /auth/password` berbunyi "Kata sandi salah.", sedangkan label lain di UI dan pesan backend lain memakai "password".
+- Pesan validasi `current_password` di `PUT /auth/password` sudah "Password salah." (diperbaiki backend). Istilah "Password" masuk glosarium C4.
 
 ## Temuan kontrak dari `api.json`
 
@@ -286,6 +285,14 @@ Tempat deploy belum ditentukan. Syarat yang sudah pasti:
 5. Batas body di reverse proxy minimal 55 MB (unggahan kegiatan 10 foto × 5 MB), sama dengan `post_max_size` backend.
 
 ## Changelog
+
+### Sebelum Fase 4 (branch `fe/fase-4-5`)
+
+- `src/types/api.d.ts`: generate ulang dari `api.json` backend hasil revisi audit. Skema detail punya nama sendiri (`TagihanDetailResource`, `MuridDetailResource`, `KelasDetailResource`, `RaporDetailResource`, `PendaftaranDetailResource`, `WaliMuridDetailResource`, `GaleriAlbumDetailResource`, `RiwayatPembayaranResource`), field relasi yang selalu dikirim wajib, tanpa `allOf`.
+- `src/types/domain.ts`: alias skema baru (guru, tahun ajaran, kelas, murid, wali murid, jenis tagihan, keringanan, tagihan, pembayaran beserta bentuk detailnya, `NadaInfo`) dan `DataRespons<operasi>` untuk `data` respons tanpa skema bernama (`Dashboard`, `LaporanKeuangan`, `LaporanTunggakan`).
+- `src/lib/api/dashboard.ts`: tipe dashboard dari `Dashboard` di `domain.ts`, bukan dari `ReturnType` pemanggilan.
+- `src/lib/api/query-string.ts`: boolean tidak lagi diubah ke `1`/`0`; string kosong tidak dikirim.
+- `PROMPT_FE_TK.md`: baris "Password | Kata sandi" di glosarium C4. `scripts/check-slop.sh`: menolak "kata sandi" di `src`.
 
 ### Fase 3
 
