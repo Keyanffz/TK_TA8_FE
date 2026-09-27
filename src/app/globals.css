@@ -130,10 +130,10 @@
   --chart-4: #8a5a00;
   --chart-5: #5f6b63;
   /* Dua seri grafik laporan keuangan (terbayar, belum terbayar). Pasangan ini lolos
-     pemeriksaan buta warna (ΔE protan 15,4); kontras oranye 2,86:1 diimbangi legenda
-     dan tabel per bulan yang selalu tampil. */
+     pemeriksaan buta warna (ΔE protan 10,7); kontras oranye 3,42:1 di atas kartu putih
+     dan 3,23:1 di atas latar krem. */
   --grafik-terbayar: #0a6e04;
-  --grafik-belum: #d08a1a;
+  --grafik-belum: #c07c10;
 
   --radius: 0.75rem;
 }
