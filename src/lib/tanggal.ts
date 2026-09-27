@@ -30,3 +30,18 @@ export function daftarBulan(mulai: string, selesai: string): string[] {
   }
   return hasil;
 }
+
+/** Geser bulan YYYY-MM sebanyak `geser` bulan. */
+export function geserBulan(bulan: string, geser: number): string {
+  const [tahun, nomor] = bulan.split("-").map(Number);
+  const tujuan = new Date(Date.UTC(tahun, nomor - 1 + geser, 1));
+  return `${tujuan.getUTCFullYear()}-${String(tujuan.getUTCMonth() + 1).padStart(2, "0")}`;
+}
+
+/** Tanggal YYYY-MM-DD dalam satu bulan, beserta posisi hari pertamanya (0 = Senin). */
+export function hariDalamBulan(bulan: string): { tanggal: string[]; geserAwal: number } {
+  const [tahun, nomor] = bulan.split("-").map(Number);
+  const jumlah = new Date(Date.UTC(tahun, nomor, 0)).getUTCDate();
+  const geserAwal = (new Date(Date.UTC(tahun, nomor - 1, 1)).getUTCDay() + 6) % 7;
+  return { tanggal: Array.from({ length: jumlah }, (_, i) => `${bulan}-${String(i + 1).padStart(2, "0")}`), geserAwal };
+}
