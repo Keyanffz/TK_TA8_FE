@@ -83,7 +83,10 @@ export function RiwayatPembayaranSekolah() {
             </option>
           ))}
         </select>
-        <input type="date" aria-label="Saring tanggal bayar" className={KELAS_SELECT} value={tanggal ?? ""} onChange={(e) => ubahFilter(() => setTanggal(e.target.value || null))} />
+        <label className="flex items-center gap-2 text-sm text-muted-foreground">
+          <span className="shrink-0">Tanggal bayar</span>
+          <input type="date" className={`${KELAS_SELECT} min-w-0 flex-1 text-foreground`} value={tanggal ?? ""} onChange={(e) => ubahFilter(() => setTanggal(e.target.value || null))} />
+        </label>
       </div>
       <TabelData
         label="Riwayat pembayaran"
@@ -103,7 +106,7 @@ export function RiwayatPembayaranSekolah() {
               {namaTagihan(bayar.tagihan)} · {bayar.tagihan.murid.nama_panggilan}
             </Link>
             <p className="text-sm text-muted-foreground">
-              {LABEL_METODE_BAYAR[bayar.metode]} · {formatTanggal(bayar.tanggal_bayar)} · <span className="font-bold text-foreground tabular-nums">{formatRupiah(bayar.jumlah)}</span>
+              {LABEL_METODE_BAYAR[bayar.metode]} · {formatTanggal(bayar.tanggal_bayar)} · <span className="font-bold whitespace-nowrap text-foreground tabular-nums">{formatRupiah(bayar.jumlah)}</span>
             </p>
             <div className="flex flex-wrap items-center justify-between gap-2">
               <StatusBadge nada={NADA_STATUS_PEMBAYARAN[bayar.status]}>{LABEL_STATUS_PEMBAYARAN[bayar.status]}</StatusBadge>

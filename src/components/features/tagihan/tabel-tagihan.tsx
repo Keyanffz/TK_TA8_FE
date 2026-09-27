@@ -11,9 +11,11 @@ import { TabelData } from "@/components/shared/tabel-data";
 import { useDaftarJenisTagihan } from "@/lib/api/jenis-tagihan";
 import { useDaftarKelas } from "@/lib/api/kelas";
 import { useDaftarTagihan } from "@/lib/api/tagihan";
+import { useDaftarTahunAjaran } from "@/lib/api/tahun-ajaran";
 import { LABEL_STATUS_TAGIHAN } from "@/lib/constants/label";
 import { NADA_STATUS_TAGIHAN } from "@/lib/constants/status";
-import { formatRupiah, formatTanggal } from "@/lib/format";
+import { formatBulan, formatRupiah, formatTanggal } from "@/lib/format";
+import { daftarBulan } from "@/lib/tanggal";
 import { namaTagihan } from "@/lib/tagihan";
 import { cn } from "@/lib/utils";
 import type { Tagihan } from "@/types/domain";
@@ -66,9 +68,14 @@ export function TabelTagihan({ petugasKeuangan }: { petugasKeuangan: boolean }) 
   const [jenisId, setJenisId] = useQueryState("jenis", parseAsInteger);
   const [halaman, setHalaman] = useQueryState("page", parseAsInteger.withDefault(1));
   const kelas = useDaftarKelas(null);
+  const tahunAjaran = useDaftarTahunAjaran();
   const jenis = useDaftarJenisTagihan(null, petugasKeuangan);
   const daftar = useDaftarTagihan({ halaman, search: cari, status, periode, kelasId, jenisTagihanId: jenisId });
   const adaFilter = cari || status || periode || kelasId || jenisId;
+  // Input type="month" tidak didukung Firefox, jadi bulan dipilih dari bulan tahun ajaran aktif.
+  const taAktif = tahunAjaran.data?.find((ta) => ta.is_aktif);
+  const bulanTa = taAktif ? daftarBulan(taAktif.tanggal_mulai, taAktif.tanggal_selesai) : [];
+  const pilihanBulan = periode && !bulanTa.includes(periode) ? [periode, ...bulanTa] : bulanTa;
 
   const ubahFilter = (ubah: () => unknown) => {
     ubah();
@@ -87,13 +94,14 @@ export function TabelTagihan({ petugasKeuangan }: { petugasKeuangan: boolean }) 
             </option>
           ))}
         </select>
-        <input
-          type="month"
-          aria-label="Saring bulan tagihan"
-          className={KELAS_SELECT}
-          value={periode ?? ""}
-          onChange={(e) => ubahFilter(() => setPeriode(e.target.value || null))}
-        />
+        <select aria-label="Saring bulan tagihan" className={KELAS_SELECT} value={periode ?? ""} onChange={(e) => ubahFilter(() => setPeriode(e.target.value || null))}>
+          <option value="">Semua bulan</option>
+          {pilihanBulan.map((bulan) => (
+            <option key={bulan} value={bulan}>
+              {formatBulan(bulan)}
+            </option>
+          ))}
+        </select>
         {petugasKeuangan ? (
           <select aria-label="Saring kelas" className={KELAS_SELECT} value={kelasId ?? ""} onChange={(e) => ubahFilter(() => setKelasId(e.target.value ? Number(e.target.value) : null))}>
             <option value="">Semua kelas</option>

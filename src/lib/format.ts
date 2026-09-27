@@ -69,3 +69,10 @@ export function rentangTanggal(mulai: string, selesai: string): string {
   if (mulai === selesai) return formatTanggal(mulai);
   return `${formatTanggal(mulai)} – ${formatTanggal(selesai)}`;
 }
+
+const bulanTahun = new Intl.DateTimeFormat("id-ID", { month: "long", year: "numeric", timeZone: "UTC" });
+
+/** "2026-09" → "September 2026" */
+export function formatBulan(nilai: string): string {
+  return bulanTahun.format(new Date(`${nilai}-01T00:00:00Z`));
+}

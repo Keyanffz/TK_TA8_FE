@@ -42,7 +42,7 @@ function KartuAntrean({ bayar }: { bayar: Pembayaran }) {
         <dl className="grid grid-cols-2 gap-3 text-sm">
           <div>
             <dt className="text-muted-foreground">Jumlah</dt>
-            <dd className="font-heading text-xl font-extrabold tabular-nums">{formatRupiah(bayar.jumlah)}</dd>
+            <dd className="font-heading text-lg font-extrabold whitespace-nowrap tabular-nums sm:text-xl">{formatRupiah(bayar.jumlah)}</dd>
           </div>
           <div>
             <dt className="text-muted-foreground">Tanggal transfer</dt>
