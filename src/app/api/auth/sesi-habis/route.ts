@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import { amankanTujuan } from "@/lib/auth/redirect";
 import { hapusCookieSesi } from "@/lib/auth/sesi-cookie";
+import { RUTE_LOGIN } from "@/lib/auth/rute-login";
 
 /**
  * Tujuan redirect dari Server Component saat token di cookie ditolak backend.
@@ -9,7 +10,7 @@ import { hapusCookieSesi } from "@/lib/auth/sesi-cookie";
  */
 export function GET(request: NextRequest) {
   const tujuan = amankanTujuan(request.nextUrl.searchParams.get("next"));
-  const login = new URL("/login", request.nextUrl.origin);
+  const login = new URL(RUTE_LOGIN.pilihan, request.nextUrl.origin);
   login.searchParams.set("next", tujuan);
   const response = NextResponse.redirect(login);
   hapusCookieSesi(response);

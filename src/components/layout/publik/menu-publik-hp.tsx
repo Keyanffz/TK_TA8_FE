@@ -14,7 +14,7 @@ export function MenuPublikHp({ namaSekolah }: { namaSekolah: string }) {
   return (
     <Sheet open={terbuka} onOpenChange={setTerbuka}>
       <SheetTrigger asChild>
-        <Button variant="ghost" size="icon" className="md:hidden" aria-label="Buka menu">
+        <Button variant="ghost" size="icon" className="text-primary-foreground hover:bg-primary-foreground/15 md:hidden" aria-label="Buka menu">
           <Menu aria-hidden="true" />
         </Button>
       </SheetTrigger>

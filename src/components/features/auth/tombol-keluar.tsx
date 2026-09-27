@@ -6,6 +6,7 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { errorDariResponse, pesanError } from "@/lib/api/errors";
+import { RUTE_LOGIN } from "@/lib/auth/rute-login";
 
 async function keluar(): Promise<void> {
   const response = await fetch("/api/auth/logout", { method: "POST" });
@@ -22,7 +23,7 @@ export function TombolKeluar() {
     onSettled: () => {
       // Cookie sesi sudah dihapus route handler, termasuk saat backend gagal dihubungi.
       queryClient.clear();
-      router.replace("/login");
+      router.replace(RUTE_LOGIN.pilihan);
       router.refresh();
     },
     onError: (error) => toast.error(pesanError(error)),

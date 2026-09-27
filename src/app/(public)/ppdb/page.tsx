@@ -1,16 +1,18 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
+import { AngkaNaik } from "@/components/shared/angka-naik";
 import { KontenHtml } from "@/components/shared/konten-html";
 import { JudulHalaman } from "@/components/shared/judul-halaman";
 import { KotakPesan } from "@/components/shared/kotak-pesan";
 import { buttonVariants } from "@/components/ui/button";
 import { ambilPpdbPublik } from "@/lib/api/publik";
 import { formatTanggal } from "@/lib/format";
+import { RUTE_LOGIN, urlLogin } from "@/lib/auth/rute-login";
 
 export const metadata: Metadata = { title: "Info PPDB" };
 
-const TUJUAN_PENDAFTARAN = "/login?tab=wali&next=%2Fdashboard%2Fppdb";
+const TUJUAN_PENDAFTARAN = urlLogin(RUTE_LOGIN.wali, "/dashboard/ppdb");
 
 export default async function PpdbPage() {
   const ppdb = await ambilPpdbPublik();
@@ -29,7 +31,7 @@ export default async function PpdbPage() {
           {ppdb.info ? <KontenHtml html={ppdb.info} /> : <p className="text-muted-foreground">Informasi syarat dan alur pendaftaran belum diisi sekolah.</p>}
         </div>
 
-        <aside className="order-1 h-fit rounded-xl border border-border bg-card p-6 shadow-sm md:order-2">
+        <aside className="order-1 h-fit rounded-xl border-2 border-primary bg-card p-6 shadow-md md:order-2">
           {ppdb.dibuka ? (
             <>
               <p className="text-sm font-semibold text-primary-strong">Pendaftaran dibuka</p>
@@ -37,11 +39,11 @@ export default async function PpdbPage() {
               <dl className="mt-5 grid grid-cols-2 gap-4">
                 <div>
                   <dt className="text-sm text-muted-foreground">Kuota</dt>
-                  <dd className="font-heading text-xl font-semibold">{ppdb.kuota}</dd>
+                  <dd className="font-heading text-xl font-extrabold"><AngkaNaik nilai={ppdb.kuota} saatDimuat /></dd>
                 </div>
                 <div>
                   <dt className="text-sm text-muted-foreground">Sisa tempat</dt>
-                  <dd className="font-heading text-xl font-semibold">{ppdb.sisa_kuota}</dd>
+                  <dd className="font-heading text-xl font-extrabold text-primary-strong"><AngkaNaik nilai={ppdb.sisa_kuota} saatDimuat /></dd>
                 </div>
               </dl>
               {ppdb.sisa_kuota > 0 ? (

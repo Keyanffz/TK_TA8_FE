@@ -7,6 +7,7 @@ import { useState, type ReactNode } from "react";
 import { Toaster } from "sonner";
 
 import { ApiError } from "@/lib/api/errors";
+import { RUTE_LOGIN, urlLogin } from "@/lib/auth/rute-login";
 
 // Data yang memuat signed URL file private (berlaku 30 menit) harus diambil
 // ulang jauh sebelum URL-nya kedaluwarsa.
@@ -29,7 +30,7 @@ export function Providers({ children }: { children: ReactNode }) {
       if (error instanceof ApiError && error.status === 401) {
         client.clear();
         const asal = `${window.location.pathname}${window.location.search}`;
-        router.replace(`/login?next=${encodeURIComponent(asal)}`);
+        router.replace(urlLogin(RUTE_LOGIN.pilihan, asal));
       }
     };
     const client = new QueryClient({

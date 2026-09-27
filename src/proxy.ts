@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 
 import { TOKEN_COOKIE } from "@/lib/auth/cookies";
+import { RUTE_LOGIN } from "@/lib/auth/rute-login";
 
 /**
  * Pengecekan cepat berdasarkan keberadaan cookie. Keabsahan token diperiksa
@@ -11,12 +12,12 @@ export function proxy(request: NextRequest) {
   const sudahMasuk = request.cookies.has(TOKEN_COOKIE);
 
   if (pathname.startsWith("/dashboard") && !sudahMasuk) {
-    const login = new URL("/login", request.url);
+    const login = new URL(RUTE_LOGIN.pilihan, request.url);
     login.searchParams.set("next", `${pathname}${search}`);
     return NextResponse.redirect(login);
   }
 
-  if (pathname === "/login" && sudahMasuk) {
+  if ((pathname === RUTE_LOGIN.pilihan || pathname.startsWith(`${RUTE_LOGIN.pilihan}/`)) && sudahMasuk) {
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 
@@ -26,5 +27,5 @@ export function proxy(request: NextRequest) {
 // /api sengaja tidak dicocokkan: proxy membatasi body 10 MB, sedangkan
 // unggahan kegiatan (10 foto) lewat /api/proxy bisa melebihinya.
 export const config = {
-  matcher: ["/dashboard/:path*", "/login"],
+  matcher: ["/dashboard/:path*", "/login", "/login/:path*"],
 };

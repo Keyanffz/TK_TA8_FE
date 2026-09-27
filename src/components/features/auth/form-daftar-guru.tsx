@@ -17,6 +17,7 @@ import { api } from "@/lib/api/client";
 import { pesanError, terapkanErrorValidasi } from "@/lib/api/errors";
 import { skemaEmail, skemaNomorHp, skemaPasswordBaru } from "@/lib/auth/skema";
 import { LABEL_JENIS_KELAMIN } from "@/lib/constants/label";
+import { RUTE_LOGIN } from "@/lib/auth/rute-login";
 
 const skemaDaftar = z
   .object({
@@ -121,7 +122,7 @@ export function FormDaftarGuru() {
         </Button>
         <p className="text-sm text-muted-foreground">
           Sudah punya akun?{" "}
-          <Link href="/login?tab=guru" className="font-semibold text-primary hover:underline">
+          <Link href={RUTE_LOGIN.guru} className="font-semibold text-primary-strong hover:underline">
             Masuk
           </Link>
         </p>

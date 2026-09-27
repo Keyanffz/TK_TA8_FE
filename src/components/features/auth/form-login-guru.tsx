@@ -70,7 +70,7 @@ export function FormLoginGuru() {
         <KolomTeks label="Email" type="email" autoComplete="email" inputMode="email" error={errors.email?.message} {...form.register("email")} />
         <KolomPassword label="Password" autoComplete="current-password" error={errors.password?.message} {...form.register("password")} />
         <div className="-mt-2 text-right">
-          <Link href="/lupa-password" className="text-sm font-semibold text-primary hover:underline">
+          <Link href="/lupa-password" className="text-sm font-semibold text-primary-strong hover:underline">
             Lupa password?
           </Link>
         </div>
@@ -79,7 +79,7 @@ export function FormLoginGuru() {
         </Button>
         <p className="text-sm text-muted-foreground">
           Belum punya akun guru?{" "}
-          <Link href="/daftar-guru" className="font-semibold text-primary hover:underline">
+          <Link href="/daftar-guru" className="font-semibold text-primary-strong hover:underline">
             Daftar sebagai guru
           </Link>
         </p>

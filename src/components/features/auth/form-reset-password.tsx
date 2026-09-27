@@ -15,6 +15,7 @@ import { ambilData } from "@/lib/api/ambil-data";
 import { api } from "@/lib/api/client";
 import { ApiError, pesanError, terapkanErrorValidasi } from "@/lib/api/errors";
 import { skemaPasswordBaru } from "@/lib/auth/skema";
+import { RUTE_LOGIN } from "@/lib/auth/rute-login";
 
 const skemaReset = z
   .object({
@@ -57,7 +58,7 @@ export function FormResetPassword({ token, email }: { token: string; email: stri
         <KotakPesan nada="sukses" judul="Password berhasil diganti">
           Silakan masuk dengan password baru Anda.
         </KotakPesan>
-        <Link href="/login?tab=guru" className={buttonVariants({ size: "lg" })}>
+        <Link href={RUTE_LOGIN.guru} className={buttonVariants({ size: "lg" })}>
           Masuk
         </Link>
       </div>

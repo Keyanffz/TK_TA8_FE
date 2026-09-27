@@ -15,6 +15,7 @@ import { ambilData } from "@/lib/api/ambil-data";
 import { api } from "@/lib/api/client";
 import { pesanError, terapkanErrorValidasi } from "@/lib/api/errors";
 import { skemaEmail } from "@/lib/auth/skema";
+import { RUTE_LOGIN } from "@/lib/auth/rute-login";
 
 const skemaLupa = z.object({ email: skemaEmail });
 type NilaiLupa = z.infer<typeof skemaLupa>;
@@ -50,7 +51,7 @@ export function FormLupaPassword() {
         <Button type="submit" size="lg" disabled={mutation.isPending}>
           {mutation.isPending ? "Mengirim..." : "Kirim Tautan Reset"}
         </Button>
-        <Link href="/login?tab=guru" className="text-sm font-semibold text-primary hover:underline">
+        <Link href={RUTE_LOGIN.guru} className="text-sm font-semibold text-primary-strong hover:underline">
           Kembali ke halaman masuk
         </Link>
       </FieldGroup>
