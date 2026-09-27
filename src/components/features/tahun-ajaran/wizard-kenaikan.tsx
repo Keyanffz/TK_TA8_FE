@@ -21,18 +21,18 @@ type Hasil = { naik: number; tinggal: number; lulus: number };
 
 /**
  * Kenaikan kelas massal (`POST /kelas/kenaikan`): murid aktif di kelas tahun
- * ajaran asal diberi status naik/tinggal/lulus dan kelas tujuan di tahun ajaran tujuan.
+ * ajaran aktif diberi status naik/tinggal/lulus dan kelas tujuan di tahun ajaran tujuan.
+ * Asal tidak bisa dipilih karena backend selalu memakai tahun ajaran aktif.
  */
 export function WizardKenaikan() {
   const tahunAjaran = useDaftarTahunAjaran();
   const aktif = tahunAjaran.data?.find((ta) => ta.is_aktif) ?? null;
-  const [asalId, setAsalId] = useState<number | null>(null);
   const [tujuanId, setTujuanId] = useState<number | null>(null);
   const [ubahan, setUbahan] = useState<ReadonlyMap<number, Penempatan>>(new Map());
   const [hasil, setHasil] = useState<Hasil | null>(null);
   const kenaikan = useKenaikanKelas();
 
-  const asal = asalId ?? aktif?.id ?? null;
+  const asal = aktif?.id ?? null;
   const kelasAsal = useDaftarKelas(asal);
   const kelasTujuan = useDaftarKelas(tujuanId);
   const detail = useDetailBanyakKelas(asal !== null ? (kelasAsal.data ?? []).map((kelas) => kelas.id) : []);
@@ -62,27 +62,24 @@ export function WizardKenaikan() {
   if (tahunAjaran.isPending) return <Skeleton className="h-40 rounded-xl" />;
   if (tahunAjaran.isError) return <GalatMuat error={tahunAjaran.error} onCobaLagi={() => void tahunAjaran.refetch()} />;
 
-  const pilihanTujuan = tahunAjaran.data.filter((ta) => ta.id !== asal);
+  if (!aktif) {
+    return (
+      <KotakPesan nada="menunggu" judul="Belum ada tahun ajaran aktif">
+        Kenaikan kelas selalu dimulai dari tahun ajaran aktif. Aktifkan tahun ajaran yang sedang berjalan di menu Tahun Ajaran.
+      </KotakPesan>
+    );
+  }
+
+  const pilihanTujuan = tahunAjaran.data.filter((ta) => ta.id !== aktif.id);
   const namaTujuan = pilihanTujuan.find((ta) => ta.id === tujuanId)?.nama;
 
   return (
     <div className="flex flex-col gap-6">
       <div className="grid gap-4 rounded-xl border border-border bg-card p-5 shadow-sm sm:grid-cols-2">
-        <KolomPilih
-          label="Dari tahun ajaran"
-          value={asal ?? ""}
-          onChange={(event) => {
-            setAsalId(event.target.value ? Number(event.target.value) : null);
-            setUbahan(new Map());
-          }}
-        >
-          {tahunAjaran.data.map((ta) => (
-            <option key={ta.id} value={ta.id}>
-              {ta.nama}
-              {ta.is_aktif ? " (aktif)" : ""}
-            </option>
-          ))}
-        </KolomPilih>
+        <div className="flex flex-col gap-2">
+          <p className="text-sm font-bold">Dari tahun ajaran</p>
+          <p className="flex h-11 items-center rounded-md bg-muted px-3 font-bold">{aktif.nama} (aktif)</p>
+        </div>
         <KolomPilih
           label="Ke tahun ajaran"
           deskripsi="Kelas tujuan harus sudah dibuat di tahun ajaran ini."
