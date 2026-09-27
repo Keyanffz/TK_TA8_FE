@@ -746,6 +746,7 @@ Landing page berisi: navbar, hero, sambutan kepala sekolah, visi-misi, program, 
 | Pengumuman | Info, Berita, Broadcast |
 | Kode Tautan | Kode undangan, Token, Invite code |
 | Tahun Ajaran | Periode, Academic year |
+| Password | Kata sandi |
 
 ## C5. Dokumentasi, commit, dan laporan fase
 
