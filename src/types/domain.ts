@@ -59,6 +59,7 @@ export type Rapor = Schemas["RaporResource"];
 export type RaporDetail = Schemas["RaporDetailResource"];
 export type ElemenPenilaian = Schemas["ElemenPenilaianResource"];
 export type Pendaftaran = Schemas["PendaftaranResource"];
+export type PendaftaranDetail = Schemas["PendaftaranDetailResource"];
 export type PendaftaranPublik = Schemas["PendaftaranPublikResource"];
 
 export type Dashboard = DataRespons<"dashboard.dashboard">;

@@ -1,20 +1,32 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound } from "next/navigation";
 
 import { PendaftaranSaya } from "@/components/features/ppdb/pendaftaran-saya";
+import { DaftarPendaftar } from "@/components/features/ppdb-sekolah/daftar-pendaftar";
+import { RingkasanPpdb } from "@/components/features/ppdb-sekolah/ringkasan-ppdb";
 import { KepalaHalaman } from "@/components/shared/kepala-halaman";
 import { KotakPesan } from "@/components/shared/kotak-pesan";
 import { buttonVariants } from "@/components/ui/button";
 import { ambilPpdbPublik } from "@/lib/api/publik";
-import { wajibSesi } from "@/lib/auth/akses";
+import { wajibAkses } from "@/lib/auth/akses";
 
 export const metadata: Metadata = { title: "PPDB" };
 
 export default async function PpdbDashboardPage() {
-  const user = await wajibSesi();
-  // Halaman PPDB Kepala Sekolah (tabel pendaftar, verifikasi) dikerjakan di Fase 7.
-  if (user.role !== "wali_murid") notFound();
+  const user = await wajibAkses((sesi) => sesi.isSuperAdmin || sesi.isWali);
+
+  if (user.role === "super_admin") {
+    return (
+      <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+        <KepalaHalaman judul="PPDB" deskripsi="Periksa dokumen pendaftar, lalu terima dengan memilih kelas atau tolak dengan alasan." />
+        <div className="flex flex-col gap-6">
+          <RingkasanPpdb />
+          <DaftarPendaftar />
+        </div>
+      </div>
+    );
+  }
+
   const ppdb = await ambilPpdbPublik();
   const bisaDaftar = ppdb.dibuka && ppdb.sisa_kuota > 0;
 

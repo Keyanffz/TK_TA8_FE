@@ -3,6 +3,12 @@ export const queryKeys = {
   dashboard: (muridId: number | null) => ["dashboard", muridId] as const,
   anakWali: ["wali", "anak"] as const,
   pendaftaranSaya: ["pendaftaran", "saya"] as const,
+  pendaftaran: {
+    semua: ["pendaftaran"] as const,
+    daftar: (filter: object) => ["pendaftaran", "daftar", filter] as const,
+    detail: (id: number) => ["pendaftaran", "detail", id] as const,
+    status: ["pendaftaran", "status-ppdb"] as const,
+  },
   notifikasi: {
     semua: ["notifikasi"] as const,
     belumDibaca: ["notifikasi", "belum-dibaca"] as const,

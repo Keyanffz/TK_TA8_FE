@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import Link from "next/link";
 
 import { EmptyState } from "@/components/shared/empty-state";
 import { GalatMuat } from "@/components/shared/galat-muat";
@@ -48,7 +49,9 @@ export function PendaftaranSaya() {
         <li key={pendaftaran.id} className="rounded-xl border border-border bg-card p-5 shadow-sm">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
-              <p className="font-heading text-lg leading-tight font-extrabold">{pendaftaran.nama_panggilan}</p>
+              <Link href={`/dashboard/ppdb/${pendaftaran.id}`} className="font-heading text-lg leading-tight font-extrabold hover:underline">
+                {pendaftaran.nama_panggilan}
+              </Link>
               <p className="text-sm text-muted-foreground tabular-nums">{pendaftaran.kode}</p>
             </div>
             <StatusBadge nada={NADA_STATUS_PENDAFTARAN[pendaftaran.status]}>{LABEL_STATUS_PENDAFTARAN[pendaftaran.status]}</StatusBadge>
