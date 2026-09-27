@@ -11,7 +11,7 @@ Website publik dan dashboard sistem informasi TK Tarbiyathul Athfal 8 (TK Muslim
 | 2. Publik & auth | Selesai; revisi setelah review (login terpisah, warna, font, gerak) menunggu review |
 | Penyesuaian login wali NIS (sebelum Fase 4) | Selesai |
 | 3. Shell dashboard | Selesai (review Fase 3 tanpa revisi) |
-| 4. Master data | Belum |
+| 4. Master data | Selesai (dikerjakan berturut-turut dengan Fase 5, belum direview) |
 | 5. Keuangan | Belum |
 | 6. Akademik & komunikasi | Belum |
 | 7. PPDB, CMS, pengaturan | Belum |
@@ -149,6 +149,19 @@ Request dari Server Component ke endpoint publik (landing, ISR) tidak membawa `X
 - Komponen shadcn `dropdown-menu`, `popover`, `textarea` ditulis manual mengikuti pola shadcn karena `ui.shadcn.com` diblokir kebijakan jaringan container (403).
 - `EmptyState` sekarang memakai ilustrasi perisai logo dengan bintang melayang; `StatusBadge`, `KepalaHalaman` (PageHeader), `GalatMuat`, `HalamanKosong` (404/error di dashboard) ditambahkan sebagai komponen bersama.
 
+## Keputusan Fase 4
+
+- **Tabel**: `TabelData` (`src/components/shared/tabel-data.tsx`) memakai `@tanstack/react-table` dengan paginasi dari backend (`manualPagination`). Di bawah `md` tiap baris dirender lewat prop `kartu` (B8: tabel menjadi kartu di HP). Saringan, pencarian, dan halaman disimpan di query string lewat `nuqs` (`?status=`, `?cari=`, `?kelas=`, `?page=`); mengubah saringan mengembalikan ke halaman 1.
+- `react-hooks/incompatible-library` dimatikan di `eslint.config.mjs`: aturan itu hanya memberi tahu React Compiler melewati komponen yang memakai `useReactTable`, dan React Compiler tidak diaktifkan.
+- **Konfirmasi**: semua aksi yang sulit dibatalkan (hapus, tolak, nonaktifkan, reset password, pindah kontak utama, keluarkan murid, simpan kenaikan) lewat `DialogKonfirmasi`. Error backend (misalnya `BUSINESS_RULE` saat menghapus tahun ajaran yang sudah dipakai) tampil di dalam dialog, bukan toast, supaya alasan terbaca.
+- **Multipart** (guru, murid): isian teks kosong dikirim `""` (Laravel `ConvertEmptyStringsToNull` menjadikannya null, jadi bisa mengosongkan), `null` tidak dikirim sama sekali (foto hanya dikirim kalau diganti), boolean `1`/`0` (`keFormData`).
+- **Guru**: tab status `aktif`, `pending` (dengan jumlah dari `meta.total`), `nonaktif`, dan `ditolak` (B4 hanya menyebut tiga; guru ditolak perlu terlihat untuk melihat alasannya). Profil guru Kepala Sekolah dikenali dari `user.role = super_admin`: aksi status disembunyikan dan `bisa_kelola_keuangan` tidak dikirim. `password_awal` dari `POST /guru` hanya disimpan di state halaman dan hilang saat halaman ditinggalkan.
+- **Kelas**: pilihan wali kelas/pendamping = guru aktif (`GET /guru`) ditambah profil guru Kepala Sekolah dari sesi (`user.guru`), karena profil itu tidak ada di `GET /guru`. Guru hanya melihat daftar kelas yang diampu tanpa saringan tahun ajaran.
+- **Kenaikan kelas** (`/dashboard/tahun-ajaran/kenaikan`): murid dengan `status_kelas = aktif` di tiap kelas tahun ajaran asal. Saran awal dihitung tanpa disimpan (`saranPenempatan`), hanya perubahan pengguna yang disimpan di state, jadi ganti tahun ajaran tujuan langsung memperbarui saran. Tombol simpan nonaktif selama ada murid naik/tinggal tanpa kelas tujuan.
+- **Kartu akun**: `GET /murid/{id}/kartu-akun` diambil sebagai Blob; "Unduh" menyimpan `kartu-akun-<NIS>.pdf`, "Cetak" membuka PDF di tab baru (tab dibuka sebelum permintaan supaya tidak diblokir sebagai pop-up, lalu ditutup lagi kalau gagal). Penolakan `BUSINESS_RULE` ditampilkan apa adanya di kartu.
+- **Wali murid**: `PUT /wali-murid/{id}` hanya mengirim field yang berubah. Nomor HP, alamat, dan pekerjaan wajib kalau sebelumnya sudah terisi, boleh tetap kosong untuk akun otomatis yang belum onboarding. Dialog reset password menyebut anak yang tanggal lahirnya menjadi password (kontak utama pertama); wali yang bukan kontak utama diberi keterangan bahwa backend akan menolak.
+- **Banner beranda wali** ada di `/dashboard/pengaturan` (satu-satunya bagian di halaman itu sampai Fase 7). `GET /pengaturan` bertipe objek bebas, jadi `beranda.info_wali` dibaca dengan zod (`skemaInfoWali`); kalau bentuknya tidak cocok, form mulai dari keadaan nonaktif. Pesan validasi backend berkunci `items.beranda.info_wali.<field>` dipasang ke field berdasarkan akhiran kuncinya.
+
 ## Audit data dashboard wali (revisi poin 4)
 
 Setiap data yang tampil ke wali dan halaman Kepala Sekolah yang mengelolanya:
@@ -270,7 +283,13 @@ Andika hanya punya bobot 400 dan 700, jadi `font-semibold` tampil sebagai 700.
 | `/dashboard/ppdb`, `/dashboard/ppdb/daftar` | W (SA: 404 sampai Fase 7) | Pendaftaran milik wali + form yang sama dengan form publik (`POST /pendaftaran`), nomor HP dan alamat terisi dari profil |
 | `/dashboard/notifikasi` | SA, G, W | Semua notifikasi berpaginasi (`?page=`), saring belum dibaca (`?belum=true`), tandai semua dibaca |
 | `/dashboard/profil` | SA, G, W | Nama, nomor HP, foto profil, ganti password; wali juga alamat, pekerjaan, NIK (username NIS ditampilkan, tidak bisa diubah) |
-| `/dashboard/*` lain | | 404 di dalam kerangka dashboard (`[...lainnya]`); halamannya dibuat di Fase 4–7 |
+| `/dashboard/guru`, `/dashboard/guru/baru`, `/dashboard/guru/[id]` | SA | Daftar per status + persetujuan; tambah guru (password awal sekali tampil); ubah data, foto, izin keuangan, tampil di landing, status akun |
+| `/dashboard/tahun-ajaran`, `/dashboard/tahun-ajaran/kenaikan` | SA | Tambah/ubah/aktifkan/hapus; wizard kenaikan kelas |
+| `/dashboard/kelas`, `/dashboard/kelas/[id]` | SA, G (kelas diampu, tanpa aksi) | Kartu kelas per tahun ajaran; detail + murid; SA tambah/ubah/hapus kelas, tempatkan dan keluarkan murid |
+| `/dashboard/murid`, `/dashboard/murid/baru`, `/dashboard/murid/[id]`, `/dashboard/murid/[id]/ubah` | SA, G (murid kelasnya, lihat saja) | Tabel + saringan; detail, kartu akun, wali tertaut (ubah hubungan, kontak utama, lepas); tambah/ubah/hapus (SA) |
+| `/dashboard/wali-murid`, `/dashboard/wali-murid/[id]` | SA | Daftar wali; ubah data, aktif/nonaktif, reset password, anak tertaut |
+| `/dashboard/pengaturan` | SA | Banner beranda wali (tab lain di Fase 7) |
+| `/dashboard/*` lain | | 404 di dalam kerangka dashboard (`[...lainnya]`); halamannya dibuat di Fase 5–7 |
 | `/api/auth/login`, `/api/auth/login-wali`, `/api/auth/logout`, `/api/auth/sesi-habis` | route handler | BFF sesi |
 | `/api/proxy/[...path]` | route handler | Proxy ke backend |
 
@@ -289,6 +308,40 @@ Tempat deploy belum ditentukan. Syarat yang sudah pasti:
 5. Batas body di reverse proxy minimal 55 MB (unggahan kegiatan 10 foto × 5 MB), sama dengan `post_max_size` backend.
 
 ## Changelog
+
+### Fase 4 (branch `fe/fase-4-5`)
+
+File baru:
+
+- `src/components/ui/{table,switch}.tsx`: mengikuti pola shadcn (ditulis manual).
+- `src/components/shared/{tabel-data,paginasi,dialog-konfirmasi,kolom-cari,saring-segmen,tombol-salin}.tsx`.
+- `src/lib/api/{tahun-ajaran,kelas,guru,murid,wali-murid,pengaturan-dashboard,unduh}.ts`: hook React Query per modul dengan invalidasi silang (misalnya simpan murid → murid, kelas, wali murid, dashboard).
+- `src/components/features/tahun-ajaran/{daftar-tahun-ajaran,form-tahun-ajaran,wizard-kenaikan,kenaikan-per-kelas,penempatan-kenaikan}`.
+- `src/components/features/guru/{daftar-guru,detail-guru,form-guru,tambah-guru,aksi-persetujuan-guru}.tsx`.
+- `src/components/features/kelas/{daftar-kelas,detail-kelas,form-kelas,tambah-murid-kelas}.tsx`.
+- `src/components/features/murid/{daftar-murid,detail-murid,form-murid,tambah-murid,ubah-murid,kartu-akun-murid,wali-tertaut}.tsx`.
+- `src/components/features/wali-murid/{daftar-wali-murid,detail-wali-murid,form-ubah-wali}.tsx`.
+- `src/components/features/pengaturan/form-info-wali.tsx`.
+- Halaman di `src/app/dashboard/{guru,tahun-ajaran,kelas,murid,wali-murid,pengaturan}/` (lihat peta route).
+
+File yang diubah:
+
+- `src/lib/api/query-keys.ts`: key guru, tahun ajaran, kelas, murid, wali murid, pengaturan. `src/lib/halaman.ts`: `idDariParam()` (id bukan bilangan bulat positif → 404).
+- `src/components/features/notifikasi/daftar-notifikasi.tsx`: memakai `SaringSegmen` dan `Paginasi`. `src/components/features/ppdb/daftar-ppdb-publik.tsx`: memakai `TombolSalin`.
+- `eslint.config.mjs`: `react-hooks/incompatible-library` dimatikan dengan alasan di komentar.
+
+Pengujian Fase 4 (dev server ke backend lokal, Firefox headless; Kepala Sekolah, guru `nur.aini`):
+
+- `lint`, `typecheck`, `build`, `check:slop` bersih.
+- Sepuluh halaman Kepala Sekolah (guru, guru pending, tahun ajaran, kelas, murid, wali murid, pengaturan, kenaikan, tambah guru, tambah murid) memuat tanpa error konsol.
+- Kartu akun Rika (`TA20260001`): `GET /api/proxy/murid/1/kartu-akun` 200 `application/pdf`. Bella (`TA20250004`, akun otomatis nonaktif): pesan backend "Tidak ada akun wali aktif dengan username TA20250004. ..." tampil di kartu.
+- Tautan wali Rika: hubungan Iriana diubah ke Wali lalu kembali ke Ibu; kontak utama dipindah ke Iriana lalu kembali ke Joko.
+- Reset password wali `TA20250022`: dialog menyebut tanggal lahir Jaga; setelah reset, detail menampilkan "Wali masih memakai password awal". Akun itu kembali ke password `31102021`.
+- Guru Dwi Lestari: email kosong → "Email wajib diisi."; simpan data tanpa perubahan → "Data guru tersimpan.".
+- Kelas: validasi nama/kelompok, pendamping sama dengan wali kelas ditolak di browser; kelas uji TK B1 di 2027/2028 dibuat, wizard kenaikan 2026/2027 → 2027/2028 menampilkan 60 murid dengan saran TK B1, lalu kelas uji dihapus. Tanpa kelas tujuan → "Belum ada kelas di Tahun Ajaran 2027/2028.". Kenaikan tidak disimpan supaya data demo tetap.
+- Banner: judul kosong saat aktif → pesan; judul diubah dan disimpan, lalu dikembalikan ke judul semula (dicek lewat `GET /pengaturan`).
+- Guru `nur.aini`: `/dashboard/murid` hanya TK A1 (tampilan kartu di HP), `/dashboard/kelas` hanya TK A1 tanpa tombol tambah, `/dashboard/wali-murid` → beranda dengan pesan tidak punya akses.
+- Belum diuji: tambah guru dan tambah murid sampai tersimpan (supaya tidak menambah akun demo), persetujuan/penolakan guru pending, nonaktifkan guru/wali, simpan kenaikan kelas, hapus murid, keluarkan murid, dan unggah foto guru/murid.
 
 ### Penyesuaian login wali NIS (branch `fe/fase-4-5`, sebelum Fase 4)
 
