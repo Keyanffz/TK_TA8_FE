@@ -1,7 +1,10 @@
-import { spawnSync } from "node:child_process";
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
+
+import openapiTS, { astToString, COMMENT_HEADER, NULL } from "openapi-typescript";
+import ts from "typescript";
 
 const specPath = process.env.API_SPEC_PATH;
+const OUTPUT = "src/types/api.d.ts";
 
 if (!specPath) {
   console.error(
@@ -16,15 +19,23 @@ if (!isUrl && !existsSync(specPath)) {
   process.exit(1);
 }
 
-const result = spawnSync(
-  "openapi-typescript",
-  [specPath, "--output", "src/types/api.d.ts"],
-  { stdio: "inherit", shell: process.platform === "win32" },
-);
+const BLOB = ts.factory.createTypeReferenceNode(ts.factory.createIdentifier("Blob"));
 
-if (result.error) {
-  console.error(`openapi-typescript gagal dijalankan: ${result.error.message}`);
-  process.exit(1);
+// Field `format: binary` (unggahan multipart, unduhan PDF/Excel) bawaannya
+// menjadi `string`. Dijadikan Blob supaya File dari input bisa dikirim sebagai
+// body openapi-fetch tanpa cast.
+function transform(schemaObject) {
+  if (schemaObject.format !== "binary") return undefined;
+  const bolehNull = Array.isArray(schemaObject.type) && schemaObject.type.includes("null");
+  return bolehNull ? ts.factory.createUnionTypeNode([BLOB, NULL]) : BLOB;
 }
 
-process.exit(result.status ?? 1);
+try {
+  const sumber = isUrl ? new URL(specPath) : readFileSync(specPath, "utf8");
+  const ast = await openapiTS(sumber, { transform });
+  writeFileSync(OUTPUT, COMMENT_HEADER + astToString(ast));
+  process.stdout.write(`${specPath} → ${OUTPUT}\n`);
+} catch (penyebab) {
+  console.error(`openapi-typescript gagal: ${penyebab instanceof Error ? penyebab.message : String(penyebab)}`);
+  process.exit(1);
+}

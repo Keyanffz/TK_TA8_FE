@@ -2012,7 +2012,7 @@ export interface components {
              * Format: binary
              * @description Maximum file size: 5120 kilobytes.
              */
-            bukti?: string | null;
+            bukti?: Blob | null;
             bank_pengirim?: string | null;
             nama_pengirim?: string | null;
         };
@@ -2042,18 +2042,18 @@ export interface components {
              * Format: binary
              * @description Maximum file size: 5120 kilobytes.
              */
-            akta_kelahiran: string;
+            akta_kelahiran: Blob;
             /**
              * Format: binary
              * @description Maximum file size: 5120 kilobytes.
              */
-            kartu_keluarga: string;
+            kartu_keluarga: Blob;
             /**
              * Format: binary
              * @description Maximum file size: 5120 kilobytes.
              */
-            pas_foto: string;
-            lainnya?: string[];
+            pas_foto: Blob;
+            lainnya?: Blob[];
         };
         /**
          * BuatRaporRequest
@@ -2096,7 +2096,7 @@ export interface components {
              * Format: binary
              * @description Maximum file size: 5120 kilobytes.
              */
-            foto: string;
+            foto: Blob;
         };
         /** GaleriAlbumDetailResource */
         GaleriAlbumDetailResource: {
@@ -2690,7 +2690,7 @@ export interface components {
              * Format: binary
              * @description Maximum file size: 5120 kilobytes.
              */
-            avatar?: string | null;
+            avatar?: Blob | null;
         };
         /**
          * PerbaruiTagihanRequest
@@ -2879,7 +2879,7 @@ export interface components {
              * Format: binary
              * @description Maximum file size: 5120 kilobytes.
              */
-            cover?: string | null;
+            cover?: Blob | null;
         };
         /**
          * SimpanElemenPenilaianRequest
@@ -2916,7 +2916,7 @@ export interface components {
              * Format: binary
              * @description Maximum file size: 5120 kilobytes.
              */
-            foto?: string | null;
+            foto?: Blob | null;
         };
         /**
          * SimpanJenisTagihanRequest
@@ -2944,7 +2944,7 @@ export interface components {
             judul: string;
             deskripsi?: string | null;
             kelas_id: number;
-            foto?: string[];
+            foto?: Blob[];
         };
         /**
          * SimpanKelasRequest
@@ -2999,7 +2999,7 @@ export interface components {
              * Format: binary
              * @description Maximum file size: 5120 kilobytes.
              */
-            foto?: string | null;
+            foto?: Blob | null;
             status?: string;
             tanggal_keluar?: string;
         };
@@ -3164,11 +3164,11 @@ export interface components {
         };
         /** TambahFotoGaleriRequest */
         TambahFotoGaleriRequest: {
-            foto: string[];
+            foto: Blob[];
         };
         /** TambahFotoKegiatanRequest */
         TambahFotoKegiatanRequest: {
-            foto: string[];
+            foto: Blob[];
         };
         /**
          * TargetPengumuman
@@ -3215,7 +3215,7 @@ export interface components {
              * Format: binary
              * @description Maximum file size: 5120 kilobytes.
              */
-            gambar: string;
+            gambar: Blob;
         };
         /** UserResource */
         UserResource: {
@@ -8342,7 +8342,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": string;
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": Blob;
                 };
             };
             /** @description UNAUTHENTICATED */
@@ -8637,7 +8637,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/octet-stream": string;
+                    "application/octet-stream": Blob;
                 };
             };
             /** @description FORBIDDEN */
@@ -9175,7 +9175,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/pdf": string;
+                    "application/pdf": Blob;
                 };
             };
             /** @description UNAUTHENTICATED */
@@ -10295,7 +10295,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "image/jpeg": string;
+                    "image/jpeg": Blob;
                 };
             };
             /** @description UNAUTHENTICATED */
@@ -10377,7 +10377,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/pdf": string;
+                    "application/pdf": Blob;
                 };
             };
             /** @description UNAUTHENTICATED */
@@ -13924,7 +13924,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/pdf": string;
+                    "application/pdf": Blob;
                 };
             };
             /** @description UNAUTHENTICATED */
