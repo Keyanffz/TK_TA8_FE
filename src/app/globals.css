@@ -155,6 +155,38 @@
   }
 }
 
+/* HTML dari CMS dan pengumuman (Tiptap: paragraf, judul, daftar, tautan, tebal, garis bawah). */
+@layer components {
+  .konten-html {
+    @apply max-w-prose text-base leading-7;
+  }
+  .konten-html > * + * {
+    @apply mt-4;
+  }
+  .konten-html h2,
+  .konten-html h3 {
+    @apply mt-8 text-lg font-semibold;
+  }
+  .konten-html ul {
+    @apply list-disc pl-6;
+  }
+  .konten-html ol {
+    @apply list-decimal pl-6;
+  }
+  .konten-html li + li {
+    @apply mt-1;
+  }
+  .konten-html a {
+    @apply font-medium text-primary underline underline-offset-4;
+  }
+  .konten-html strong {
+    @apply font-semibold;
+  }
+  .konten-html blockquote {
+    @apply border-l-4 border-highlight pl-4 text-muted-foreground;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
