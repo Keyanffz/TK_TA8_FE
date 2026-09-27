@@ -38,7 +38,7 @@ const KOLOM: ColumnDef<Murid>[] = [
   { id: "murid", header: "Murid", cell: ({ row }) => <Identitas murid={row.original} /> },
   { id: "nis", header: "NIS", cell: ({ row }) => <span className="tabular-nums">{row.original.nis}</span> },
   { id: "kelas", header: "Kelas", cell: ({ row }) => row.original.kelas?.nama ?? <span className="text-muted-foreground">Belum ada</span> },
-  { id: "jk", header: "L/P", cell: ({ row }) => LABEL_JENIS_KELAMIN[row.original.jenis_kelamin] },
+  { id: "jk", header: "Jenis kelamin", cell: ({ row }) => LABEL_JENIS_KELAMIN[row.original.jenis_kelamin] },
   { id: "lahir", header: "Tanggal lahir", cell: ({ row }) => formatTanggal(row.original.tanggal_lahir) },
   {
     id: "status",

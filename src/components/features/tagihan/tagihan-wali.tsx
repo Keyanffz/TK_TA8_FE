@@ -67,11 +67,14 @@ export function TagihanWali() {
   const lunas = data.data.filter((item) => item.status === "lunas");
   const totalBelum = belumLunas.filter((item) => tagihanTerbuka(item.status)).reduce((jumlah, item) => jumlah + item.total, 0);
   const tampil = tab === "belum" ? belumLunas : lunas;
+  const adaTerlambat = belumLunas.some((item) => item.status === "terlambat");
 
   return (
     <div className="flex flex-col gap-5">
-      <div className="rounded-xl bg-primary p-5 text-primary-foreground">
-        <p className="text-sm">Belum dibayar untuk {anakAktif.nama_panggilan}</p>
+      <div className={cn("rounded-xl p-5", adaTerlambat ? "bg-destructive text-white" : "bg-primary text-primary-foreground")}>
+        <p className="text-sm">
+          {adaTerlambat ? "Ada tagihan lewat jatuh tempo. " : ""}Belum dibayar untuk {anakAktif.nama_panggilan}
+        </p>
         <p className="font-heading text-2xl font-extrabold tabular-nums">{formatRupiah(totalBelum)}</p>
       </div>
       <SaringSegmen
