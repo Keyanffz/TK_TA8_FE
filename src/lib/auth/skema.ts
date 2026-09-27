@@ -23,3 +23,12 @@ export const skemaNikOpsional = z
   .string()
   .trim()
   .regex(/^(\d{16})?$/, "NIK berisi 16 angka sesuai KTP. Boleh dikosongkan.");
+
+export const skemaAlamat = z.string().trim().min(1, "Alamat wajib diisi.").max(500, "Alamat maksimal 500 karakter.");
+
+export const skemaPekerjaan = z.string().trim().min(1, "Pekerjaan wajib diisi.").max(100, "Pekerjaan maksimal 100 karakter.");
+
+/** NIK kosong dikirim sebagai null supaya backend mengosongkannya. */
+export function nikAtauNull(nik: string): string | null {
+  return nik === "" ? null : nik;
+}

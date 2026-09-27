@@ -7,6 +7,7 @@ import { AgendaRingkas, PengumumanRingkas } from "@/components/features/beranda/
 import { KegiatanRingkas } from "@/components/features/beranda/kegiatan-ringkas";
 import { PanelBeranda } from "@/components/features/beranda/panel-beranda";
 import { SapaanBeranda } from "@/components/features/beranda/sapaan-beranda";
+import { InfoSekolah } from "@/components/features/beranda/wali/info-sekolah";
 import { KartuAnak } from "@/components/features/beranda/wali/kartu-anak";
 import { KartuRapor } from "@/components/features/beranda/wali/kartu-rapor";
 import { KartuTagihan } from "@/components/features/beranda/wali/kartu-tagihan";
@@ -47,6 +48,14 @@ function BerandaAnak({ namaWali, anak }: { namaWali: string; anak: AnakRingkas }
           <GalatMuat error={error} onCobaLagi={() => void refetch()} />
         ) : (
           <>
+            {data.info_sekolah ? (
+              <InfoSekolah
+                judul={data.info_sekolah.judul}
+                isi={data.info_sekolah.isi}
+                nada={data.info_sekolah.nada}
+                berlakuSampai={data.info_sekolah.berlaku_sampai}
+              />
+            ) : null}
             <div className="grid gap-6 lg:grid-cols-[1.3fr_1fr] lg:items-start">
               <div className="flex flex-col gap-6">
                 <KartuTagihan

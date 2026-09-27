@@ -2,7 +2,6 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -14,35 +13,32 @@ import { ambilData } from "@/lib/api/ambil-data";
 import { api } from "@/lib/api/client";
 import { pesanError, terapkanErrorValidasi } from "@/lib/api/errors";
 import { queryKeys } from "@/lib/api/query-keys";
-import { nikAtauNull, skemaAlamat, skemaNikOpsional, skemaNomorHp, skemaPekerjaan } from "@/lib/auth/skema";
+import { nikAtauNull, skemaAlamat, skemaNikOpsional, skemaPekerjaan } from "@/lib/auth/skema";
 
-const skemaOnboarding = z.object({
-  no_hp: skemaNomorHp,
-  alamat: skemaAlamat,
-  pekerjaan: skemaPekerjaan,
-  nik: skemaNikOpsional,
-});
+const skemaDataWali = z.object({ alamat: skemaAlamat, pekerjaan: skemaPekerjaan, nik: skemaNikOpsional });
 
-type NilaiOnboarding = z.infer<typeof skemaOnboarding>;
-const FIELD = ["no_hp", "alamat", "pekerjaan", "nik"] as const;
+type NilaiDataWali = z.infer<typeof skemaDataWali>;
+const FIELD = ["alamat", "pekerjaan", "nik"] as const;
 
-export function FormOnboarding({ noHpAwal }: { noHpAwal: string }) {
-  const router = useRouter();
+type FormDataWaliProps = { alamat: string | null; pekerjaan: string | null; nik: string | null };
+
+/** Alamat, pekerjaan, dan NIK wali setelah onboarding (`PUT /wali/profil`, boleh sebagian). */
+export function FormDataWali({ alamat, pekerjaan, nik }: FormDataWaliProps) {
   const queryClient = useQueryClient();
-  const form = useForm<NilaiOnboarding>({
-    resolver: zodResolver(skemaOnboarding),
-    defaultValues: { no_hp: noHpAwal, alamat: "", pekerjaan: "", nik: "" },
+  const form = useForm<NilaiDataWali>({
+    resolver: zodResolver(skemaDataWali),
+    defaultValues: { alamat: alamat ?? "", pekerjaan: pekerjaan ?? "", nik: nik ?? "" },
   });
-  const { errors } = form.formState;
+  const { errors, isDirty } = form.formState;
 
   const mutation = useMutation({
-    mutationFn: ({ nik, ...nilai }: NilaiOnboarding) =>
-      ambilData(api.PUT("/wali/profil", { body: { ...nilai, nik: nikAtauNull(nik) } })),
+    mutationFn: (nilai: NilaiDataWali) =>
+      ambilData(api.PUT("/wali/profil", { body: { ...nilai, nik: nikAtauNull(nilai.nik) } })),
     onSuccess: (hasil) => {
       queryClient.setQueryData(queryKeys.me, hasil.data);
-      toast.success("Profil tersimpan. Selamat datang!");
-      router.replace("/dashboard");
-      router.refresh();
+      const wali = hasil.data.wali_murid;
+      form.reset({ alamat: wali?.alamat ?? "", pekerjaan: wali?.pekerjaan ?? "", nik: wali?.nik ?? "" });
+      toast.success("Data wali tersimpan.");
     },
     onError: (error) => {
       if (!terapkanErrorValidasi(error, form.setError, FIELD)) toast.error(pesanError(error));
@@ -52,28 +48,18 @@ export function FormOnboarding({ noHpAwal }: { noHpAwal: string }) {
   return (
     <form noValidate onSubmit={form.handleSubmit((nilai) => mutation.mutate(nilai))}>
       <FieldGroup>
-        <KolomTeks
-          label="Nomor HP (WhatsApp)"
-          type="tel"
-          autoComplete="tel"
-          inputMode="numeric"
-          placeholder="08xxxxxxxxxx"
-          deskripsi="Dipakai guru dan sekolah untuk menghubungi Anda."
-          error={errors.no_hp?.message}
-          {...form.register("no_hp")}
-        />
         <KolomArea label="Alamat rumah" autoComplete="street-address" rows={3} error={errors.alamat?.message} {...form.register("alamat")} />
         <KolomTeks label="Pekerjaan" autoComplete="organization-title" error={errors.pekerjaan?.message} {...form.register("pekerjaan")} />
         <KolomTeks
           label="NIK (opsional)"
           inputMode="numeric"
           maxLength={16}
-          deskripsi="16 angka sesuai KTP. Boleh dikosongkan."
+          deskripsi="16 angka sesuai KTP. Kosongkan untuk menghapus."
           error={errors.nik?.message}
           {...form.register("nik")}
         />
-        <Button type="submit" size="lg" disabled={mutation.isPending}>
-          {mutation.isPending ? "Menyimpan..." : "Simpan dan Lanjutkan"}
+        <Button type="submit" size="lg" disabled={mutation.isPending || !isDirty} className="self-start">
+          {mutation.isPending ? "Menyimpan..." : "Simpan Data Wali"}
         </Button>
       </FieldGroup>
     </form>
