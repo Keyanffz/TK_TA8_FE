@@ -13,8 +13,8 @@ Website publik dan dashboard sistem informasi TK Tarbiyathul Athfal 8 (TK Muslim
 | 3. Shell dashboard | Selesai (review Fase 3 tanpa revisi) |
 | 4. Master data | Selesai, disetujui (perbaikan setelah review: lihat "Review Fase 4–5") |
 | 5. Keuangan | Selesai, disetujui (perbaikan setelah review: lihat "Review Fase 4–5") |
-| 6. Akademik & komunikasi | Selesai (dikerjakan berturut-turut dengan Fase 7, belum direview) |
-| 7. PPDB, CMS, pengaturan | Selesai (dikerjakan berturut-turut dengan Fase 6, belum direview) |
+| 6. Akademik & komunikasi | Selesai, disetujui (lihat "Review Fase 6–7") |
+| 7. PPDB, CMS, pengaturan | Selesai, disetujui (lihat "Review Fase 6–7") |
 | 8. Integrasi & polish | Selesai, menunggu review (lihat "Review Fase 8") |
 
 Mode mock tidak dipakai: `api.json` final dari backend sudah tersedia sejak Fase 1, jadi semua request memakai backend asli dan tipe hasil generate. Tidak ada endpoint mock.
@@ -219,10 +219,36 @@ Pengujian alur yang belum pernah diuji (dev server ke backend lokal, Firefox hea
 - **Perubahan belum disimpan**: `usePeringatanBelumDisimpan()` memasang `beforeunload` dan menangkap klik tautan internal (fase capture) dengan `window.confirm`; pindah tab juga meminta konfirmasi. Tabs memakai `activationMode="manual"`: dengan mode otomatis Radix mengaktifkan tab saat tombolnya mendapat fokus, sehingga setelah konfirmasi ditutup fokus kembali ke tombol tab dan konfirmasi muncul terus (ditemukan saat uji). Berlaku juga di Pengaturan.
 - **"Lihat Pratinjau"** membuka `/` di tab baru.
 - **Revalidate**: `POST /api/revalidate` `{ tags }` (route handler) memeriksa origin, sesi Kepala Sekolah (`ambilSesi`), dan tag yang dikenal (`TAG_PUBLIK`), lalu `revalidateTag(tag, { expire: 0 })` supaya kunjungan berikutnya langsung mengambil data baru (bukan isi lama sekali lagi seperti profil `"max"`). Dipanggil dari `segarkanWebsite()` setelah menyimpan: profil/landing → `publik-profil`, PPDB (pengaturan dan keputusan pendaftaran, karena sisa kuota) → `publik-ppdb`, galeri → `publik-galeri`, pengumuman oleh Kepala Sekolah → `publik-pengumuman`, agenda → `publik-agenda`, guru → `publik-guru`. Kegagalan revalidate hanya dicatat di konsol; datanya sudah tersimpan dan ISR tetap kedaluwarsa dalam 5 menit.
-- **Keunggulan di landing** sekarang menampilkan ikon pilihan CMS di dalam bintang (sebelumnya nomor urut). Kontrak mewajibkan `ikon` untuk keunggulan dan CMS memintanya, jadi ikon yang tidak ditampilkan akan membingungkan; nomor tetap dipakai kalau ikonnya tidak ada di `IKON_CMS`. Perlu direview karena mengubah tampilan landing yang disetujui di Fase 2 (saat itu data keunggulan kosong).
+- **Keunggulan di landing** sekarang menampilkan ikon pilihan CMS di dalam bintang (sebelumnya nomor urut). Kontrak mewajibkan `ikon` untuk keunggulan dan CMS memintanya, jadi ikon yang tidak ditampilkan akan membingungkan; nomor tetap dipakai kalau ikonnya tidak ada di `IKON_CMS`. Mengubah tampilan landing yang disetujui di Fase 2 (saat itu data keunggulan kosong); disetujui di review Fase 6–7.
 - **Galeri** (`/dashboard/website/galeri`, `/[id]`): kartu album dengan sampul, jumlah foto, dan status tampil/disembunyikan; dialog album (judul, tanggal, deskripsi, sampul opsional, tampil di website; album baru tersembunyi); detail album dengan kelola foto dan tautan "Lihat di Website" untuk album publik. Pengelolaan foto kegiatan dan galeri memakai satu komponen `KelolaFoto` (`src/components/shared/kelola-foto.tsx`).
 - **Pengaturan** (`/dashboard/pengaturan`, `?tab=`): Rekening (maks 5, format nomor sama dengan backend), Tagihan (jatuh tempo 1–28, pengingat 1–14 hari), PPDB (buka/tutup, tahun ajaran tujuan wajib kalau dibuka, jadwal, kuota 0–1000, info dengan Tiptap), Beranda Wali (form Fase 4), Elemen Penilaian (tambah/ubah lewat dialog, kode huruf besar/angka/garis bawah, hapus ditolak backend kalau sudah dipakai rapor dengan saran menonaktifkan).
 - **Log aktivitas** (`/dashboard/log-aktivitas`): tabel waktu, pelaku (atau "Sistem"), jenis, aktivitas, dan tautan ke data terkait untuk subjek yang punya halaman (murid, guru, wali murid, tagihan, rapor, pendaftaran). Saringan jenis dan tanggal di URL.
+
+## Review Fase 6–7
+
+Semua keputusan Fase 6 dan 7 disetujui pemilik repo (setelah penutupan Fase 8). Daftar yang direview:
+
+| Kode | Keputusan |
+|---|---|
+| F6-1 | Feed kegiatan wali memakai id kelas dari `GET /wali/anak`; anak tanpa kelas aktif melihat feed tanpa saringan kelas (backend yang membatasi). |
+| F6-2 | Kelola foto kegiatan: keterangan per foto, geser naik/turun (urutan ditulis ulang 1..n), kuota 30 per kegiatan dan 10 per unggahan. |
+| F6-3 | Tombol ajukan/terbitkan rapor nonaktif selama ada perubahan belum disimpan. |
+| F6-4 | Kepala Sekolah di Rapor: tab Menunggu Review, Semua Rapor, dan Kelas Saya (kalau profil gurunya mengampu kelas). |
+| F6-5 | Rapor yang ditarik: 404 untuk wali ditampilkan sebagai "Rapor ini belum bisa dibuka"; status rapor tidak ditampilkan ke wali. |
+| F6-6 | PDF rapor: wali "Unduh PDF", guru dan Kepala Sekolah "Pratinjau PDF" di tab baru. |
+| F6-7 | Pengumuman: toolbar Tiptap tanpa code/codeBlock; guru hanya sasaran kelas atau murid tertentu; "Tampilkan di website" hanya Kepala Sekolah dengan sasaran Semua. |
+| F6-8 | Kirim pengumuman dari Tunggakan: judul, isi, dan murid penunggak diisi otomatis; guru petugas keuangan hanya murid di kelasnya; id murid tidak di URL. |
+| F6-9 | Agenda: kalender Senin–Minggu, warna per jenis, bulan dan hari terpilih di URL, badge "Internal". |
+| F7-1 | PPDB Kepala Sekolah: ringkasan dari `GET /public/ppdb`, tab Baru, Dokumen OK, Diterima, Ditolak, Semua. |
+| F7-2 | Dialog terima pendaftar: kelas opsional, hanya kelas tahun ajaran tujuan, kelompok yang sama didahulukan, kelas penuh tidak bisa dipilih; wali memakai halaman detail yang sama tanpa tombol keputusan. |
+| F7-3 | CMS: tab Hero berlabel "Pembuka"; gambar diunggah saat dipilih dan path-nya baru tersimpan saat tab disimpan (file yang tidak jadi disimpan tertinggal di server, lihat "Rencana perbaikan berikutnya"); daftar maks 20; ikon dari `IKON_CMS` berlabel Indonesia; peta hanya Google Maps. |
+| F7-4 | Peringatan perubahan belum disimpan dengan `window.confirm`; tabs `activationMode="manual"`. |
+| F7-5 | "Lihat Pratinjau" membuka `/` di tab baru (hanya isi yang sudah disimpan). |
+| F7-6 | Revalidate per tag dengan `expire: 0`; kegagalan hanya dicatat di konsol, ISR tetap kedaluwarsa dalam 5 menit. |
+| F7-7 | Keunggulan di landing menampilkan ikon CMS di dalam bintang. |
+| F7-8 | Album galeri baru tersembunyi; foto kegiatan dan galeri memakai satu komponen `KelolaFoto`. |
+| F7-9 | Batas pengaturan sama dengan backend (rekening maks 5, jatuh tempo 1–28, pengingat 1–14 hari, kuota 0–1000); elemen penilaian yang dipakai rapor tidak bisa dihapus, disarankan dinonaktifkan. |
+| F7-10 | Log aktivitas menaut ke halaman murid, guru, wali murid, tagihan, rapor, atau pendaftaran terkait. |
 
 ## Keputusan Fase 8
 
@@ -397,6 +423,11 @@ Andika hanya punya bobot 400 dan 700, jadi `font-semibold` tampil sebagai 700.
 Route lain mengikuti B4 dan ditambahkan per fase. `/api/auth/me` tidak dibuat (disetujui di Fase 0): sesi dibaca lewat `/api/proxy/auth/me`. `/api/revalidate` (disetujui di Fase 0) dibuat di Fase 7 bersama penyimpanan CMS, memakai tag di `TAG_PUBLIK` (`src/lib/constants/sekolah.ts`).
 
 Menu sidebar untuk semua route B4 sudah ada sejak Fase 3 (`src/lib/navigation.ts`); tautan ke halaman fase berikutnya menampilkan 404 di dalam dashboard sampai halamannya dibuat.
+
+## Rencana perbaikan berikutnya
+
+- **File gambar pengaturan yang tidak jadi disimpan (F7-3)**: `POST /pengaturan/upload` langsung menyimpan file ke disk `public` folder `pengaturan/` (`PengaturanService::FOLDER_GAMBAR`), sedangkan path-nya baru tercatat saat tab CMS disimpan. Kalau Kepala Sekolah memilih gambar lalu membatalkan atau meninggalkan halaman, file itu tidak pernah dipakai dan tidak pernah dihapus. Gambar yang diganti saat menyimpan sudah dihapus backend (`PengaturanService`, perbandingan `semuaGambar()` sebelum dan sesudah simpan), jadi yang tertinggal hanya unggahan yang tidak pernah disimpan.
+  Usulan untuk repo backend (belum dikerjakan): perintah artisan `pengaturan:bersihkan-gambar` yang menghapus file di `pengaturan/` pada disk `public` yang tidak ada di `semuaGambar()` pengaturan saat ini dan berumur lebih dari 1 hari (dari waktu ubah file). Batas 1 hari menjaga file yang baru diunggah dan masih menunggu disimpan di form yang sedang terbuka. Dijadwalkan harian di `routes/console.php` pada jam sepi, misalnya `Schedule::command('pengaturan:bersihkan-gambar')->dailyAt('02:00');`, dengan jumlah file yang dihapus dicatat di log. FE tidak perlu berubah.
 
 ## Deploy
 
