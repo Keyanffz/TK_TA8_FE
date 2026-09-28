@@ -1,151 +1,116 @@
 import "server-only";
 
+import { PHASE_PRODUCTION_BUILD } from "next/constants";
+import { connection } from "next/server";
 import { cache } from "react";
 
-import { bacaProfilPublik, type ProfilSekolah } from "@/lib/api/pengaturan";
+import { buatApiError } from "@/lib/api/errors";
+import { bacaProfilPublik } from "@/lib/api/pengaturan";
 import { apiServer } from "@/lib/api/server";
-import { LOGO_CADANGAN, REVALIDATE_PUBLIK_DETIK, TAG_PUBLIK } from "@/lib/constants/sekolah";
+import { REVALIDATE_PUBLIK_DETIK, TAG_PUBLIK } from "@/lib/constants/sekolah";
 import { bulanJakarta, hariIniJakarta } from "@/lib/tanggal";
-import type { Agenda, DataRespons, GuruPublik } from "@/types/domain";
+import type { Agenda } from "@/types/domain";
+
+type HasilPermintaan<T> = { data?: T; error?: unknown; response: Response };
 
 function publik(tag: string) {
   return apiServer({ revalidate: REVALIDATE_PUBLIK_DETIK, tags: [tag] });
 }
 
-export const PROFIL_CADANGAN: ProfilSekolah = {
-  namaSekolah: "TK Tarbiyathul Athfal 8",
-  npsn: "20328901",
-  alamat: "Jl. Tlogosari Raya No. 45, Kec. Pedurungan, Kota Semarang",
-  telepon: "(024) 6712345",
-  email: "tu@tkta8.test",
-  mapsEmbedUrl: null,
-  logoUrl: LOGO_CADANGAN,
-  visi: "Mewujudkan generasi anak usia dini yang berakhlak mulia, cerdas, kreatif, mandiri, dan berwawasan lingkungan.",
-  misi: [
-    "Menanamkan nilai-nilai keagamaan dan budi pekerti luhur sejak dini.",
-    "Mengembangkan potensi kecerdasan jamak anak melalui kegiatan bermain yang bermakna.",
-    "Membiasakan hidup bersih, sehat, dan peduli lingkungan sekitar.",
-  ],
-  sejarah: null,
-  sambutanKepsek: null,
-  hero: {
-    judul: "Pendidikan Usia Dini yang Menyenangkan dan Berkarakter",
-    subjudul: "Membimbing tunas bangsa tumbuh cerdas, ceria, dan berakhlak mulia di bawah naungan TK Muslimat NU.",
-    gambarUrl: null,
-    ctaTeks: "Lihat Info PPDB",
-  },
-  program: [],
-  keunggulan: [],
-  fasilitas: [],
-};
-
-// cache() menyatukan panggilan dari layout dan halaman dalam satu render.
-export const ambilProfilSekolah = cache(async (): Promise<ProfilSekolah> => {
-  try {
-    const { data } = await publik(TAG_PUBLIK.profil).GET("/public/profil");
-    if (!data?.data) return PROFIL_CADANGAN;
-    return bacaProfilPublik(data.data);
-  } catch {
-    return PROFIL_CADANGAN;
+/**
+ * Backend mati saat `next build` tidak boleh menggagalkan build, tetapi halaman juga tidak boleh
+ * di-prerender dengan data kosong lalu disajikan dari cache ISR. connection() menghentikan
+ * prerender sehingga halaman itu dirender saat diminta. Di luar build, error dilempar ke error.tsx.
+ */
+async function gagalMengambil(jalur: string, penyebab: unknown): Promise<never> {
+  if (process.env.NEXT_PHASE === PHASE_PRODUCTION_BUILD) {
+    console.warn(`${jalur} tidak bisa diambil saat build, halaman dirender saat diminta.`);
+    await connection();
   }
-});
+  console.error(`Mengambil ${jalur} dari backend gagal:`, penyebab);
+  throw penyebab;
+}
 
-export async function ambilGuruPublik(): Promise<GuruPublik[]> {
+async function tunggu<T>(jalur: string, permintaan: Promise<HasilPermintaan<T>>): Promise<HasilPermintaan<T>> {
   try {
-    const { data } = await publik(TAG_PUBLIK.guru).GET("/public/guru");
-    return data?.data ?? [];
-  } catch {
-    return [];
+    return await permintaan;
+  } catch (penyebab) {
+    return gagalMengambil(jalur, penyebab);
   }
 }
 
-export async function ambilPpdbPublik(): Promise<DataRespons<"publik.ppdb">> {
-  try {
-    const { data } = await publik(TAG_PUBLIK.ppdb).GET("/public/ppdb");
-    if (!data?.data) {
-      return {
-        dibuka: false,
-        tahun_ajaran: null,
-        tanggal_buka: null,
-        tanggal_tutup: null,
-        kuota: 0,
-        sisa_kuota: 0,
-        info: "",
-      };
-    }
-    return data.data;
-  } catch {
-    return {
-      dibuka: false,
-      tahun_ajaran: null,
-      tanggal_buka: null,
-      tanggal_tutup: null,
-      kuota: 0,
-      sisa_kuota: 0,
-      info: "",
-    };
-  }
+async function ambil<T>(jalur: string, permintaan: Promise<HasilPermintaan<T>>): Promise<T> {
+  const { data, error, response } = await tunggu(jalur, permintaan);
+  return data ?? gagalMengambil(jalur, buatApiError(response, error));
+}
+
+/** null hanya kalau backend membalas 404 (slug tidak ada atau tidak publik). */
+async function ambilDetail<T>(jalur: string, permintaan: Promise<HasilPermintaan<T>>): Promise<T | null> {
+  const { data, error, response } = await tunggu(jalur, permintaan);
+  if (response.status === 404) return null;
+  return data ?? gagalMengambil(jalur, buatApiError(response, error));
+}
+
+// cache() menyatukan panggilan dari layout dan halaman dalam satu render.
+export const ambilProfilSekolah = cache(async () => {
+  const { data } = await ambil("/public/profil", publik(TAG_PUBLIK.profil).GET("/public/profil"));
+  return bacaProfilPublik(data);
+});
+
+export async function ambilGuruPublik() {
+  const { data } = await ambil("/public/guru", publik(TAG_PUBLIK.guru).GET("/public/guru"));
+  return data;
+}
+
+export async function ambilPpdbPublik() {
+  const { data } = await ambil("/public/ppdb", publik(TAG_PUBLIK.ppdb).GET("/public/ppdb"));
+  return data;
 }
 
 export async function ambilDaftarPengumuman(halaman: number, perHalaman: number) {
-  try {
-    const { data } = await publik(TAG_PUBLIK.pengumuman).GET("/public/pengumuman", {
+  const { data, meta } = await ambil(
+    "/public/pengumuman",
+    publik(TAG_PUBLIK.pengumuman).GET("/public/pengumuman", {
       params: { query: { page: halaman, per_page: perHalaman } },
-    });
-    if (!data) return { data: [], meta: { current_page: halaman, per_page: perHalaman, last_page: 1, total: 0 } };
-    return { data: data.data, meta: data.meta };
-  } catch {
-    return { data: [], meta: { current_page: halaman, per_page: perHalaman, last_page: 1, total: 0 } };
-  }
+    }),
+  );
+  return { data, meta };
 }
 
 /** null kalau slug tidak ada atau pengumuman tidak publik. */
 export async function ambilDetailPengumuman(slug: string) {
-  try {
-    const { data, response } = await publik(TAG_PUBLIK.pengumuman).GET("/public/pengumuman/{slug}", {
-      params: { path: { slug } },
-    });
-    if (response?.status === 404 || !data) return null;
-    return data.data;
-  } catch {
-    return null;
-  }
+  const hasil = await ambilDetail(
+    `/public/pengumuman/${slug}`,
+    publik(TAG_PUBLIK.pengumuman).GET("/public/pengumuman/{slug}", { params: { path: { slug } } }),
+  );
+  return hasil?.data ?? null;
 }
 
 export async function ambilDaftarGaleri(halaman: number, perHalaman: number) {
-  try {
-    const { data } = await publik(TAG_PUBLIK.galeri).GET("/public/galeri", {
+  const { data, meta } = await ambil(
+    "/public/galeri",
+    publik(TAG_PUBLIK.galeri).GET("/public/galeri", {
       params: { query: { page: halaman, per_page: perHalaman } },
-    });
-    if (!data) return { data: [], meta: { current_page: halaman, per_page: perHalaman, last_page: 1, total: 0 } };
-    return { data: data.data, meta: data.meta };
-  } catch {
-    return { data: [], meta: { current_page: halaman, per_page: perHalaman, last_page: 1, total: 0 } };
-  }
+    }),
+  );
+  return { data, meta };
 }
 
 /** null kalau slug tidak ada atau album tidak publik. */
 export async function ambilDetailGaleri(slug: string) {
-  try {
-    const { data, response } = await publik(TAG_PUBLIK.galeri).GET("/public/galeri/{slug}", {
-      params: { path: { slug } },
-    });
-    if (response?.status === 404 || !data) return null;
-    return data.data;
-  } catch {
-    return null;
-  }
+  const hasil = await ambilDetail(
+    `/public/galeri/${slug}`,
+    publik(TAG_PUBLIK.galeri).GET("/public/galeri/{slug}", { params: { path: { slug } } }),
+  );
+  return hasil?.data ?? null;
 }
 
 async function ambilAgendaBulan(bulan: string): Promise<Agenda[]> {
-  try {
-    const { data } = await publik(TAG_PUBLIK.agenda).GET("/public/agenda", {
-      params: { query: { bulan } },
-    });
-    return data?.data ?? [];
-  } catch {
-    return [];
-  }
+  const { data } = await ambil(
+    "/public/agenda",
+    publik(TAG_PUBLIK.agenda).GET("/public/agenda", { params: { query: { bulan } } }),
+  );
+  return data;
 }
 
 /**
@@ -153,20 +118,16 @@ async function ambilAgendaBulan(bulan: string): Promise<Agenda[]> {
  * Agenda lintas bulan muncul di kedua bulan, jadi disaring per id.
  */
 export async function ambilAgendaMendatang(jumlah: number): Promise<Agenda[]> {
-  try {
-    const [bulanIni, bulanDepan] = await Promise.all([
-      ambilAgendaBulan(bulanJakarta(0)),
-      ambilAgendaBulan(bulanJakarta(1)),
-    ]);
-    const hariIni = hariIniJakarta();
-    const unik = new Map<number, Agenda>();
-    for (const agenda of [...bulanIni, ...bulanDepan]) {
-      if (agenda.tanggal_selesai >= hariIni) unik.set(agenda.id, agenda);
-    }
-    return [...unik.values()]
-      .sort((a, b) => a.tanggal_mulai.localeCompare(b.tanggal_mulai))
-      .slice(0, jumlah);
-  } catch {
-    return [];
+  const [bulanIni, bulanDepan] = await Promise.all([
+    ambilAgendaBulan(bulanJakarta(0)),
+    ambilAgendaBulan(bulanJakarta(1)),
+  ]);
+  const hariIni = hariIniJakarta();
+  const unik = new Map<number, Agenda>();
+  for (const agenda of [...bulanIni, ...bulanDepan]) {
+    if (agenda.tanggal_selesai >= hariIni) unik.set(agenda.id, agenda);
   }
+  return [...unik.values()]
+    .sort((a, b) => a.tanggal_mulai.localeCompare(b.tanggal_mulai))
+    .slice(0, jumlah);
 }
