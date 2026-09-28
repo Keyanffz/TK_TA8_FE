@@ -5,6 +5,9 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tansta
 import { ambilData } from "@/lib/api/ambil-data";
 import { api } from "@/lib/api/client";
 import { queryKeys } from "@/lib/api/query-keys";
+import { segarkanWebsite } from "@/lib/api/website";
+import { useSession } from "@/lib/auth/use-session";
+import { TAG_PUBLIK } from "@/lib/constants/sekolah";
 import type { components } from "@/types/api";
 
 export const PENGUMUMAN_PER_HALAMAN = 10;
@@ -34,10 +37,13 @@ export function useDetailPengumuman(id: number) {
 
 function useSegarkanPengumuman() {
   const queryClient = useQueryClient();
+  // Hanya pengumuman Kepala Sekolah yang bisa tampil di website (is_publik).
+  const { isSuperAdmin } = useSession();
   return () =>
     Promise.all([
       queryClient.invalidateQueries({ queryKey: queryKeys.pengumuman.semua }),
       queryClient.invalidateQueries({ queryKey: ["dashboard"] }),
+      isSuperAdmin ? segarkanWebsite([TAG_PUBLIK.pengumuman]) : null,
     ]);
 }
 

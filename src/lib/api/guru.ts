@@ -6,6 +6,8 @@ import { ambilData } from "@/lib/api/ambil-data";
 import { api } from "@/lib/api/client";
 import { keFormData } from "@/lib/api/multipart";
 import { queryKeys } from "@/lib/api/query-keys";
+import { segarkanWebsite } from "@/lib/api/website";
+import { TAG_PUBLIK } from "@/lib/constants/sekolah";
 import type { components } from "@/types/api";
 import type { StatusAkun } from "@/types/domain";
 
@@ -47,6 +49,8 @@ function useSegarkanGuru() {
     Promise.all([
       queryClient.invalidateQueries({ queryKey: queryKeys.guru.semua }),
       queryClient.invalidateQueries({ queryKey: ["dashboard"] }),
+      // Nama, jabatan, dan foto guru "tampil di landing" ada di halaman depan.
+      segarkanWebsite([TAG_PUBLIK.guru]),
     ]);
 }
 

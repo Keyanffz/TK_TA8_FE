@@ -5,6 +5,8 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tansta
 import { ambilData } from "@/lib/api/ambil-data";
 import { api } from "@/lib/api/client";
 import { queryKeys } from "@/lib/api/query-keys";
+import { segarkanWebsite } from "@/lib/api/website";
+import { TAG_PUBLIK } from "@/lib/constants/sekolah";
 import type { components } from "@/types/api";
 
 export type BodyAgenda = components["schemas"]["SimpanAgendaRequest"];
@@ -24,6 +26,7 @@ function useSegarkanAgenda() {
     Promise.all([
       queryClient.invalidateQueries({ queryKey: queryKeys.agenda.semua }),
       queryClient.invalidateQueries({ queryKey: ["dashboard"] }),
+      segarkanWebsite([TAG_PUBLIK.agenda]),
     ]);
 }
 
