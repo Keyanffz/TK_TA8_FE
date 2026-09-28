@@ -30,11 +30,11 @@ function KartuAntrean({ bayar }: { bayar: Pembayaran }) {
           <p className="text-sm text-muted-foreground">
             Dikirim {bayar.dibayar_oleh?.nama ?? "wali"} · {bayar.created_at ? formatRelatif(bayar.created_at) : "-"}
           </p>
-          <h3 className="font-heading text-lg leading-tight font-extrabold">
+          <h2 className="font-heading text-lg leading-tight font-extrabold">
             <Link href={`/dashboard/tagihan/${bayar.tagihan_id}`} className="hover:underline">
               {namaTagihan(bayar.tagihan)}
             </Link>
-          </h3>
+          </h2>
           <p className="text-sm">
             {bayar.tagihan.murid.nama_lengkap} · {bayar.tagihan.murid.kelas?.nama ?? "tanpa kelas"}
           </p>
