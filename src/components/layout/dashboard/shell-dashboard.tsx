@@ -48,7 +48,7 @@ export function ShellDashboard({ namaSekolah, logoUrl, sidebarCiutAwal, anakAkti
       <div className="flex min-h-dvh">
         <Sidebar namaSekolah={namaSekolah} logoUrl={logoUrl} ciut={ciut} onUbahCiut={ubahCiut} />
         <div className="flex min-w-0 flex-1 flex-col">
-          <header className="sticky top-0 z-30 bg-primary text-primary-foreground lg:border-b lg:border-border lg:bg-card lg:text-foreground">
+          <header data-topbar-dashboard className="sticky top-0 z-30 bg-primary text-primary-foreground lg:border-b lg:border-border lg:bg-card lg:text-foreground">
             <div className="flex h-16 items-center gap-2 px-3 sm:px-4 lg:px-8">
               {isWali ? null : <MenuHp namaSekolah={namaSekolah} />}
               <Link href="/dashboard" className="flex min-w-0 items-center gap-2 lg:hidden">

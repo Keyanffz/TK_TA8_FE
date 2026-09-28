@@ -28,6 +28,7 @@ export function BottomNavWali() {
 
   return (
     <nav
+      data-nav-bawah-wali
       aria-label="Menu utama"
       className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-card pb-[env(safe-area-inset-bottom)] shadow-md lg:hidden"
     >

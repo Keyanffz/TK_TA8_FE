@@ -159,6 +159,16 @@
     outline: 2px solid var(--ring);
     outline-offset: 2px;
   }
+  /* Topbar dashboard (sticky, h-16) dan navigasi bawah wali (fixed, HP) menutupi elemen yang
+     difokus lewat Tab kalau browser menggulirnya tepat ke tepi layar. */
+  html:has([data-topbar-dashboard]) {
+    scroll-padding-top: 5rem;
+  }
+  @media (width < 64rem) {
+    html:has([data-nav-bawah-wali]) {
+      scroll-padding-bottom: 6rem;
+    }
+  }
   button:not(:disabled),
   [role="button"]:not(:disabled) {
     cursor: pointer;
