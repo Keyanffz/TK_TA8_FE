@@ -231,7 +231,9 @@ Pengujian alur yang belum pernah diuji (dev server ke backend lokal, Firefox hea
 - **Error boundary root** (`src/app/error.tsx`): error dari layout `(public)`, `(auth)`, dan `dashboard` (misalnya profil sekolah atau sesi yang gagal diambil) tidak ditangkap `error.tsx` di segmen yang sama. Semua error boundary memakai `retry` (Next 16: `router.refresh()` lalu `reset()`), karena `reset` saja tidak mengambil ulang data Server Component.
 - **Grafik** (beranda Kepala Sekolah, laporan): container `aria-hidden` dan `accessibilityLayer={false}`. Recharts 3 memberi `<svg>` `tabIndex=0` dan `role="application"` secara bawaan, sehingga grafik yang disembunyikan tetap bisa difokus. Data dibacakan dari tabel (tersembunyi di beranda, terlihat di laporan).
 - **Kontak di landing**: `dl > div > dt + dd`, ikon di dalam `dt` diposisikan absolut. Struktur sebelumnya (`dt`/`dd` dua lapis di dalam `dl`) tidak valid.
-- **Baris simpan CMS/pengaturan** (`TombolSimpanTab`): `sticky bottom-4` di semua ukuran. `bottom-20` sebelumnya disalin dari editor rapor; halaman ini hanya untuk Kepala Sekolah, yang di HP tidak punya navigasi bawah (hanya wali), jadi jarak 80 px tidak diperlukan. Diuji di 390 px: tombol tidak tertutup elemen lain di posisi atas, tengah, dan bawah halaman. `editor-rapor.tsx` dan `wizard-kenaikan.tsx` masih `bottom-20 lg:bottom-4` (juga tanpa navigasi bawah; belum diubah).
+- **Baris simpan CMS/pengaturan** (`TombolSimpanTab`): `sticky bottom-4` di semua ukuran. `bottom-20` sebelumnya disalin dari editor rapor; halaman ini hanya untuk Kepala Sekolah, yang di HP tidak punya navigasi bawah (hanya wali), jadi jarak 80 px tidak diperlukan. Diuji di 390 px: tombol tidak tertutup elemen lain di posisi atas, tengah, dan bawah halaman. `editor-rapor.tsx` (guru pembuat dan Kepala Sekolah) dan `wizard-kenaikan.tsx` (Kepala Sekolah) disamakan ke `bottom-4` dengan alasan yang sama; tidak ada lagi `bottom-20` di `src`.
+- **Fokus tidak tertutup** (`globals.css`): `html` diberi `scroll-padding-top: 5rem` kalau ada topbar dashboard (`data-topbar-dashboard`, sticky `h-16`) dan, di bawah `lg`, `scroll-padding-bottom: 6rem` kalau ada navigasi bawah wali (`data-nav-bawah-wali`, fixed). Tanpa ini Tab ke tombol "Unggah Bukti Transfer" di HP menggulir tombol tepat ke bawah navigasi bawah sehingga fokusnya tidak terlihat.
+- **Fokus di `ZonaUnggah`**: input file dinonaktifkan selama kompres dan dilepas saat kuota penuh, tombol hapus hilang bersama filenya, sehingga fokus jatuh ke `body`. Setelah file masuk dan kuota penuh, fokus pindah ke tombol "Hapus <nama file>" file terakhir; setelah menghapus atau kalau kuota belum penuh, fokus kembali ke input file. Berlaku untuk semua unggahan (bukti transfer, PPDB, foto murid/guru, kegiatan, galeri, CMS).
 - **Ubah murid dan kegiatan** mengikuti tipe baru dari backend: body tambah dan ubah murid dibentuk dari satu fungsi `keBody()` (`form-murid.tsx`); ubah kegiatan mengirim JSON.
 
 ## Temuan kontrak Fase 6
@@ -440,9 +442,34 @@ Pengujian (build produksi `next start`, Firefox headless lewat puppeteer-core di
 - HP 390 px Kepala Sekolah: baris simpan di Website (Profil Sekolah, Program) dan Pengaturan (Rekening, PPDB) berjarak 16 px dari bawah layar, tombol aktif bisa diklik (tidak tertutup) di posisi scroll atas, tengah, bawah.
 - Grafik beranda Kepala Sekolah dan laporan: `<svg>` tanpa `tabindex`/`role`, di dalam `aria-hidden`, tanpa elemen yang bisa difokus di dalamnya.
 - axe-core (semua aturan bawaan, desktop 1280 px): 0 pelanggaran di `/`, `/pengumuman`, `/galeri`, `/ppdb`, `/ppdb/daftar`, `/ppdb/status`, `/login`, `/login/wali`, `/login/guru`, `/daftar-guru`; Kepala Sekolah `/dashboard`, `/dashboard/keuangan/laporan`, `/dashboard/website`, `/dashboard/pengaturan`, `/dashboard/pembayaran` (setelah perbaikan `heading-order`), `/dashboard/murid`; guru `/dashboard`, `/dashboard/rapor`, `/dashboard/kegiatan`. Halaman wali tidak diperiksa axe di review ini. axe tidak menggantikan uji pembaca layar, yang belum dilakukan.
-- Belum diverifikasi dari klaim Gemini: uji tampilan HP halaman lain di luar yang disebut di atas, navigasi keyboard, dan uji asap wali. Uji asap wali tidak selesai: akun `TA20250030` masih `wajib_ganti_password = true`, dan `7a` hanya menampilkan form ganti password.
+- Uji asap wali, keyboard, dan baris sticky: lihat "Penutupan Fase 8" di bawah.
 
 Data backend yang berubah: kegiatan 12 (judul dikembalikan), murid uji "Nadia Putri Rahmawati" (`TA20260031`, dihapus; akun wali otomatisnya nonaktif).
+
+### Penutupan Fase 8 (branch `fe/fase-6-8`)
+
+File yang diubah:
+
+- `src/components/features/rapor/editor-rapor.tsx`, `src/components/features/tahun-ajaran/wizard-kenaikan.tsx`: baris simpan `sticky bottom-4`.
+- `src/app/globals.css`, `src/components/layout/dashboard/{shell-dashboard,bottom-nav-wali}.tsx`: `scroll-padding` untuk topbar dan navigasi bawah wali, penanda `data-topbar-dashboard` dan `data-nav-bawah-wali`.
+- `src/components/shared/zona-unggah.tsx`: fokus setelah memilih dan menghapus file.
+
+Pengujian (build produksi `next start`, Firefox headless 390 × 844, backend lokal):
+
+- Persiapan data: rapor semester 1 untuk Sakura Putra (`TA20250028`, TK B2) dibuat guru Endang Susilowati lewat API (draft → isi tiga elemen → ajukan) lalu diterbitkan Kepala Sekolah (rapor 19), karena tidak ada wali yang masih memakai password awal dengan rapor terbit.
+- Uji asap wali `TA20250028` (masih `wajib_ganti_password`): login NIS + password awal (keyboard) → `/dashboard/ganti-password` → ganti password (keyboard, Enter) → `/dashboard/onboarding` → isi nama, nomor HP, alamat, pekerjaan → `/dashboard`. Lalu beranda, tagihan, detail tagihan 118 (terlambat), kegiatan dan detail kegiatan 10, rapor dan detail rapor 19, pengumuman, agenda, pembayaran, anak, profil, notifikasi, PPDB terbuka tanpa error.
+- Unggah bukti transfer di tagihan 118: JPEG dan PNG palet (`logo-tk.png`) → `POST /tagihan/118/pembayaran` 201, toast "Bukti transfer terkirim. Sekolah akan memeriksanya.", riwayat menampilkan pembayaran. Setiap pembayaran uji ditolak Kepala Sekolah lewat API dengan alasan "Uji coba review Fase 8, bukan pembayaran sungguhan." supaya tagihan kembali `terlambat`.
+- axe-core (semua aturan bawaan) di 390 px: 0 pelanggaran di `/login/wali`, `/dashboard/ganti-password`, `/dashboard/onboarding`, dan 14 halaman wali di atas; tidak ada scroll horizontal. axe dijalankan sebelum perubahan `scroll-padding` dan fokus `ZonaUnggah` (keduanya tidak mengubah markup yang diperiksa axe) dan tidak diulang sesudahnya.
+- Keyboard:
+  - `/login/wali`: urutan Tab logo → "Pilih jenis akun lain" → NIS anak → Password → Tampilkan password → Masuk → info pendaftaran → "Masuk dengan email"; login dengan Enter berhasil.
+  - `/dashboard/ganti-password`: Password awal → Tampilkan → Password baru → Tampilkan → Ulangi → Tampilkan → Simpan Password Baru → Keluar; Enter di isian terakhir mengirim form.
+  - Form bukti transfer: Tab mencapai input file (label dropzone mendapat ring hijau), tanggal (empat segmen tanggal Firefox), bank, nama pemilik, tombol kirim (ring dengan offset). Temuan dan perbaikannya: fokus hilang ke `body` setelah memilih file, dan tombol kirim tertutup navigasi bawah saat difokus. Setelah perbaikan: fokus ke "Hapus bukti-transfer.jpg" setelah memilih, Enter menghapus dan fokus kembali ke input, tombol kirim di y=456–504 (tidak tertutup), kirim dengan Enter → 201.
+  - Pemilih file OS tidak bisa dibuka di browser headless; file dipasang dengan `uploadFile` setelah input difokus lewat Tab.
+- Baris sticky di 390 px: editor rapor (guru `nur.aini`, rapor draft 16, setelah diubah) dan wizard kenaikan (Kepala Sekolah, dengan kelas TK B1 2027/2028 sementara) berjarak 16 px dari bawah layar; tombol aktif bisa diklik di posisi scroll atas, tengah, bawah. Kenaikan tidak disimpan.
+- `lint`, `typecheck`, `check:slop` bersih; `build` bersih dengan backend hidup dan dengan backend mati.
+- Belum diuji: pembaca layar sungguhan; Safari/Chromium di HP asli; halaman wali dengan lebih dari satu anak.
+
+Data backend yang berubah: rapor 19 (Sakura, semester 1, terbit); wali `TA20250028` sudah melengkapi profil (nama "Rina Wulandari", HP, alamat, pekerjaan) lalu password-nya dikembalikan ke password awal lewat reset Kepala Sekolah (`wajib_ganti_password = true` lagi, onboarding tidak akan muncul lagi karena profil sudah lengkap); pembayaran 211–214 ditolak (tagihan 118 tetap `terlambat`); kelas TK B1 2027/2028 dibuat lalu dihapus; draft rapor 16 tidak disimpan.
 
 ## Review Fase 8
 
