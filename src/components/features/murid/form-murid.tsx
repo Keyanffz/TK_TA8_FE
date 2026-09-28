@@ -68,44 +68,12 @@ function nilaiAwal(murid: Murid | null): DefaultValues<NilaiMurid> {
   };
 }
 
-// Murid baru selalu berstatus aktif (backend menolak status dan tanggal_keluar di POST).
-function keBodyTambah(nilai: NilaiMurid): BodyMurid {
-  return {
-    nama_lengkap: nilai.nama_lengkap,
-    nama_panggilan: nilai.nama_panggilan,
-    jenis_kelamin: nilai.jenis_kelamin,
-    tempat_lahir: nilai.tempat_lahir,
-    tanggal_lahir: nilai.tanggal_lahir,
-    agama: nilai.agama,
-    alamat: nilai.alamat,
-    nik: nilai.nik,
-    nisn: nilai.nisn,
-    anak_ke: nilai.anak_ke === "" ? null : Number(nilai.anak_ke),
-    catatan_khusus: nilai.catatan_khusus,
-    tanggal_masuk: nilai.tanggal_masuk,
-    foto: nilai.foto[0] ?? null,
-  };
-}
-
-// Mengubah murid wajib menyertakan status (enum) dan tanggal_keluar (wajib jika tidak aktif).
-function keBodyUbah(nilai: NilaiMurid): BodyUbahMurid {
-  return {
-    nama_lengkap: nilai.nama_lengkap,
-    nama_panggilan: nilai.nama_panggilan,
-    jenis_kelamin: nilai.jenis_kelamin,
-    tempat_lahir: nilai.tempat_lahir,
-    tanggal_lahir: nilai.tanggal_lahir,
-    agama: nilai.agama,
-    alamat: nilai.alamat,
-    nik: nilai.nik,
-    nisn: nilai.nisn,
-    anak_ke: nilai.anak_ke === "" ? null : Number(nilai.anak_ke),
-    catatan_khusus: nilai.catatan_khusus,
-    tanggal_masuk: nilai.tanggal_masuk,
-    foto: nilai.foto[0] ?? null,
-    status: nilai.status,
-    tanggal_keluar: nilai.status === "aktif" ? null : (nilai.tanggal_keluar || null),
-  };
+// Isian kosong dikirim "" (backend mengubahnya jadi null). Murid baru selalu aktif, jadi backend menolak
+// status dan tanggal_keluar di POST; di PUT status wajib dan tanggal_keluar hanya untuk murid yang tidak aktif.
+function keBody({ foto, status, tanggal_keluar, anak_ke, ...nilai }: NilaiMurid) {
+  const tambah: BodyMurid = { ...nilai, anak_ke: anak_ke === "" ? null : Number(anak_ke), foto: foto[0] ?? null };
+  const ubah: BodyUbahMurid = { ...tambah, status, tanggal_keluar: status === "aktif" ? null : tanggal_keluar };
+  return { tambah, ubah };
 }
 
 type FormMuridProps =
@@ -120,11 +88,8 @@ export function FormMurid(props: FormMuridProps) {
 
   const simpan = form.handleSubmit(async (nilai) => {
     try {
-      if (props.murid !== null) {
-        await props.kirim(keBodyUbah(nilai));
-      } else {
-        await props.kirim(keBodyTambah(nilai));
-      }
+      const body = keBody(nilai);
+      await (props.murid === null ? props.kirim(body.tambah) : props.kirim(body.ubah));
       form.reset({ ...nilai, foto: [] });
     } catch (error) {
       if (!terapkanErrorValidasi(error, form.setError, FIELD)) toast.error(pesanError(error));
