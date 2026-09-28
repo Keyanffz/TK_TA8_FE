@@ -12,7 +12,7 @@ import { ZonaUnggah } from "@/components/shared/zona-unggah";
 import { Button } from "@/components/ui/button";
 import { FieldGroup } from "@/components/ui/field";
 import { pesanError, terapkanErrorValidasi } from "@/lib/api/errors";
-import type { BodyMurid } from "@/lib/api/murid";
+import type { BodyMurid, BodyUbahMurid } from "@/lib/api/murid";
 import { AGAMA, LABEL_STATUS_MURID, OPSI_JENIS_KELAMIN } from "@/lib/constants/label";
 import { hariIniJakarta } from "@/lib/tanggal";
 import type { Murid } from "@/types/domain";
@@ -68,26 +68,63 @@ function nilaiAwal(murid: Murid | null): DefaultValues<NilaiMurid> {
   };
 }
 
-// Isian kosong dikirim "" (backend mengubahnya jadi null). Status dan tanggal keluar hanya saat mengubah.
-function keBody({ foto, status, tanggal_keluar, anak_ke, ...nilai }: NilaiMurid, ubah: boolean): BodyMurid {
+// Murid baru selalu berstatus aktif (backend menolak status dan tanggal_keluar di POST).
+function keBodyTambah(nilai: NilaiMurid): BodyMurid {
   return {
-    ...nilai,
-    anak_ke: anak_ke === "" ? null : Number(anak_ke),
-    foto: foto[0] ?? null,
-    ...(ubah ? { status, ...(status === "aktif" ? {} : { tanggal_keluar }) } : {}),
+    nama_lengkap: nilai.nama_lengkap,
+    nama_panggilan: nilai.nama_panggilan,
+    jenis_kelamin: nilai.jenis_kelamin,
+    tempat_lahir: nilai.tempat_lahir,
+    tanggal_lahir: nilai.tanggal_lahir,
+    agama: nilai.agama,
+    alamat: nilai.alamat,
+    nik: nilai.nik,
+    nisn: nilai.nisn,
+    anak_ke: nilai.anak_ke === "" ? null : Number(nilai.anak_ke),
+    catatan_khusus: nilai.catatan_khusus,
+    tanggal_masuk: nilai.tanggal_masuk,
+    foto: nilai.foto[0] ?? null,
   };
 }
 
-type FormMuridProps = { murid: Murid | null; kirim: (body: BodyMurid) => Promise<unknown>; labelSimpan: string };
+// Mengubah murid wajib menyertakan status (enum) dan tanggal_keluar (wajib jika tidak aktif).
+function keBodyUbah(nilai: NilaiMurid): BodyUbahMurid {
+  return {
+    nama_lengkap: nilai.nama_lengkap,
+    nama_panggilan: nilai.nama_panggilan,
+    jenis_kelamin: nilai.jenis_kelamin,
+    tempat_lahir: nilai.tempat_lahir,
+    tanggal_lahir: nilai.tanggal_lahir,
+    agama: nilai.agama,
+    alamat: nilai.alamat,
+    nik: nilai.nik,
+    nisn: nilai.nisn,
+    anak_ke: nilai.anak_ke === "" ? null : Number(nilai.anak_ke),
+    catatan_khusus: nilai.catatan_khusus,
+    tanggal_masuk: nilai.tanggal_masuk,
+    foto: nilai.foto[0] ?? null,
+    status: nilai.status,
+    tanggal_keluar: nilai.status === "aktif" ? null : (nilai.tanggal_keluar || null),
+  };
+}
 
-export function FormMurid({ murid, kirim, labelSimpan }: FormMuridProps) {
+type FormMuridProps =
+  | { murid: null; kirim: (body: BodyMurid) => Promise<unknown>; labelSimpan: string }
+  | { murid: Murid; kirim: (body: BodyUbahMurid) => Promise<unknown>; labelSimpan: string };
+
+export function FormMurid(props: FormMuridProps) {
+  const { murid, labelSimpan } = props;
   const form = useForm<NilaiMurid>({ resolver: zodResolver(skemaMurid), defaultValues: nilaiAwal(murid) });
   const { errors, isSubmitting } = form.formState;
   const status = useWatch({ control: form.control, name: "status" });
 
   const simpan = form.handleSubmit(async (nilai) => {
     try {
-      await kirim(keBody(nilai, murid !== null));
+      if (props.murid !== null) {
+        await props.kirim(keBodyUbah(nilai));
+      } else {
+        await props.kirim(keBodyTambah(nilai));
+      }
       form.reset({ ...nilai, foto: [] });
     } catch (error) {
       if (!terapkanErrorValidasi(error, form.setError, FIELD)) toast.error(pesanError(error));

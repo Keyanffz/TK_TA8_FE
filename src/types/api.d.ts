@@ -474,7 +474,10 @@ export interface paths {
             cookie?: never;
         };
         get: operations["kegiatanKelas.show"];
-        /** Mengubah tanggal, tema, judul, dan deskripsi. Hanya guru pembuat dan Kepala Sekolah */
+        /**
+         * Mengubah tanggal, tema, judul, dan deskripsi. Hanya guru pembuat dan Kepala Sekolah. `kelas_id` dan
+         *     `foto` ditolak (422): kelas tidak bisa diganti, foto lewat `POST /kegiatan/{id}/foto`
+         */
         put: operations["kegiatanKelas.update"];
         post?: never;
         /** Menghapus kegiatan beserta semua fotonya. Hanya guru pembuat dan Kepala Sekolah */
@@ -2682,6 +2685,47 @@ export interface components {
             caption?: string | null;
             urutan?: number;
         };
+        /**
+         * PerbaruiKegiatanRequest
+         * @description `PUT /kegiatan/{id}`: tanggal, tema, judul, dan deskripsi. Kelas tidak bisa diganti dan foto dikelola lewat
+         *     endpoint foto; mengirim `kelas_id` atau `foto` dibalas 422.
+         */
+        PerbaruiKegiatanRequest: {
+            /** Format: date */
+            tanggal: string;
+            tema?: string | null;
+            judul: string;
+            deskripsi?: string | null;
+        };
+        /**
+         * PerbaruiMuridRequest
+         * @description `PUT /murid/{id}` (multipart jika menyertakan foto): data yang sama dengan `POST /murid` ditambah `status`
+         *     (wajib) dan `tanggal_keluar` (wajib untuk murid yang lulus, pindah, atau keluar; kosong untuk murid aktif).
+         */
+        PerbaruiMuridRequest: {
+            nisn?: string | null;
+            nik?: string | null;
+            nama_lengkap: string;
+            nama_panggilan: string;
+            jenis_kelamin: components["schemas"]["JenisKelamin"];
+            tempat_lahir: string;
+            /** Format: date */
+            tanggal_lahir: string;
+            agama: string;
+            alamat: string;
+            anak_ke?: number | null;
+            catatan_khusus?: string | null;
+            /** Format: date */
+            tanggal_masuk: string;
+            /**
+             * Format: binary
+             * @description Maximum file size: 5120 kilobytes.
+             */
+            foto?: Blob | null;
+            status: components["schemas"]["StatusMurid"];
+            /** Format: date */
+            tanggal_keluar?: string | null;
+        };
         /** PerbaruiProfilRequest */
         PerbaruiProfilRequest: {
             name: string;
@@ -2934,8 +2978,8 @@ export interface components {
         };
         /**
          * SimpanKegiatanRequest
-         * @description `POST /kegiatan` (multipart: data + `foto[]` maksimal 10) dan `PUT /kegiatan/{id}` (data saja; foto dikelola
-         *     lewat endpoint foto). Guru hanya mencatat kegiatan untuk kelas yang dia ampu di tahun ajaran aktif.
+         * @description `POST /kegiatan` (multipart: data + `foto[]` maksimal 10). Guru hanya mencatat kegiatan untuk kelas yang dia
+         *     ampu di tahun ajaran aktif. `PUT /kegiatan/{id}` memakai `PerbaruiKegiatanRequest`.
          */
         SimpanKegiatanRequest: {
             /** Format: date */
@@ -2976,9 +3020,9 @@ export interface components {
         };
         /**
          * SimpanMuridRequest
-         * @description Dipakai `POST /murid` dan `PUT /murid/{id}` (multipart jika menyertakan foto). NIS dibuat otomatis
-         *     saat murid dibuat dan tidak bisa diubah. Status dan tanggal keluar hanya diisi saat memperbarui;
-         *     murid baru selalu berstatus aktif.
+         * @description `POST /murid` (multipart jika menyertakan foto). NIS dibuat otomatis saat murid dibuat dan tidak bisa
+         *     diubah. Murid baru selalu berstatus aktif, jadi `status` dan `tanggal_keluar` ditolak; keduanya diisi
+         *     lewat `PUT /murid/{id}` (`PerbaruiMuridRequest`).
          */
         SimpanMuridRequest: {
             nisn?: string | null;
@@ -3000,8 +3044,6 @@ export interface components {
              * @description Maximum file size: 5120 kilobytes.
              */
             foto?: Blob | null;
-            status?: string;
-            tanggal_keluar?: string;
         };
         /**
          * SimpanPengaturanRequest
@@ -6844,7 +6886,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "multipart/form-data": components["schemas"]["SimpanKegiatanRequest"];
+                "application/json": components["schemas"]["PerbaruiKegiatanRequest"];
             };
         };
         responses: {
@@ -8960,7 +9002,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "multipart/form-data": components["schemas"]["SimpanMuridRequest"];
+                "multipart/form-data": components["schemas"]["PerbaruiMuridRequest"];
             };
         };
         responses: {

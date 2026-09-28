@@ -15,7 +15,7 @@ export const MAKS_FOTO_PER_UNGGAHAN = 10;
 export const MAKS_FOTO_PER_KEGIATAN = 30;
 
 export type BodyKegiatan = components["schemas"]["SimpanKegiatanRequest"];
-export type BodyUbahKegiatan = Omit<BodyKegiatan, "kelas_id" | "foto">;
+export type BodyUbahKegiatan = components["schemas"]["PerbaruiKegiatanRequest"];
 
 export function useDaftarKegiatan(filter: { halaman: number; kelasId: number | null; search: string }, aktif = true) {
   const query = {
@@ -57,21 +57,11 @@ export function useTambahKegiatan() {
   });
 }
 
-/**
- * api.json menandai `kelas_id` wajib di PUT, tetapi backend menolaknya (kelas kegiatan tidak bisa diganti).
- * Body tetap mengikuti tipe hasil generate, lalu `kelas_id` dibuang sebelum dikirim.
- */
-function keFormDataTanpaKelas({ tanggal, tema, judul, deskripsi }: BodyKegiatan): FormData {
-  return keFormData({ tanggal, tema, judul, deskripsi });
-}
-
-export function useUbahKegiatan(id: number, kelasId: number) {
+export function useUbahKegiatan(id: number) {
   const segarkan = useSegarkanKegiatan();
   return useMutation({
     mutationFn: (body: BodyUbahKegiatan) =>
-      ambilData(
-        api.PUT("/kegiatan/{id}", { params: { path: { id } }, body: { ...body, kelas_id: kelasId }, bodySerializer: keFormDataTanpaKelas }),
-      ),
+      ambilData(api.PUT("/kegiatan/{id}", { params: { path: { id } }, body })),
     onSuccess: segarkan,
   });
 }

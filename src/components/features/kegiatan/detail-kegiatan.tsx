@@ -19,7 +19,7 @@ import { formatTanggal } from "@/lib/format";
 import type { KegiatanKelas } from "@/types/domain";
 
 function UbahKegiatan({ kegiatan, onSelesai }: { kegiatan: KegiatanKelas; onSelesai: () => void }) {
-  const ubah = useUbahKegiatan(kegiatan.id, kegiatan.kelas.id);
+  const ubah = useUbahKegiatan(kegiatan.id);
   return (
     <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
       <h2 className="mb-4 text-lg font-extrabold">Ubah kegiatan</h2>

@@ -12,6 +12,7 @@ import type { Hubungan, StatusMurid, Tingkat } from "@/types/domain";
 export const MURID_PER_HALAMAN = 20;
 
 export type BodyMurid = components["schemas"]["SimpanMuridRequest"];
+export type BodyUbahMurid = components["schemas"]["PerbaruiMuridRequest"];
 export type FilterMurid = {
   search: string;
   halaman: number;
@@ -69,7 +70,7 @@ export function useTambahMurid() {
 export function useUbahMurid(id: number) {
   const segarkan = useSegarkanMurid();
   return useMutation({
-    mutationFn: (body: BodyMurid) =>
+    mutationFn: (body: BodyUbahMurid) =>
       ambilData(api.PUT("/murid/{id}", { params: { path: { id } }, body, bodySerializer: keFormData })),
     onSuccess: segarkan,
   });
