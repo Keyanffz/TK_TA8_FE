@@ -14,7 +14,7 @@ Website publik dan dashboard sistem informasi TK Tarbiyathul Athfal 8 (TK Muslim
 | 4. Master data | Selesai, disetujui (perbaikan setelah review: lihat "Review Fase 4–5") |
 | 5. Keuangan | Selesai, disetujui (perbaikan setelah review: lihat "Review Fase 4–5") |
 | 6. Akademik & komunikasi | Selesai (dikerjakan berturut-turut dengan Fase 7, belum direview) |
-| 7. PPDB, CMS, pengaturan | Belum |
+| 7. PPDB, CMS, pengaturan | Selesai (dikerjakan berturut-turut dengan Fase 6, belum direview) |
 | 8. Integrasi & polish | Belum |
 
 Mode mock tidak dipakai: `api.json` final dari backend sudah tersedia sejak Fase 1, jadi semua request memakai backend asli dan tipe hasil generate. Tidak ada endpoint mock.
@@ -209,6 +209,21 @@ Pengujian alur yang belum pernah diuji (dev server ke backend lokal, Firefox hea
 - **Kirim pengumuman dari Tunggakan**: tombol membuka `/dashboard/pengumuman/baru?dari=tunggakan&kelas=` yang memuat ulang `GET /laporan/tunggakan` dengan saringan kelas yang sama, lalu mengisi judul, isi pengingat, dan semua murid penunggak sebagai sasaran. Guru petugas keuangan hanya bisa menyasar murid di kelas yang dia ampu, jadi murid kelas lain tidak dipilih dan jumlahnya disebut di atas form. Id murid tidak ditaruh di URL.
 - **Agenda**: kalender Senin–Minggu, hari ini dilingkari hijau, Minggu merah, label agenda di desktop dan titik berwarna di HP (`NADA_JENIS_AGENDA`: kegiatan hijau, libur merah, rapat biru, lainnya abu). Bulan (`?bulan=`) dan hari terpilih (`?hari=`) di URL; memilih hari menyaring daftar di samping. Kepala Sekolah menambah (tanggal awal = hari terpilih), mengubah, menghapus lewat dialog; agenda tidak publik diberi badge "Internal".
 
+## Keputusan Fase 7
+
+- **PPDB Kepala Sekolah** (`/dashboard/ppdb`): ringkasan status (dibuka/ditutup, tahun ajaran tujuan, sisa kuota, jadwal) dari `GET /public/ppdb` lewat proxy, dengan tautan "Atur PPDB" ke tab PPDB di Pengaturan. Tabel pendaftar per status: Baru (`diajukan`, bawaan), Dokumen OK (`diverifikasi`), Diterima, Ditolak, Semua; jumlah di tab Baru dan Dokumen OK.
+- Detail (`/dashboard/ppdb/[id]`): data anak, orang tua, dokumen (signed URL dibuka di tab baru; pratinjau gambar, ikon berkas kalau gagal dimuat karena PDF tidak bisa dikenali dari URL terenkripsi). Aksi mengikuti A6/backend: `diajukan` → "Dokumen Sudah Sesuai" (verifikasi) atau tolak; `diverifikasi` → terima atau tolak. Dialog terima: kelas opsional, hanya kelas di tahun ajaran tujuan, kelompok yang sama didahulukan, kelas penuh tidak bisa dipilih; teks menjelaskan akun wali yang ditautkan atau dibuat otomatis. Setelah diterima tampil NIS dan tautan ke data murid (kartu akun ada di sana).
+- Halaman detail yang sama dipakai wali (tujuan notifikasi `pendaftaran_diproses`, `/dashboard/ppdb/{id}`) tanpa tombol keputusan dan tanpa baris akun wali; kartu di "Pendaftaran Anda" sekarang menaut ke detail.
+- **CMS** (`/dashboard/website`): tab Profil Sekolah, Pembuka, Program, Keunggulan, Fasilitas (label "Pembuka" untuk `landing.hero`). Tiap tab form sendiri dan disimpan sendiri lewat `PUT /pengaturan` dengan kunci tab itu saja. Gambar (logo, pembuka, fasilitas) langsung diunggah saat dipilih (`POST /pengaturan/upload`, dikompres di browser) dan path-nya baru tersimpan saat tab disimpan. Misi, program, keunggulan, fasilitas memakai daftar dinamis dengan tambah, hapus, naik/turun (maks 20, sama dengan backend). Ikon dipilih dari `IKON_CMS` dengan label Indonesia (`LABEL_IKON_CMS`). Alamat peta harus `https://www.google.com/...` atau `maps.google.com` (sama dengan syarat tampil di landing).
+- Pesan validasi backend berkunci `items.<kunci>.<path>` dipasang ke field lewat `pesanErrorPengaturan()`.
+- **Perubahan belum disimpan**: `usePeringatanBelumDisimpan()` memasang `beforeunload` dan menangkap klik tautan internal (fase capture) dengan `window.confirm`; pindah tab juga meminta konfirmasi. Tabs memakai `activationMode="manual"`: dengan mode otomatis Radix mengaktifkan tab saat tombolnya mendapat fokus, sehingga setelah konfirmasi ditutup fokus kembali ke tombol tab dan konfirmasi muncul terus (ditemukan saat uji). Berlaku juga di Pengaturan.
+- **"Lihat Pratinjau"** membuka `/` di tab baru.
+- **Revalidate**: `POST /api/revalidate` `{ tags }` (route handler) memeriksa origin, sesi Kepala Sekolah (`ambilSesi`), dan tag yang dikenal (`TAG_PUBLIK`), lalu `revalidateTag(tag, { expire: 0 })` supaya kunjungan berikutnya langsung mengambil data baru (bukan isi lama sekali lagi seperti profil `"max"`). Dipanggil dari `segarkanWebsite()` setelah menyimpan: profil/landing → `publik-profil`, PPDB (pengaturan dan keputusan pendaftaran, karena sisa kuota) → `publik-ppdb`, galeri → `publik-galeri`, pengumuman oleh Kepala Sekolah → `publik-pengumuman`, agenda → `publik-agenda`, guru → `publik-guru`. Kegagalan revalidate hanya dicatat di konsol; datanya sudah tersimpan dan ISR tetap kedaluwarsa dalam 5 menit.
+- **Keunggulan di landing** sekarang menampilkan ikon pilihan CMS di dalam bintang (sebelumnya nomor urut). Kontrak mewajibkan `ikon` untuk keunggulan dan CMS memintanya, jadi ikon yang tidak ditampilkan akan membingungkan; nomor tetap dipakai kalau ikonnya tidak ada di `IKON_CMS`. Perlu direview karena mengubah tampilan landing yang disetujui di Fase 2 (saat itu data keunggulan kosong).
+- **Galeri** (`/dashboard/website/galeri`, `/[id]`): kartu album dengan sampul, jumlah foto, dan status tampil/disembunyikan; dialog album (judul, tanggal, deskripsi, sampul opsional, tampil di website; album baru tersembunyi); detail album dengan kelola foto dan tautan "Lihat di Website" untuk album publik. Pengelolaan foto kegiatan dan galeri memakai satu komponen `KelolaFoto` (`src/components/shared/kelola-foto.tsx`).
+- **Pengaturan** (`/dashboard/pengaturan`, `?tab=`): Rekening (maks 5, format nomor sama dengan backend), Tagihan (jatuh tempo 1–28, pengingat 1–14 hari), PPDB (buka/tutup, tahun ajaran tujuan wajib kalau dibuka, jadwal, kuota 0–1000, info dengan Tiptap), Beranda Wali (form Fase 4), Elemen Penilaian (tambah/ubah lewat dialog, kode huruf besar/angka/garis bawah, hapus ditolak backend kalau sudah dipakai rapor dengan saran menonaktifkan).
+- **Log aktivitas** (`/dashboard/log-aktivitas`): tabel waktu, pelaku (atau "Sistem"), jenis, aktivitas, dan tautan ke data terkait untuk subjek yang punya halaman (murid, guru, wali murid, tagihan, rapor, pendaftaran). Saringan jenis dan tanggal di URL.
+
 ## Temuan kontrak Fase 6
 
 - `api.json` menandai `kelas_id` wajib di body `PUT /kegiatan/{id}`, padahal backend menolaknya (`prohibited`, kelas kegiatan tidak bisa diganti). FE mengisi `kelas_id` supaya sesuai tipe hasil generate, lalu `bodySerializer` membuangnya sebelum dikirim (`useUbahKegiatan`). Perlu diperbaiki di anotasi backend.
@@ -332,7 +347,12 @@ Andika hanya punya bobot 400 dan 700, jadi `font-semibold` tampil sebagai 700.
 | `/dashboard/ganti-password` | pengguna dengan `wajib_ganti_password` | Ganti password awal (tanggal lahir anak). Tanpa menu, dengan tombol Keluar; yang tidak wajib diarahkan ke beranda |
 | `/dashboard/onboarding` | W (profil belum lengkap) | Lengkapi nama, nomor HP, alamat, pekerjaan, NIK opsional. Tanpa menu; wali yang sudah lengkap diarahkan ke beranda |
 | `/dashboard/anak` | W | Kartu anak tertaut + form Tambah Anak (NIS, tanggal lahir, hubungan) |
-| `/dashboard/ppdb`, `/dashboard/ppdb/daftar` | W (SA: 404 sampai Fase 7) | Pendaftaran milik wali + form yang sama dengan form publik (`POST /pendaftaran`), nomor HP dan alamat terisi dari profil |
+| `/dashboard/ppdb` | SA, W | SA: ringkasan status PPDB + tabel pendaftar per status. W: pendaftaran miliknya + tombol daftar |
+| `/dashboard/ppdb/daftar` | W | Form yang sama dengan form publik (`POST /pendaftaran`), nomor HP dan alamat terisi dari profil |
+| `/dashboard/ppdb/[id]` | SA, W (miliknya) | Detail + dokumen; SA: verifikasi, terima (pilih kelas), tolak |
+| `/dashboard/website` | SA | CMS lima tab (`?tab=`), Lihat Pratinjau, penjaga perubahan belum disimpan |
+| `/dashboard/website/galeri`, `/[id]` | SA | Album galeri; detail album dengan kelola foto |
+| `/dashboard/log-aktivitas` | SA | Tabel log + saringan jenis dan tanggal |
 | `/dashboard/notifikasi` | SA, G, W | Semua notifikasi berpaginasi (`?page=`), saring belum dibaca (`?belum=true`), tandai semua dibaca |
 | `/dashboard/profil` | SA, G, W | Nama, nomor HP, foto profil, ganti password; wali juga alamat, pekerjaan, NIK (username NIS ditampilkan, tidak bisa diubah) |
 | `/dashboard/guru`, `/dashboard/guru/baru`, `/dashboard/guru/[id]` | SA | Daftar per status + persetujuan; tambah guru (password awal sekali tampil); ubah data, foto, izin keuangan, tampil di landing, status akun |
@@ -340,7 +360,7 @@ Andika hanya punya bobot 400 dan 700, jadi `font-semibold` tampil sebagai 700.
 | `/dashboard/kelas`, `/dashboard/kelas/[id]` | SA, G (kelas diampu, tanpa aksi) | Kartu kelas per tahun ajaran; detail + murid; SA tambah/ubah/hapus kelas, tempatkan dan keluarkan murid |
 | `/dashboard/murid`, `/dashboard/murid/baru`, `/dashboard/murid/[id]`, `/dashboard/murid/[id]/ubah` | SA, G (murid kelasnya, lihat saja) | Tabel + saringan; detail, kartu akun, wali tertaut (ubah hubungan, kontak utama, lepas); tambah/ubah/hapus (SA) |
 | `/dashboard/wali-murid`, `/dashboard/wali-murid/[id]` | SA | Daftar wali; ubah data, aktif/nonaktif, reset password, anak tertaut |
-| `/dashboard/pengaturan` | SA | Banner beranda wali (tab lain di Fase 7) |
+| `/dashboard/pengaturan` | SA | Tab Rekening, Tagihan, PPDB, Beranda Wali, Elemen Penilaian (`?tab=`) |
 | `/dashboard/tagihan` | SA, G (kelasnya, lihat saja), W | W: kartu tagihan anak aktif. K: tabel + saringan, tagihan sekali bayar; SA juga generate bulanan |
 | `/dashboard/tagihan/[id]` | SA, G, W | Detail, riwayat pembayaran, kwitansi. W: rekening sekolah + unggah bukti. K: catat pembayaran, ubah, terima/tolak. SA: batalkan, aktifkan kembali |
 | `/dashboard/pembayaran` | K, W | K: antrean verifikasi + semua pembayaran dengan saringan. W: riwayat + kwitansi |
@@ -357,11 +377,12 @@ Andika hanya punya bobot 400 dan 700, jadi `font-semibold` tampil sebagai 700.
 | `/dashboard/pengumuman/baru` | SA, G | Form Tiptap + sasaran; `?dari=tunggakan&kelas=` terisi murid penunggak (K) |
 | `/dashboard/pengumuman/[id]`, `/[id]/ubah` | SA, G, W / penulis, SA | Detail; ubah dan hapus untuk penulis dan SA |
 | `/dashboard/agenda` | SA (kelola), G, W | Kalender bulanan + daftar (`?bulan=`, `?hari=`); SA tambah/ubah/hapus |
-| `/dashboard/*` lain | | 404 di dalam kerangka dashboard (`[...lainnya]`); halamannya dibuat di Fase 7 |
+| `/dashboard/*` lain | | 404 di dalam kerangka dashboard (`[...lainnya]`) |
 | `/api/auth/login`, `/api/auth/login-wali`, `/api/auth/logout`, `/api/auth/sesi-habis` | route handler | BFF sesi |
 | `/api/proxy/[...path]` | route handler | Proxy ke backend |
+| `/api/revalidate` | route handler (SA) | Buang cache data publik per tag setelah konten website disimpan |
 
-Route lain mengikuti B4 dan ditambahkan per fase. `/api/auth/me` tidak dibuat (disetujui di Fase 0): sesi dibaca lewat `/api/proxy/auth/me`. `/api/revalidate` (disetujui di Fase 0) dibuat di Fase 7 bersama penyimpanan CMS; tag cache publik sudah disiapkan di `TAG_PUBLIK` (`src/lib/constants/sekolah.ts`).
+Route lain mengikuti B4 dan ditambahkan per fase. `/api/auth/me` tidak dibuat (disetujui di Fase 0): sesi dibaca lewat `/api/proxy/auth/me`. `/api/revalidate` (disetujui di Fase 0) dibuat di Fase 7 bersama penyimpanan CMS, memakai tag di `TAG_PUBLIK` (`src/lib/constants/sekolah.ts`).
 
 Menu sidebar untuk semua route B4 sudah ada sejak Fase 3 (`src/lib/navigation.ts`); tautan ke halaman fase berikutnya menampilkan 404 di dalam dashboard sampai halamannya dibuat.
 
@@ -376,6 +397,44 @@ Tempat deploy belum ditentukan. Syarat yang sudah pasti:
 5. Batas body di reverse proxy minimal 55 MB (unggahan kegiatan 10 foto × 5 MB), sama dengan `post_max_size` backend.
 
 ## Changelog
+
+### Fase 7 (branch `fe/fase-6-8`)
+
+File baru:
+
+- `src/app/api/revalidate/route.ts`, `src/lib/api/website.ts` (`segarkanWebsite`).
+- `src/lib/api/{ppdb,galeri,log-aktivitas}.ts`, `src/lib/use-peringatan-belum-disimpan.ts`.
+- `src/components/shared/kelola-foto.tsx` (dipakai kegiatan dan galeri).
+- `src/components/features/ppdb-sekolah/{daftar-pendaftar,detail-pendaftaran,dokumen-pendaftaran,dialog-terima,ringkasan-ppdb}.tsx`.
+- `src/components/features/website/{halaman-website,form-profil-sekolah,form-hero,form-daftar-berikon,form-fasilitas,unggah-gambar-cms,pilih-ikon,tombol-simpan-tab}.tsx`.
+- `src/components/features/galeri-sekolah/{daftar-album,dialog-album,detail-album}.tsx`.
+- `src/components/features/pengaturan/{halaman-pengaturan,form-rekening,form-aturan-tagihan,form-ppdb,elemen-penilaian}.tsx`.
+- `src/components/features/log-aktivitas/tabel-log-aktivitas.tsx`.
+- Halaman `src/app/dashboard/{ppdb/[id],website,website/galeri,website/galeri/[id],log-aktivitas}/page.tsx`.
+- `docs/review/fase-6-7/*.png`: screenshot review Fase 6 dan 7.
+
+File yang diubah:
+
+- `src/app/dashboard/ppdb/page.tsx` (tampilan Kepala Sekolah), `src/app/dashboard/pengaturan/page.tsx` (tab).
+- `src/lib/api/pengaturan-dashboard.ts`: skema zod grup profil, landing, keuangan, PPDB; `pesanErrorPengaturan()`; `useUnggahGambarPengaturan()`; simpan membuang cache publik per grup.
+- `src/lib/api/{pengumuman,agenda,guru,rapor,query-keys}.ts`: revalidate website, hook elemen penilaian, key PPDB/galeri/log.
+- `src/lib/constants/ikon-cms.ts` (`LABEL_IKON_CMS`), `src/types/domain.ts` (`PendaftaranDetail`).
+- `src/components/features/pengaturan/form-info-wali.tsx`: melaporkan perubahan belum disimpan.
+- `src/components/features/kegiatan/kelola-foto-kegiatan.tsx`: memakai `KelolaFoto`.
+- `src/components/features/ppdb/pendaftaran-saya.tsx`: nama anak menaut ke detail.
+- `src/components/features/landing/keunggulan.tsx`: ikon CMS di dalam bintang.
+
+Pengujian Fase 7 (dev server lalu `next start` ke backend lokal, Firefox headless):
+
+- `lint`, `typecheck`, `build`, `check:slop` bersih.
+- PPDB: ringkasan "Dibuka, 2027/2028, sisa 36 dari 40"; tab Baru berisi 2 pendaftar. PPDB-2027-0002: verifikasi → dialog terima hanya menawarkan kelas TK A1 2027/2028 → diterima dengan NIS `TA20270002`, tertaut ke akun wali pendaftar. PPDB-2027-0003 (terverifikasi) ditolak dengan alasan → alasan tampil. Wali `TA20260001` membuka `/dashboard/ppdb/1` miliknya tanpa tombol keputusan.
+- CMS: NPSN 3 angka → pesan; pindah tab saat ada perubahan → konfirmasi, batal tetap di tab; sambutan Kepala Sekolah (Tiptap) tersimpan; keunggulan kosong → "Judul wajib diisi." dan "Pilih ikon."; tiga keunggulan dengan ikon tersimpan; fasilitas dengan foto tersimpan (`gambar_url` terisi).
+- CMS ke landing di `next start`: `/` memuat keunggulan, fasilitas, dan sambutan baru; subjudul pembuka diubah lalu `GET /` berikutnya langsung berisi subjudul baru (revalidate berjalan). `/api/revalidate` tanpa sesi → 401, sesi guru → 403, tag tidak dikenal → 422, origin asing → 403.
+- Galeri: judul kosong → pesan; album baru → halaman detail; unggah 3 foto, keterangan, geser urutan, tampilkan di website → `/galeri/lomba-mewarnai-hari-anak-nasional` publik menampilkan album. Kelola foto kegiatan 13 tetap berjalan setelah dipindah ke `KelolaFoto`.
+- Pengaturan: rekening kosong → tiga pesan; tambah rekening kedua → tersimpan (2), dihapus lagi → 1. Jatuh tempo 30 → "Antara tanggal 1 dan 28." (tidak disimpan). PPDB dibuka tanpa tahun ajaran → pesan (tidak disimpan). Elemen: kode "uji coba" → pesan format; "MOTORIK" ditambahkan lalu dihapus; hapus Jati Diri → pesan backend "sudah dipakai di rapor ...".
+- Log aktivitas: saringan jenis Pengaturan menampilkan "Mengubah pengaturan: keuangan.rekening".
+- Data backend yang berubah: pendaftaran 2 diterima (murid 64 `TA20270002`), pendaftaran 3 ditolak, `profil.npsn` 20328765, `profil.sambutan_kepsek`, subjudul pembuka, tiga keunggulan, fasilitas Taman bermain, album galeri 3 (publik, 3 foto).
+- Catatan lingkungan: di tengah sesi laptop restart; server backend dijalankan ulang dengan `php artisan serve` (tanpa migrate/seed dan tanpa mengubah kode backend), dan harness uji di `/tmp` dibuat ulang.
 
 ### Fase 6 (branch `fe/fase-6-8`)
 
@@ -395,6 +454,8 @@ File yang diubah:
 - `src/components/features/galeri/grid-foto-galeri.tsx`: prop `privat` dan `keteranganDiBawah` untuk foto kegiatan.
 - `src/components/features/wali/daftar-anak.tsx`: memakai `useAnakWali`.
 - `src/components/features/laporan/daftar-tunggakan.tsx`: tombol Kirim Pengumuman di samping total.
+
+Screenshot review Fase 6 dan 7 ada di `docs/review/fase-6-7/`: `1-feed-kegiatan-wali-hp`, `1b-detail-kegiatan-wali-hp`, `2a-rapor-kelas-guru`, `2-editor-rapor-guru`, `3-review-rapor-kepala-sekolah`, `3b-review-rapor-detail`, `4-form-pengumuman`, `5-kalender-agenda`, `5b-kalender-agenda-wali-hp`, `6a-daftar-ppdb`, `6-review-ppdb`, `7-cms-website-keunggulan`, `7b-cms-website-profil`, `7c-landing-hasil-cms` (diambil dari `next start`).
 
 Pengujian Fase 6 (dev server ke backend lokal, Firefox headless):
 
