@@ -60,7 +60,7 @@ export function GrafikTagihanBulanan({ data }: { data: readonly Bulan[] }) {
           </li>
         ))}
       </ul>
-      <div className="h-72" aria-hidden="true">
+      <div className="h-72">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={[...data]} margin={{ top: 8, right: 4, bottom: 0, left: 0 }} barCategoryGap="20%">
             <CartesianGrid vertical={false} stroke="var(--border)" />

@@ -31,13 +31,13 @@ export function BagianKontak({ profil }: { profil: ProfilSekolah }) {
       <div className={cn("mx-auto grid max-w-6xl gap-10 px-4 py-14 sm:px-6 md:py-20", peta && "md:grid-cols-2")}>
         <div>
           <JudulBagian id="judul-kontak" judul="Kontak" terang />
-          <Muncul as="dl" efek="pop" className={cn("grid gap-6", !peta && "md:grid-cols-3")}>
+          <Muncul efek="pop" className={cn("grid gap-6", !peta && "md:grid-cols-3")}>
             {profil.alamat ? (
               <div className="flex gap-3">
                 <MapPin aria-hidden="true" className="mt-0.5 size-5 shrink-0 text-bintang" />
                 <div>
-                  <dt className="text-sm text-primary-foreground/85">Alamat</dt>
-                  <dd>{profil.alamat}</dd>
+                  <p className="text-sm text-primary-foreground/85">Alamat</p>
+                  <p>{profil.alamat}</p>
                 </div>
               </div>
             ) : null}
@@ -45,12 +45,12 @@ export function BagianKontak({ profil }: { profil: ProfilSekolah }) {
               <div className="flex gap-3">
                 <Phone aria-hidden="true" className="mt-0.5 size-5 shrink-0 text-bintang" />
                 <div>
-                  <dt className="text-sm text-primary-foreground/85">Telepon</dt>
-                  <dd>
+                  <p className="text-sm text-primary-foreground/85">Telepon</p>
+                  <p>
                     <a href={`tel:${telepon}`} className="font-bold underline-offset-4 hover:underline">
                       {profil.telepon}
                     </a>
-                  </dd>
+                  </p>
                 </div>
               </div>
             ) : null}
@@ -58,12 +58,12 @@ export function BagianKontak({ profil }: { profil: ProfilSekolah }) {
               <div className="flex gap-3">
                 <Mail aria-hidden="true" className="mt-0.5 size-5 shrink-0 text-bintang" />
                 <div>
-                  <dt className="text-sm text-primary-foreground/85">Email</dt>
-                  <dd>
+                  <p className="text-sm text-primary-foreground/85">Email</p>
+                  <p>
                     <a href={`mailto:${profil.email}`} className="font-bold underline-offset-4 hover:underline">
                       {profil.email}
                     </a>
-                  </dd>
+                  </p>
                 </div>
               </div>
             ) : null}
