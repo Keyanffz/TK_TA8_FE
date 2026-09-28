@@ -108,7 +108,7 @@ export function EditorRapor({ rapor, bolehUnggahFoto, labelSimpan, onUbahBelumTe
       <div className="rounded-xl bg-highlight-soft p-5">
         <KolomArea label="Catatan guru untuk wali murid" rows={4} maxLength={MAKS_TEKS} error={errors.catatan_guru?.message} {...form.register("catatan_guru")} />
       </div>
-      <div className="sticky bottom-20 z-10 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-card p-4 shadow-md lg:bottom-4">
+      <div className="sticky bottom-4 z-10 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-card p-4 shadow-md">
         <p className="text-sm text-muted-foreground">{isDirty ? "Ada perubahan yang belum disimpan." : "Semua perubahan sudah tersimpan."}</p>
         <Button type="submit" disabled={!isDirty || isSubmitting}>
           {isSubmitting ? "Menyimpan..." : labelSimpan}

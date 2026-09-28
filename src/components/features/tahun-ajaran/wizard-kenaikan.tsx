@@ -121,7 +121,7 @@ export function WizardKenaikan() {
               onUbah={(muridId, nilai) => setUbahan((lama) => new Map(lama).set(muridId, nilai))}
             />
           ))}
-          <div className="sticky bottom-20 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-card p-4 shadow-md lg:bottom-4">
+          <div className="sticky bottom-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-card p-4 shadow-md">
             <p className="text-sm">
               {penempatan.size} murid diatur.
               {belumLengkap > 0 ? <span className="font-bold text-destructive"> {belumLengkap} murid belum punya kelas tujuan.</span> : null}
