@@ -140,3 +140,24 @@ export function useTarikRapor(id: number) {
 export function ambilPdfRapor(id: number): Promise<Blob> {
   return ambilData(api.GET("/rapor/{id}/pdf", { params: { path: { id } }, parseAs: "blob" }));
 }
+
+export type BodyElemen = components["schemas"]["SimpanElemenPenilaianRequest"];
+
+export function useSimpanElemen(id: number | null) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (body: BodyElemen) =>
+      id === null
+        ? ambilData(api.POST("/elemen-penilaian", { body }))
+        : ambilData(api.PUT("/elemen-penilaian/{id}", { params: { path: { id } }, body })),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.elemenPenilaian }),
+  });
+}
+
+export function useHapusElemen() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => ambilData(api.DELETE("/elemen-penilaian/{id}", { params: { path: { id } } })),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.elemenPenilaian }),
+  });
+}

@@ -1,6 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useEffect } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -44,7 +45,7 @@ function bacaInfoWali(data: Record<string, unknown>): InfoWali {
   return hasil.success ? hasil.data : { aktif: false, judul: null, isi: null, nada: "info", berlaku_sampai: null };
 }
 
-function FormIsi({ awal }: { awal: InfoWali }) {
+function FormIsi({ awal, onUbahKotor }: { awal: InfoWali; onUbahKotor: (kotor: boolean) => void }) {
   const simpan = useSimpanPengaturan("beranda");
   const form = useForm<NilaiForm>({
     resolver: zodResolver(skemaForm),
@@ -52,6 +53,8 @@ function FormIsi({ awal }: { awal: InfoWali }) {
   });
   const { errors, isDirty } = form.formState;
   const pratinjau = useWatch({ control: form.control });
+
+  useEffect(() => onUbahKotor(isDirty), [isDirty, onUbahKotor]);
 
   const kirim = form.handleSubmit((nilai) =>
     simpan.mutate(
@@ -133,10 +136,10 @@ function FormIsi({ awal }: { awal: InfoWali }) {
 }
 
 /** Banner info sekolah di beranda wali (`beranda.info_wali`, A4). */
-export function FormInfoWali() {
+export function FormInfoWali({ onUbahKotor }: { onUbahKotor: (kotor: boolean) => void }) {
   const { data, isPending, isError, error, refetch } = usePengaturan("beranda", bacaInfoWali);
 
   if (isPending) return <Skeleton className="h-80 rounded-xl" />;
   if (isError) return <GalatMuat error={error} onCobaLagi={() => void refetch()} />;
-  return <FormIsi awal={data} />;
+  return <FormIsi awal={data} onUbahKotor={onUbahKotor} />;
 }
