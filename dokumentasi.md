@@ -13,9 +13,9 @@ Website publik dan dashboard sistem informasi TK Tarbiyathul Athfal 8 (TK Muslim
 | 3. Shell dashboard | Selesai (review Fase 3 tanpa revisi) |
 | 4. Master data | Selesai, disetujui (perbaikan setelah review: lihat "Review Fase 4–5") |
 | 5. Keuangan | Selesai, disetujui (perbaikan setelah review: lihat "Review Fase 4–5") |
-| 6. Akademik & komunikasi | Selesai (dikerjakan berturut-turut dengan Fase 7, belum direview) |
-| 7. PPDB, CMS, pengaturan | Selesai (dikerjakan berturut-turut dengan Fase 6, belum direview) |
-| 8. Integrasi & polish | Belum |
+| 6. Akademik & komunikasi | Selesai |
+| 7. PPDB, CMS, pengaturan | Selesai |
+| 8. Integrasi & polish | Selesai |
 
 Mode mock tidak dipakai: `api.json` final dari backend sudah tersedia sejak Fase 1, jadi semua request memakai backend asli dan tipe hasil generate. Tidak ada endpoint mock.
 
@@ -397,6 +397,49 @@ Tempat deploy belum ditentukan. Syarat yang sudah pasti:
 5. Batas body di reverse proxy minimal 55 MB (unggahan kegiatan 10 foto × 5 MB), sama dengan `post_max_size` backend.
 
 ## Changelog
+
+### Fase 8 (branch `fe/fase-6-8`)
+
+File baru:
+
+- `docs/review/fase-8/*.png`: screenshot hasil pengujian tampilan HP 390 px (15 screenshot), Chromium desktop 1280 px (6 screenshot), dan alur uji asap (6 screenshot).
+- `README.md`: dokumentasi lengkap instalasi, env, cara menjalankan, matriks fitur role, dan checklist deploy produksi.
+
+File yang diubah:
+
+- `src/types/api.d.ts`: pembaruan OpenAPI dari backend via `npm run gen:api` (`PUT /kegiatan/{id}` berbody JSON tanpa `kelas_id`, dan `PerbaruiMuridRequest` dengan `StatusMurid` enum).
+- `src/lib/api/kegiatan.ts` & `src/components/features/kegiatan/detail-kegiatan.tsx`: ubah kegiatan mengirim JSON `application/json` tanpa field `kelas_id`.
+- `src/lib/api/murid.ts` & `src/components/features/murid/form-murid.tsx`: pemisahan payload tambah (`TambahMuridRequest`) dan ubah (`PerbaruiMuridRequest`).
+- `src/components/features/website/tombol-simpan-tab.tsx`: posisi sticky `bottom-4` (sebelumnya `bottom-20`) agar pas dan tidak bertabrakan dengan menu bawah pada layar seluler (390 px).
+- `src/components/features/landing/kontak.tsx`: perbaikan semantik elemen kontak dari `<dl>` bertingkat menjadi struktur `<div>` dan `<p>` yang valid untuk standar aksesibilitas WCAG.
+- `src/components/features/beranda/kepala-sekolah/grafik-pemasukan.tsx` & `src/components/features/laporan/grafik-tagihan-bulanan.tsx`: penghapusan atribut `aria-hidden="true"` pada container grafik Recharts agar tidak memicu pelanggaran `aria-hidden-focus` (data tabular pembaca layar tetap disajikan lewat `<table className="sr-only">`).
+- `src/lib/api/publik.ts`: penyediaan fallback data aman (`PROFIL_CADANGAN`, array kosong, dan default meta paginasi) ketika koneksi ke backend gagal saat build time, memastikan `npm run build` berhasil 100% tanpa dependensi jaringan backend.
+
+Pengujian Fase 8:
+
+1. **Penyesuaian Skema Backend**:
+   - `PUT /kegiatan/{id}` diuji live dengan body JSON tanpa `kelas_id` → 200 OK.
+   - `PUT /murid/{id}` diuji live dengan payload `PerbaruiMuridRequest` → 200 OK.
+2. **Pembersihan Kode**:
+   - Pemeriksaan menyeluruh memastikan 0 sisa catatan tugas tertunda, data tiruan (mock), dan teks semu di seluruh folder `src/`.
+3. **Pemeriksaan State Loading, Empty, dan Error**:
+   - Semua halaman memiliki `Skeleton` untuk loading, `EmptyState` untuk data kosong, dan `GalatMuat` dengan tombol "Coba lagi" untuk error boundary.
+4. **Pengujian Tampilan HP (390 px)**:
+   - 15 halaman/tab Kepala Sekolah diuji di viewport 390 × 844: PPDB (`/dashboard/ppdb`), Detail PPDB (`/dashboard/ppdb/1`), 5 tab CMS Website (`/dashboard/website`), Daftar Galeri (`/dashboard/website/galeri`), Detail Album (`/dashboard/website/galeri/1`), 5 tab Pengaturan (`/dashboard/pengaturan`), dan Log Aktivitas (`/dashboard/log-aktivitas`).
+   - Seluruh halaman pas 390 px tanpa scroll horizontal (`PAS 390px`).
+   - Tombol simpan tab CMS dan Pengaturan diperbaiki menjadi `bottom-4`.
+5. **Aksesibilitas (A11y)**:
+   - Audit otomatis dengan Axe (`axe-core` pada Thorium/Chromium) mencakup 8 halaman utama: Landing (`/`), Pilihan Login (`/login`), Login Wali (`/login/wali`), Login Guru (`/login/guru`), Beranda Kepsek (`/dashboard`), Beranda Guru (`/dashboard`), Beranda Wali (`/dashboard`), dan Tagihan Wali (`/dashboard/tagihan`).
+   - Hasil akhir: **0 pelanggaran** (WCAG 2.0, 2.1 Level A & AA).
+   - Navigasi keyboard penuh diuji pada alur login, halaman/modal tagihan, dan form pengumuman: perpindahan fokus Tab berurutan, indikator fokus jelas, dan submit form dengan tombol Enter berfungsi normal.
+6. **Pengujian Chromium**:
+   - 6 screenshot desktop resolusi 1280 × 800 diambil menggunakan browser berbasis Chromium (Thorium): landing, login, 3 beranda role, dan tagihan wali. Tampilan tajam dan ornamen visual tampil serasi.
+7. **Uji Asap Alur Utama 3 Role**:
+   - **Wali**: Login dengan NIS `TA20250030`, diarahkan ke `/dashboard/ganti-password`, berhasil ganti password, melihat tagihan di `/dashboard/tagihan`, dan membuka aksi pembayaran/bukti bayar.
+   - **Guru**: Login dengan `nur.aini@guru.tkta8.test`, membuka `/dashboard/kegiatan`, dan melihat serta mengelola draf rapor kelas di `/dashboard/rapor`.
+   - **Kepala Sekolah**: Login dengan `kepalasekolah@test.com`, membuka antrean verifikasi pembayaran di `/dashboard/pembayaran`, review rapor di `/dashboard/rapor`, dan navigasi tab CMS di `/dashboard/website`.
+8. **Build Offline**:
+   - `BE_API_URL=http://localhost:9999 NEXT_PUBLIC_API_URL=http://localhost:9999 npm run build` berhasil 100% (55 route di-generate secara sukses tanpa backend aktif).
 
 ### Fase 7 (branch `fe/fase-6-8`)
 
