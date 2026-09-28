@@ -39,9 +39,10 @@ function IsiTooltip({ active, payload }: TooltipContentProps) {
 export function GrafikPemasukan({ data }: { data: TitikPemasukan[] }) {
   return (
     <figure>
-      <div className="h-64">
+      {/* Datanya dibacakan dari tabel; accessibilityLayer mematikan tabIndex dan role="application" bawaan Recharts. */}
+      <div className="h-64" aria-hidden="true">
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={data} margin={{ top: 8, right: 4, bottom: 0, left: 0 }} barCategoryGap={4}>
+          <BarChart accessibilityLayer={false} data={data} margin={{ top: 8, right: 4, bottom: 0, left: 0 }} barCategoryGap={4}>
             <CartesianGrid vertical={false} stroke="var(--border)" />
             <XAxis
               dataKey="bulan"

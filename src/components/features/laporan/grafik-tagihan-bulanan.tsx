@@ -60,9 +60,10 @@ export function GrafikTagihanBulanan({ data }: { data: readonly Bulan[] }) {
           </li>
         ))}
       </ul>
-      <div className="h-72">
+      {/* Datanya ada di tabel per bulan; accessibilityLayer mematikan tabIndex dan role="application" bawaan Recharts. */}
+      <div className="h-72" aria-hidden="true">
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={[...data]} margin={{ top: 8, right: 4, bottom: 0, left: 0 }} barCategoryGap="20%">
+          <BarChart accessibilityLayer={false} data={[...data]} margin={{ top: 8, right: 4, bottom: 0, left: 0 }} barCategoryGap="20%">
             <CartesianGrid vertical={false} stroke="var(--border)" />
             <XAxis
               dataKey="bulan"
