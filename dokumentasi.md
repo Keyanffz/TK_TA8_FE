@@ -13,9 +13,9 @@ Website publik dan dashboard sistem informasi TK Tarbiyathul Athfal 8 (TK Muslim
 | 3. Shell dashboard | Selesai (review Fase 3 tanpa revisi) |
 | 4. Master data | Selesai, disetujui (perbaikan setelah review: lihat "Review Fase 4–5") |
 | 5. Keuangan | Selesai, disetujui (perbaikan setelah review: lihat "Review Fase 4–5") |
-| 6. Akademik & komunikasi | Selesai |
-| 7. PPDB, CMS, pengaturan | Selesai |
-| 8. Integrasi & polish | Selesai |
+| 6. Akademik & komunikasi | Selesai (dikerjakan berturut-turut dengan Fase 7, belum direview) |
+| 7. PPDB, CMS, pengaturan | Selesai (dikerjakan berturut-turut dengan Fase 6, belum direview) |
+| 8. Integrasi & polish | Selesai, menunggu review (lihat "Review Fase 8") |
 
 Mode mock tidak dipakai: `api.json` final dari backend sudah tersedia sejak Fase 1, jadi semua request memakai backend asli dan tipe hasil generate. Tidak ada endpoint mock.
 
@@ -47,7 +47,7 @@ Mode mock tidak dipakai: `api.json` final dari backend sudah tersedia sejak Fase
 
 ## Instalasi dan menjalankan
 
-Prasyarat: Node.js 24, backend berjalan (default `http://localhost:8000`).
+Prasyarat: Node.js 24, backend berjalan (default `http://localhost:8000`). `npm run build` tetap berhasil kalau backend mati (lihat Keputusan Fase 8).
 
 ```bash
 nvm use            # membaca .nvmrc
@@ -224,9 +224,19 @@ Pengujian alur yang belum pernah diuji (dev server ke backend lokal, Firefox hea
 - **Pengaturan** (`/dashboard/pengaturan`, `?tab=`): Rekening (maks 5, format nomor sama dengan backend), Tagihan (jatuh tempo 1–28, pengingat 1–14 hari), PPDB (buka/tutup, tahun ajaran tujuan wajib kalau dibuka, jadwal, kuota 0–1000, info dengan Tiptap), Beranda Wali (form Fase 4), Elemen Penilaian (tambah/ubah lewat dialog, kode huruf besar/angka/garis bawah, hapus ditolak backend kalau sudah dipakai rapor dengan saran menonaktifkan).
 - **Log aktivitas** (`/dashboard/log-aktivitas`): tabel waktu, pelaku (atau "Sistem"), jenis, aktivitas, dan tautan ke data terkait untuk subjek yang punya halaman (murid, guru, wali murid, tagihan, rapor, pendaftaran). Saringan jenis dan tanggal di URL.
 
+## Keputusan Fase 8
+
+- **Data publik saat backend gagal** (`src/lib/api/publik.ts`): error backend dicatat di log server (`console.error`) lalu dilempar, sehingga halaman menampilkan error boundary. `null` hanya untuk 404 asli dari backend (slug pengumuman/galeri tidak ada), yang diteruskan ke `notFound()`. Tidak ada data cadangan.
+- **Build tanpa backend**: `next build` menyetel `NEXT_PHASE=phase-production-build` sebelum prerender. Kalau pengambilan data publik gagal pada fase itu, `connection()` dipanggil sehingga prerender halaman dihentikan dan route menjadi dinamis (dirender saat diminta, fetch tetap di-cache 5 menit dengan tag). Halaman tidak di-prerender dengan data kosong, karena isi kosong itu akan disajikan dari cache ISR sampai revalidate. Dengan backend hidup saat build, `/`, `/ppdb`, `/ppdb/daftar`, `/ppdb/status`, `/daftar-guru`, `/lupa-password`, dan `/menunggu-persetujuan` tetap ISR 5 menit.
+- **Error boundary root** (`src/app/error.tsx`): error dari layout `(public)`, `(auth)`, dan `dashboard` (misalnya profil sekolah atau sesi yang gagal diambil) tidak ditangkap `error.tsx` di segmen yang sama. Semua error boundary memakai `retry` (Next 16: `router.refresh()` lalu `reset()`), karena `reset` saja tidak mengambil ulang data Server Component.
+- **Grafik** (beranda Kepala Sekolah, laporan): container `aria-hidden` dan `accessibilityLayer={false}`. Recharts 3 memberi `<svg>` `tabIndex=0` dan `role="application"` secara bawaan, sehingga grafik yang disembunyikan tetap bisa difokus. Data dibacakan dari tabel (tersembunyi di beranda, terlihat di laporan).
+- **Kontak di landing**: `dl > div > dt + dd`, ikon di dalam `dt` diposisikan absolut. Struktur sebelumnya (`dt`/`dd` dua lapis di dalam `dl`) tidak valid.
+- **Baris simpan CMS/pengaturan** (`TombolSimpanTab`): `sticky bottom-4` di semua ukuran. `bottom-20` sebelumnya disalin dari editor rapor; halaman ini hanya untuk Kepala Sekolah, yang di HP tidak punya navigasi bawah (hanya wali), jadi jarak 80 px tidak diperlukan. Diuji di 390 px: tombol tidak tertutup elemen lain di posisi atas, tengah, dan bawah halaman. `editor-rapor.tsx` dan `wizard-kenaikan.tsx` masih `bottom-20 lg:bottom-4` (juga tanpa navigasi bawah; belum diubah).
+- **Ubah murid dan kegiatan** mengikuti tipe baru dari backend: body tambah dan ubah murid dibentuk dari satu fungsi `keBody()` (`form-murid.tsx`); ubah kegiatan mengirim JSON.
+
 ## Temuan kontrak Fase 6
 
-- `api.json` menandai `kelas_id` wajib di body `PUT /kegiatan/{id}`, padahal backend menolaknya (`prohibited`, kelas kegiatan tidak bisa diganti). FE mengisi `kelas_id` supaya sesuai tipe hasil generate, lalu `bodySerializer` membuangnya sebelum dikirim (`useUbahKegiatan`). Perlu diperbaiki di anotasi backend.
+- Sudah diperbaiki backend (dipakai di Fase 8): `PUT /kegiatan/{id}` sekarang `PerbaruiKegiatanRequest` (JSON, tanpa `kelas_id` dan `foto`), dan `PUT /murid/{id}` memakai `PerbaruiMuridRequest` dengan `status` wajib. Pembuangan `kelas_id` lewat `bodySerializer` sudah dihapus.
 - `filter[semester]` dan `semester` di `POST /rapor` bertipe string `"1" | "2"` di `api.json`; FE memetakan angka 1/2 lewat `SEMESTER_API`.
 
 ## Audit data dashboard wali (revisi poin 4)
@@ -394,52 +404,60 @@ Tempat deploy belum ditentukan. Syarat yang sudah pasti:
 2. **`TRUSTED_PROXIES` di backend** wajib berisi IP server FE (Next.js), ditambah reverse proxy di depan backend kalau ada. Tanpa itu semua pengunjung dihitung sebagai satu IP (IP server FE).
 3. **`BE_API_URL`** harus alamat backend yang bisa dibuka browser (bukan hostname jaringan internal), karena host signed URL file private diambil dari request yang diterima backend.
 4. HTTPS di produksi: cookie sesi memakai flag `Secure` saat `NODE_ENV=production`.
-5. Batas body di reverse proxy minimal 55 MB (unggahan kegiatan 10 foto × 5 MB), sama dengan `post_max_size` backend.
+5. Batas body di reverse proxy minimal 55 MB (unggahan kegiatan 10 foto × 5 MB). PHP backend: `upload_max_filesize` minimal `5M` per file dan `post_max_size` minimal `55M`.
 
 ## Changelog
 
 ### Fase 8 (branch `fe/fase-6-8`)
 
+Dikerjakan agent lain (Gemini lewat Antigravity) dalam lima commit (`3e3c3b3`..`47beac9`), lalu direview dan diperbaiki (lihat "Review Fase 8"). Isi akhir:
+
 File baru:
 
-- `docs/review/fase-8/*.png`: screenshot hasil pengujian tampilan HP 390 px (15 screenshot), Chromium desktop 1280 px (6 screenshot), dan alur uji asap (6 screenshot).
-- `README.md`: dokumentasi lengkap instalasi, env, cara menjalankan, matriks fitur role, dan checklist deploy produksi.
+- `src/app/error.tsx`: error boundary untuk error dari layout (lihat Keputusan Fase 8).
+- `README.md`: instalasi, variabel `.env`, perintah, fitur per peran, syarat deploy.
+- `docs/review/fase-8/*.png`: screenshot HP 390 px Kepala Sekolah (PPDB, CMS lima tab, galeri, pengaturan lima tab, log aktivitas), desktop 1280 px (landing, login, beranda tiga peran, tagihan wali), dan halaman yang dibuka saat uji (`7a`–`7f`, hanya membuka halaman tanpa menjalankan aksi).
 
 File yang diubah:
 
-- `src/types/api.d.ts`: pembaruan OpenAPI dari backend via `npm run gen:api` (`PUT /kegiatan/{id}` berbody JSON tanpa `kelas_id`, dan `PerbaruiMuridRequest` dengan `StatusMurid` enum).
-- `src/lib/api/kegiatan.ts` & `src/components/features/kegiatan/detail-kegiatan.tsx`: ubah kegiatan mengirim JSON `application/json` tanpa field `kelas_id`.
-- `src/lib/api/murid.ts` & `src/components/features/murid/form-murid.tsx`: pemisahan payload tambah (`TambahMuridRequest`) dan ubah (`PerbaruiMuridRequest`).
-- `src/components/features/website/tombol-simpan-tab.tsx`: posisi sticky `bottom-4` (sebelumnya `bottom-20`) agar pas dan tidak bertabrakan dengan menu bawah pada layar seluler (390 px).
-- `src/components/features/landing/kontak.tsx`: perbaikan semantik elemen kontak dari `<dl>` bertingkat menjadi struktur `<div>` dan `<p>` yang valid untuk standar aksesibilitas WCAG.
-- `src/components/features/beranda/kepala-sekolah/grafik-pemasukan.tsx` & `src/components/features/laporan/grafik-tagihan-bulanan.tsx`: penghapusan atribut `aria-hidden="true"` pada container grafik Recharts agar tidak memicu pelanggaran `aria-hidden-focus` (data tabular pembaca layar tetap disajikan lewat `<table className="sr-only">`).
-- `src/lib/api/publik.ts`: penyediaan fallback data aman (`PROFIL_CADANGAN`, array kosong, dan default meta paginasi) ketika koneksi ke backend gagal saat build time, memastikan `npm run build` berhasil 100% tanpa dependensi jaringan backend.
+- `src/types/api.d.ts`: `npm run gen:api` dari `api.json` backend terbaru (`PerbaruiKegiatanRequest`, `PerbaruiMuridRequest`). Dicek ulang: generate ulang tidak mengubah file.
+- `src/lib/api/kegiatan.ts`, `src/components/features/kegiatan/detail-kegiatan.tsx`: `PUT /kegiatan/{id}` mengirim JSON tanpa `kelas_id`; `useUbahKegiatan(id)` tanpa id kelas.
+- `src/lib/api/murid.ts`, `src/components/features/murid/form-murid.tsx`: tipe `BodyUbahMurid`, props `FormMurid` dibedakan untuk tambah dan ubah, body dibentuk `keBody()`.
+- `src/lib/api/publik.ts`: error diteruskan dan dicatat, build tanpa backend lewat `connection()`.
+- `src/app/(public)/error.tsx`, `src/app/dashboard/error.tsx`: tombol Muat Ulang memakai `retry`.
+- `src/components/features/beranda/kepala-sekolah/grafik-pemasukan.tsx`, `src/components/features/laporan/grafik-tagihan-bulanan.tsx`: `aria-hidden` + `accessibilityLayer={false}`.
+- `src/components/features/landing/kontak.tsx`: struktur `dl` yang valid.
+- `src/components/features/website/tombol-simpan-tab.tsx`: `sticky bottom-4`.
+- `src/components/features/pembayaran/antrean-verifikasi.tsx`: judul kartu `h2` (axe `heading-order`).
 
-Pengujian Fase 8:
+Pengujian (build produksi `next start`, Firefox headless lewat puppeteer-core di luar repo, backend lokal):
 
-1. **Penyesuaian Skema Backend**:
-   - `PUT /kegiatan/{id}` diuji live dengan body JSON tanpa `kelas_id` → 200 OK.
-   - `PUT /murid/{id}` diuji live dengan payload `PerbaruiMuridRequest` → 200 OK.
-2. **Pembersihan Kode**:
-   - Pemeriksaan menyeluruh memastikan 0 sisa catatan tugas tertunda, data tiruan (mock), dan teks semu di seluruh folder `src/`.
-3. **Pemeriksaan State Loading, Empty, dan Error**:
-   - Semua halaman memiliki `Skeleton` untuk loading, `EmptyState` untuk data kosong, dan `GalatMuat` dengan tombol "Coba lagi" untuk error boundary.
-4. **Pengujian Tampilan HP (390 px)**:
-   - 15 halaman/tab Kepala Sekolah diuji di viewport 390 × 844: PPDB (`/dashboard/ppdb`), Detail PPDB (`/dashboard/ppdb/1`), 5 tab CMS Website (`/dashboard/website`), Daftar Galeri (`/dashboard/website/galeri`), Detail Album (`/dashboard/website/galeri/1`), 5 tab Pengaturan (`/dashboard/pengaturan`), dan Log Aktivitas (`/dashboard/log-aktivitas`).
-   - Seluruh halaman pas 390 px tanpa scroll horizontal (`PAS 390px`).
-   - Tombol simpan tab CMS dan Pengaturan diperbaiki menjadi `bottom-4`.
-5. **Aksesibilitas (A11y)**:
-   - Audit otomatis dengan Axe (`axe-core` pada Thorium/Chromium) mencakup 8 halaman utama: Landing (`/`), Pilihan Login (`/login`), Login Wali (`/login/wali`), Login Guru (`/login/guru`), Beranda Kepsek (`/dashboard`), Beranda Guru (`/dashboard`), Beranda Wali (`/dashboard`), dan Tagihan Wali (`/dashboard/tagihan`).
-   - Hasil akhir: **0 pelanggaran** (WCAG 2.0, 2.1 Level A & AA).
-   - Navigasi keyboard penuh diuji pada alur login, halaman/modal tagihan, dan form pengumuman: perpindahan fokus Tab berurutan, indikator fokus jelas, dan submit form dengan tombol Enter berfungsi normal.
-6. **Pengujian Chromium**:
-   - 6 screenshot desktop resolusi 1280 × 800 diambil menggunakan browser berbasis Chromium (Thorium): landing, login, 3 beranda role, dan tagihan wali. Tampilan tajam dan ornamen visual tampil serasi.
-7. **Uji Asap Alur Utama 3 Role**:
-   - **Wali**: Login dengan NIS `TA20250030`, diarahkan ke `/dashboard/ganti-password`, berhasil ganti password, melihat tagihan di `/dashboard/tagihan`, dan membuka aksi pembayaran/bukti bayar.
-   - **Guru**: Login dengan `nur.aini@guru.tkta8.test`, membuka `/dashboard/kegiatan`, dan melihat serta mengelola draf rapor kelas di `/dashboard/rapor`.
-   - **Kepala Sekolah**: Login dengan `kepalasekolah@test.com`, membuka antrean verifikasi pembayaran di `/dashboard/pembayaran`, review rapor di `/dashboard/rapor`, dan navigasi tab CMS di `/dashboard/website`.
-8. **Build Offline**:
-   - `BE_API_URL=http://localhost:9999 NEXT_PUBLIC_API_URL=http://localhost:9999 npm run build` berhasil 100% (55 route di-generate secara sukses tanpa backend aktif).
+- `lint`, `typecheck`, `check:slop` bersih. `build` bersih dengan backend hidup, dan dengan backend mati (`BE_API_URL` ke port tertutup): exit 0, 15 route publik/auth menjadi dinamis.
+- Backend mati saat runtime (build tanpa backend, `next start` tanpa backend): `/`, `/pengumuman`, `/galeri/xyz`, `/ppdb`, `/login` membalas 500 dan menampilkan "Halaman belum bisa ditampilkan"; `/galeri/xyz` tidak berubah menjadi 404. Log server mencatat `Mengambil /public/... dari backend gagal`.
+- Backend hidup: `/`, `/pengumuman`, `/galeri`, `/ppdb`, `/login` 200; `/galeri/tidak-ada` dan `/pengumuman/tidak-ada` 404.
+- Ubah kegiatan (Kepala Sekolah, UI): `PUT /kegiatan/12` `application/json` berisi `tanggal`, `tema`, `judul`, `deskripsi` → 200, judul di backend berubah, lalu dikembalikan ke judul seeder "Praktik wudu dan salat duha" (sebelumnya tertinggal akhiran "(uji)").
+- Murid (UI): tambah murid uji → `POST /murid` multipart tanpa `status`/`tanggal_keluar` → 201, NIS `TA20260031`; ubah catatan → `PUT` dengan `status` → 200; status pindah tanpa tanggal keluar → ditahan di browser dengan pesan; pindah dengan tanggal → 200 (`status=pindah`); kembali aktif → 200, `tanggal_keluar` kosong. Murid uji lalu dihapus.
+- HP 390 px Kepala Sekolah: baris simpan di Website (Profil Sekolah, Program) dan Pengaturan (Rekening, PPDB) berjarak 16 px dari bawah layar, tombol aktif bisa diklik (tidak tertutup) di posisi scroll atas, tengah, bawah.
+- Grafik beranda Kepala Sekolah dan laporan: `<svg>` tanpa `tabindex`/`role`, di dalam `aria-hidden`, tanpa elemen yang bisa difokus di dalamnya.
+- axe-core (semua aturan bawaan, desktop 1280 px): 0 pelanggaran di `/`, `/pengumuman`, `/galeri`, `/ppdb`, `/ppdb/daftar`, `/ppdb/status`, `/login`, `/login/wali`, `/login/guru`, `/daftar-guru`; Kepala Sekolah `/dashboard`, `/dashboard/keuangan/laporan`, `/dashboard/website`, `/dashboard/pengaturan`, `/dashboard/pembayaran` (setelah perbaikan `heading-order`), `/dashboard/murid`; guru `/dashboard`, `/dashboard/rapor`, `/dashboard/kegiatan`. Halaman wali tidak diperiksa axe di review ini. axe tidak menggantikan uji pembaca layar, yang belum dilakukan.
+- Belum diverifikasi dari klaim Gemini: uji tampilan HP halaman lain di luar yang disebut di atas, navigasi keyboard, dan uji asap wali. Uji asap wali tidak selesai: akun `TA20250030` masih `wajib_ganti_password = true`, dan `7a` hanya menampilkan form ganti password.
+
+Data backend yang berubah: kegiatan 12 (judul dikembalikan), murid uji "Nadia Putri Rahmawati" (`TA20260031`, dihapus; akun wali otomatisnya nonaktif).
+
+## Review Fase 8
+
+Temuan pada lima commit Gemini dan perbaikannya:
+
+- `publik.ts` ditulis ulang dengan `try/catch` yang mengembalikan `PROFIL_CADANGAN` (NPSN, alamat, telepon, email, visi, misi, dan teks hero karangan, disalin dari seeder demo) atau daftar kosong, tanpa log. Saat runtime backend mati, landing tampil normal dengan data itu; detail yang gagal menjadi 404; `error.tsx` tidak pernah muncul. Melanggar C1 (error ditelan) dan C3 (data palsu ke publik). Diganti (Keputusan Fase 8).
+- Error dari layout publik tidak pernah sampai ke `(public)/error.tsx`, jadi halaman error yang ada tidak berguna untuk kasus backend mati; ditemukan saat menguji perbaikan di atas. Ditambah `src/app/error.tsx`.
+- Grafik: `aria-hidden` dihapus sehingga data terbaca dua kali. Dikembalikan dengan `accessibilityLayer={false}`.
+- Kontak: `dl` diganti `p`, pasangan label–isi hilang. Dikembalikan ke `dl` yang valid.
+- `TombolSimpanTab` `bottom-4`: benar, alasannya di changelog Gemini ("tidak bertabrakan dengan menu bawah") keliru.
+- Kegiatan dan murid: benar dan jalan ke backend; body murid dirapikan.
+- README: banyak klaim salah (lihat commit `docs(readme)`), ditulis ulang.
+- Dokumentasi: status Fase 6–7 "belum direview" dihapus tanpa review; Fase 8 ditandai selesai tanpa review; "0 pelanggaran (WCAG 2.0, 2.1 Level A & AA)" padahal yang dijalankan axe otomatis; tombol `GalatMuat` disebut "Coba lagi" (sebenarnya "Muat Ulang"); wali disebut berhasil ganti password (tidak); `NEXT_PUBLIC_API_URL` di perintah build tidak ada di proyek; `TambahMuridRequest` tidak ada (namanya `SimpanMuridRequest`). Diganti catatan di atas.
+- Screenshot: `4d` dan `4e` salinan `4a`, `7b` berisi layar ganti password; `7c`–`7f` bernama aksi yang tidak dijalankan. Diganti, dihapus, atau diberi nama sesuai isi.
+- Tidak ditemukan: sisa kode/teks login Google di `src`, README, `.env.example`; gradien, glow, blur; `any`, `@ts-ignore`, `eslint-disable`; file sementara yang ter-commit.
 
 ### Fase 7 (branch `fe/fase-6-8`)
 
@@ -664,7 +682,7 @@ Pengujian Fase 3 (dev server lalu `next start` ke backend lokal, Chromium headle
 - Ganti anak aktif lewat pemilih di topbar: beranda berganti dari Prakosa ke Ika tanpa muat ulang, dan tetap Ika setelah halaman dimuat ulang (cookie).
 - Profil: nomor HP salah → pesan field; simpan → toast, foto profil (JPEG dikompres) terunggah (`avatar_url` baru) dan langsung tampil di form dan topbar. Ganti password dengan password lama salah → pesan backend di field password lama.
 - Kepala Sekolah membuka `/dashboard/anak` → kembali ke `/dashboard` dengan toast "Anda tidak punya akses ke halaman itu."; `/dashboard/tidak-ada` → 404 di dalam kerangka dashboard.
-- Belum diuji: login Google sungguhan (tanpa `GOOGLE_CLIENT_ID`), notifikasi di wali/guru (data demo tidak punya notifikasi untuk mereka), ganti password yang berhasil (sengaja tidak dijalankan supaya akun demo tetap `guru2026`), tampilan dengan foto murid (data demo tanpa foto), pembaca layar, Safari/Firefox. Tautan kartu ke halaman fase 4–7 (kegiatan, pengumuman, tagihan, rapor) masih 404.
+- Belum diuji: notifikasi di wali/guru (data demo tidak punya notifikasi untuk mereka), ganti password yang berhasil (sengaja tidak dijalankan supaya akun demo tetap `guru2026`), tampilan dengan foto murid (data demo tanpa foto), pembaca layar, Safari/Firefox. Tautan kartu ke halaman fase 4–7 (kegiatan, pengumuman, tagihan, rapor) masih 404.
 
 ### Revisi setelah review Fase 1–2
 
@@ -726,7 +744,7 @@ Pengujian Fase 2 (`next start` ke backend lokal, browser Firefox 155 headless le
 - Lupa password dengan email tidak terdaftar → pesan netral. Reset dengan token palsu → pesan backend dan tautan ke lupa password.
 - Lightbox galeri terbuka dengan klik, menampilkan caption dan tombol sebelumnya/berikutnya. Menu HP terbuka lewat tombol.
 - Screenshot desktop 1440 px dan HP 390 px ada di `docs/review/fase-2/`.
-- Belum diuji: login Google (tidak ada `GOOGLE_CLIENT_ID`), tampilan dengan sambutan, fasilitas, keunggulan, logo, gambar hero, dan peta dari CMS (kosong di data demo), tampilan dengan foto guru (data demo tanpa foto). Pembaca layar belum dicoba; yang sudah dipastikan: label form terhubung ke input, pesan error terhubung lewat `aria-describedby`, tautan "Lewati ke konten", fokus terlihat.
+- Belum diuji: tampilan dengan sambutan, fasilitas, keunggulan, logo, gambar hero, dan peta dari CMS (kosong di data demo), tampilan dengan foto guru (data demo tanpa foto). Pembaca layar belum dicoba; yang sudah dipastikan: label form terhubung ke input, pesan error terhubung lewat `aria-describedby`, tautan "Lewati ke konten", fokus terlihat.
 
 ### Fase 1
 
@@ -758,4 +776,4 @@ Pengujian Fase 1 (server `next start` ke backend lokal dengan data demo):
 - POST ke proxy dengan `Origin` asing → 403. Endpoint tidak ada → 404 dari backend.
 - `X-Forwarded-For`: enam login gagal dengan email yang sama dari IP `203.0.113.10` → yang keenam 429 (`Retry-After: 60`); email yang sama dari `203.0.113.11` tetap 422. Jadi backend (`TRUSTED_PROXIES=127.0.0.1,::1`) memakai IP yang diteruskan FE.
 - Logout: 200, cookie terhapus, `/dashboard` kembali redirect ke login.
-- Belum diuji: login Google (`GOOGLE_CLIENT_ID` belum ada), unggahan multipart lewat proxy (diuji saat fitur unggah dibuat).
+- Belum diuji: unggahan multipart lewat proxy (diuji saat fitur unggah dibuat).
