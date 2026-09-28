@@ -2,7 +2,7 @@
 
 import { FileText, UploadCloud, X } from "lucide-react";
 import Image from "next/image";
-import { useEffect, useId, useMemo, useState, type DragEvent } from "react";
+import { useEffect, useId, useMemo, useRef, useState, type DragEvent } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Field, FieldDescription, FieldError, FieldLabel } from "@/components/ui/field";
@@ -59,6 +59,20 @@ export function ZonaUnggah({ label, deskripsi, error, nilai, onUbah, terimaPdf =
   const penuh = nilai.length >= maks;
   const accept = [...TIPE_GAMBAR_DITERIMA, ...(terimaPdf ? [TIPE_PDF] : [])].join(",");
   const pesan = galat ?? error;
+  const daftarRef = useRef<HTMLUListElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const perubahanTerakhir = useRef<"tambah" | "hapus" | null>(null);
+
+  // Input file dinonaktifkan selama kompres dan dilepas saat kuota penuh, tombol hapus hilang bersama
+  // filenya; tanpa ini fokus jatuh ke body. Setelah file masuk dan kuota penuh, fokus ke tombol hapus
+  // file terakhir; selain itu kembali ke input.
+  useEffect(() => {
+    const perubahan = perubahanTerakhir.current;
+    if (!perubahan) return;
+    perubahanTerakhir.current = null;
+    const tombolHapus = daftarRef.current?.querySelector<HTMLButtonElement>("li:last-child button");
+    (perubahan === "tambah" && penuh ? tombolHapus : inputRef.current)?.focus();
+  }, [nilai, penuh]);
 
   const tambah = async (daftar: FileList | null) => {
     setGalat(null);
@@ -81,6 +95,7 @@ export function ZonaUnggah({ label, deskripsi, error, nilai, onUbah, terimaPdf =
           return;
         }
       }
+      perubahanTerakhir.current = "tambah";
       onUbah([...nilai, ...hasil]);
     } catch (penyebab) {
       console.error("Memproses file gagal:", penyebab);
@@ -100,9 +115,12 @@ export function ZonaUnggah({ label, deskripsi, error, nilai, onUbah, terimaPdf =
     <Field data-invalid={pesan ? true : undefined}>
       <FieldLabel htmlFor={id}>{label}</FieldLabel>
       {nilai.length > 0 ? (
-        <ul className="flex flex-col gap-2">
+        <ul ref={daftarRef} className="flex flex-col gap-2">
           {nilai.map((file, indeks) => (
-            <ItemFile key={`${file.name}-${indeks}`} file={file} onHapus={() => onUbah(nilai.filter((_, i) => i !== indeks))} />
+            <ItemFile key={`${file.name}-${indeks}`} file={file} onHapus={() => {
+                perubahanTerakhir.current = "hapus";
+                onUbah(nilai.filter((_, i) => i !== indeks));
+              }} />
           ))}
         </ul>
       ) : null}
@@ -126,6 +144,7 @@ export function ZonaUnggah({ label, deskripsi, error, nilai, onUbah, terimaPdf =
             {memproses ? "Memproses file..." : nilai.length > 0 ? "Tambah file lain" : "Pilih file atau seret ke sini"}
           </span>
           <input
+            ref={inputRef}
             id={id}
             type="file"
             accept={accept}
