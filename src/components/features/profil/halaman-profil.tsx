@@ -36,7 +36,7 @@ export function HalamanProfil({ user }: { user: User }) {
               Cara masuk
             </h2>
             <p className="text-muted-foreground">
-              Anda masuk dengan akun Google <span className="font-bold break-all text-foreground">{user.email}</span>. Akun guru tidak memakai
+              Anda masuk dengan akun Google <span className="font-bold wrap-anywhere text-foreground">{user.email}</span>. Akun guru tidak memakai
               password. Untuk memakai akun Google lain, minta Kepala Sekolah mengganti email Anda di data guru.
             </p>
           </section>
