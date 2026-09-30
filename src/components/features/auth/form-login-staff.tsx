@@ -6,11 +6,8 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 
 import { TombolMasuk } from "@/components/features/auth/tombol-masuk";
-import { useMasuk } from "@/components/features/auth/use-masuk";
 import { KolomPassword, KolomTeks } from "@/components/shared/kolom-teks";
-import { KotakPesan } from "@/components/shared/kotak-pesan";
 import { FieldGroup } from "@/components/ui/field";
-import { masukStaff } from "@/lib/auth/masuk";
 import { RUTE_AKUN_STAFF } from "@/lib/auth/rute-login";
 import { skemaEmail } from "@/lib/auth/skema";
 
@@ -19,21 +16,28 @@ const skemaLogin = z.object({
   password: z.string().min(1, "Password wajib diisi."),
 });
 
-type NilaiLogin = z.infer<typeof skemaLogin>;
+export type NilaiLoginStaff = z.infer<typeof skemaLogin>;
 
-/** Login password, hanya untuk Kepala Sekolah. Guru ditolak backend dengan pesan yang sama seperti password salah. */
-export function FormLoginStaff() {
-  const form = useForm<NilaiLogin>({ resolver: zodResolver(skemaLogin), defaultValues: { email: "", password: "" } });
+type FormLoginStaffProps = {
+  masuk: (nilai: NilaiLoginStaff) => void;
+  sedangMemeriksa: boolean;
+  sisaJeda: number;
+  /** Masuk dengan Google sedang diproses. */
+  nonaktif: boolean;
+};
+
+/**
+ * Login password, hanya untuk Kepala Sekolah. Guru ditolak backend dengan
+ * pesan yang sama seperti password salah. Pesan gagal ditampilkan `MasukStaff`
+ * karena dipakai bersama dengan login Google.
+ */
+export function FormLoginStaff({ masuk, sedangMemeriksa, sisaJeda, nonaktif }: FormLoginStaffProps) {
+  const form = useForm<NilaiLoginStaff>({ resolver: zodResolver(skemaLogin), defaultValues: { email: "", password: "" } });
   const { errors } = form.formState;
-  const { masuk, sedangMemeriksa, pesan, sisaJeda } = useMasuk({
-    kirim: masukStaff,
-    pesanGagal: () => "Email atau password salah. Periksa kembali, atau atur ulang lewat Lupa password. Guru masuk dengan Google.",
-  });
 
   return (
     <form noValidate onSubmit={form.handleSubmit(masuk)}>
       <FieldGroup>
-        {pesan ? <KotakPesan nada="bahaya">{pesan}</KotakPesan> : null}
         <KolomTeks label="Email" type="email" autoComplete="email" inputMode="email" error={errors.email?.message} {...form.register("email")} />
         <KolomPassword label="Password" autoComplete="current-password" error={errors.password?.message} {...form.register("password")} />
         <div className="-mt-2 text-right">
@@ -41,7 +45,10 @@ export function FormLoginStaff() {
             Lupa password?
           </Link>
         </div>
-        <TombolMasuk sedangMemeriksa={sedangMemeriksa} sisaJeda={sisaJeda} />
+        <div className="flex flex-col gap-2">
+          <TombolMasuk sedangMemeriksa={sedangMemeriksa} sisaJeda={sisaJeda} nonaktif={nonaktif} />
+          <p className="text-sm text-muted-foreground">Masuk dengan password khusus untuk Kepala Sekolah.</p>
+        </div>
       </FieldGroup>
     </form>
   );
