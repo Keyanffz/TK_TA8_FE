@@ -18,6 +18,7 @@ Website publik dan dashboard sistem informasi TK Tarbiyathul Athfal 8 (TK Muslim
 | 8. Integrasi & polish | Selesai, menunggu review (lihat "Review Fase 8") |
 | Login terpisah (endpoint auth baru backend) | Selesai, menunggu review (lihat "Keputusan login terpisah") |
 | Area `/mudarris` untuk guru dan Kepala Sekolah | Selesai, menunggu review (lihat "Keputusan area /mudarris") |
+| Login Google staff, guru tanpa pendaftaran mandiri (branch `fe/login-google-staff`) | Selesai, menunggu review (lihat "Keputusan login Google staff"); butuh backend branch `be/login-google-staff` |
 
 Mode mock tidak dipakai: `api.json` final dari backend sudah tersedia sejak Fase 1, jadi semua request memakai backend asli dan tipe hasil generate. Tidak ada endpoint mock.
 
@@ -77,12 +78,13 @@ Perintah lain:
 |---|---|---|
 | `BE_API_URL` | server (route handler, Server Component, `next.config.ts`) | Base URL API termasuk `/api/v1`. Harus alamat yang juga bisa dibuka browser, karena signed URL file private dibentuk backend dari host request yang diterimanya. Origin-nya juga dipakai untuk `images.remotePatterns` (`/storage/**`). |
 | `API_SPEC_PATH` | `npm run gen:api` | Path atau URL `api.json`. Lokal: `../TK_TA8_BE/storage/api-docs/api.json`. |
+| `NEXT_PUBLIC_GOOGLE_CLIENT_ID` | browser (tombol Google di `/mudarris/login`) | Client ID OAuth jenis Web application, sama dengan `GOOGLE_CLIENT_ID` backend. Dibaca saat build, jadi build ulang setelah mengubahnya. Kosong → tombol Google diganti pesan, login password Kepala Sekolah tetap bisa dipakai. |
 
 ## Arsitektur
 
 ### Autentikasi (BFF)
 
-- Browser tidak pernah memegang token. `POST /api/auth/staff/login` (email, ke backend `/auth/staff/login`) dan `POST /api/auth/wali/login` (NIS anak, ke `/auth/wali/login`) meneruskan body ke backend (ditambah `perangkat: "web"`), lalu menyimpan token di cookie `tk_token` (httpOnly, `secure` di produksi, sameSite lax, 30 hari) dan `tk_role` (bukan httpOnly, hanya nama role). Cookie hanya dipasang kalau `user.role` milik endpoint itu (`super_admin`/`guru` untuk staff, `wali_murid` untuk wali). Respons ke browser berisi `user` tanpa token; header `Retry-After` dari 429 ikut diteruskan.
+- Browser tidak pernah memegang token. `POST /api/auth/staff/google` (ID token Google `credential`, ke backend `/auth/staff/google`), `POST /api/auth/staff/login` (email + password Kepala Sekolah, ke `/auth/staff/login`), dan `POST /api/auth/wali/login` (NIS anak, ke `/auth/wali/login`) meneruskan body ke backend (ditambah `perangkat: "web"`), lalu menyimpan token di cookie `tk_token` (httpOnly, `secure` di produksi, sameSite lax, 30 hari) dan `tk_role` (bukan httpOnly, hanya nama role). Cookie hanya dipasang kalau `user.role` milik endpoint itu (`super_admin`/`guru` untuk Google, `super_admin` untuk login password staff, `wali_murid` untuk wali). Respons ke browser berisi `user` tanpa token; header `Retry-After` dari 429 ikut diteruskan.
 - Tujuan setelah masuk (`tujuanSetelahMasuk()`): `wajib_ganti_password` → `/dashboard/ganti-password`; wali dengan `profil_lengkap = false` → `/dashboard/onboarding`; selain itu `?next=` atau beranda role (`/dashboard` untuk wali, `/mudarris` untuk guru dan Kepala Sekolah).
 - `POST /api/auth/logout` memanggil `/auth/logout` backend lalu menghapus `tk_token`, `tk_role`, `tk_anak`. Cookie tetap dihapus walau backend tidak bisa dihubungi. Browser lalu dimuat ulang penuh ke halaman login sesuai role (`ruteLogin()`).
 - `GET /api/auth/sesi-habis?next=` menghapus cookie lalu redirect ke halaman login sesuai `tk_role` (`/mudarris/login` untuk guru dan Kepala Sekolah, selain itu `/login`) dengan `?next=`. Dipakai layout dashboard saat `/auth/me` menolak token, karena Server Component tidak bisa menghapus cookie.
@@ -101,9 +103,10 @@ Request dari Server Component ke endpoint publik (landing, ISR) tidak membawa `X
 
 ### Route guard
 
-- `src/proxy.ts` (matcher `/dashboard/:path*`, `/mudarris/:path*`, `/login`): wali murid di `/dashboard/*`, guru dan Kepala Sekolah di `/mudarris/*`. Tanpa cookie `tk_token`: `/dashboard/*` → `/login?next=...`, `/mudarris/*` → `/mudarris/login?next=...`; halaman akun guru (`/mudarris/login`, `/daftar`, `/lupa-password`, `/reset-password`, `/menunggu-persetujuan`) tetap terbuka. Sudah punya cookie buka `/login` atau `/mudarris/login` → beranda sesuai `tk_role`. `tk_role` staff membuka `/dashboard/x` → `/mudarris/x` (tautan notifikasi yang tersimpan sebelum area dipisah, bookmark); `tk_role` wali membuka `/mudarris/*` → `/dashboard?akses=ditolak`. Kedua halaman login `force-dynamic` supaya tidak diambil dari cache browser tanpa melewati proxy. `/api` sengaja tidak dicocokkan karena proxy Next.js membatasi body 10 MB (`proxyClientMaxBodySize`), sedangkan unggahan kegiatan bisa lebih besar.
+- `src/proxy.ts` (matcher `/dashboard/:path*`, `/mudarris/:path*`, `/login`): wali murid di `/dashboard/*`, guru dan Kepala Sekolah di `/mudarris/*`. Tanpa cookie `tk_token`: `/dashboard/*` → `/login?next=...`, `/mudarris/*` → `/mudarris/login?next=...`; halaman akun (`/mudarris/login`, `/lupa-password`, `/reset-password`) tetap terbuka. Sudah punya cookie buka `/login` atau `/mudarris/login` → beranda sesuai `tk_role`. `tk_role` staff membuka `/dashboard/x` → `/mudarris/x` (tautan notifikasi yang tersimpan sebelum area dipisah, bookmark); `tk_role` wali membuka `/mudarris/*` → `/dashboard?akses=ditolak`. Kedua halaman login `force-dynamic` supaya tidak diambil dari cache browser tanpa melewati proxy. `/api` sengaja tidak dicocokkan karena proxy Next.js membatasi body 10 MB (`proxyClientMaxBodySize`), sedangkan unggahan kegiatan bisa lebih besar.
 - `src/app/dashboard/layout.tsx` (wali) dan `src/app/mudarris/layout.tsx` (guru, Kepala Sekolah) memanggil `ambilSesi()` (`GET /auth/me`, di-cache per request) dan memeriksa role sebenarnya: staff di `/dashboard` → `/mudarris`, wali di `/mudarris` → `/dashboard?akses=ditolak`. Token ditolak (401 atau `ACCOUNT_*`) → `/api/auth/sesi-habis`. Di dalam `/mudarris`, halaman khusus Kepala Sekolah atau petugas keuangan memakai `wajibAkses()` (→ `/mudarris?akses=ditolak`). Urutan wajib wali: `wajib_ganti_password` → semua path selain `/dashboard/ganti-password` diarahkan ke sana; lalu `profil_lengkap = false` → `/dashboard/onboarding`. Kedua halaman itu tampil tanpa menu (`KerangkaTanpaMenu`).
 - Layout tidak dirender ulang saat navigasi di browser, jadi `Providers` juga menangani `PASSWORD_WAJIB_DIGANTI` dari query/mutation mana pun dengan mengarahkan ke `/dashboard/ganti-password`.
+- Halaman `/mudarris` ada di route group `(halaman)` bersama `loading.tsx`; `[...lainnya]` ada di luarnya. Alamat yang tidak dikenal (termasuk `/mudarris/daftar` dan `/mudarris/menunggu-persetujuan` yang sudah dihapus) membalas 404 sungguhan di dalam kerangka untuk pengguna yang sudah masuk, karena respons di bawah loading boundary sudah di-stream sebagai 200 sebelum `notFound()` dipanggil. `/dashboard` belum diubah (alamat tak dikenal masih 200 dengan isi halaman 404).
 - Otorisasi sebenarnya tetap di backend.
 
 ### Data fetching
@@ -291,6 +294,18 @@ Diminta pemilik repo: wali murid dan staff sekolah memakai area yang benar-benar
 - **Wali yang membuka `/mudarris/*`** diarahkan ke `/dashboard?akses=ditolak` (toast "Anda tidak punya akses ke halaman itu."), tidak dipetakan, karena halaman staff tidak punya padanan wali.
 - `loading.tsx`, `error.tsx`, `[...lainnya]`, dan halaman notifikasi di `/mudarris` mengekspor ulang milik `/dashboard`; `not-found.tsx` terpisah karena tombolnya kembali ke beranda area. Profil memakai `HalamanProfil` di kedua area; tautan kembali di halaman detail memakai `TautanKembali`.
 
+## Keputusan login Google staff
+
+Diminta pemilik repo: guru dan Kepala Sekolah masuk dengan Google, password hanya untuk Kepala Sekolah, dan pendaftaran guru mandiri dihapus. Bagian A disalin dari `PROMPT_BE_TK.md` (identik, dicek `diff`); B2–B5 disesuaikan.
+
+- **Tombol resmi Google** (`renderButton`, `theme: outline`, `size: large`, `locale: id`, lebar mengikuti wadah, 200–400 px). Teks tombol dibuat Google sesuai bahasa, jadi di Indonesia tampil "Login dengan Google", bukan "Masuk dengan Google"; mengganti teks atau menumpuk tombol sendiri di atasnya melanggar pedoman merek Google. Kata "Masuk" dipakai di judul, tautan, dan pesan di sekitarnya.
+- **`?cara=password`** (nuqs) membuka form password Kepala Sekolah, supaya tetap terbuka setelah muat ulang dan bisa ditautkan dari halaman reset password. Tautan memakai pola disclosure (`aria-expanded`, `aria-controls`).
+- **Jendela Google ditutup atau diblokir**: GIS tidak memanggil callback apa pun untuk kedua kejadian itu. `usePantauJendelaGoogle()` mulai memantau saat tombol diklik (`click_listener`): kalau `document.hasFocus()` tidak pernah bernilai false dalam 3 detik, jendela dianggap tidak terbuka (petunjuk izinkan pop-up); kalau fokus hilang lalu kembali dan 2 detik kemudian belum ada kredensial, dianggap ditutup. Keduanya petunjuk (nada kuning), bukan error, dan hilang kalau kredensial tetap datang. Kalau Google kelak memakai dialog FedCM untuk tombol, petunjuk "belum terbuka" bisa muncul saat dialog masih tampil; teksnya dibuat aman untuk kasus itu.
+- **Status tombol**: selama memeriksa atau hitung mundur 429, tombol Google disembunyikan (iframe tetap terpasang) dan diganti `TombolMasuk` nonaktif ("Memeriksa..." / "Coba lagi dalam N detik"), supaya tidak bisa diklik dua kali. Callback GIS didaftarkan sekali, jadi handler terbaru dibaca lewat ref.
+- **`useMasuk()`**: `pesanGagal` sekarang fungsi dari `ApiError`. Login password tetap satu pesan umum untuk 401/422; login Google memakai `errors.credential[0]` dari backend (token tidak sah, email tidak terdaftar, akun Google lain). 503 (Google belum dikonfigurasi di backend) ditampilkan di atas form. Penanganan `ACCOUNT_PENDING` dan `ACCOUNT_REJECTED` dihapus bersama kodenya.
+- **Guru**: tab Aktif/Nonaktif saja; tambah guru meminta "Email Google" dan menampilkan alamat halaman masuk guru (bisa disalin), bukan password awal; tidak ada tombol hapus. Profil guru menampilkan "Cara masuk" (akun Google) sebagai ganti form ganti password. Panel Perlu Tindakan Kepala Sekolah tinggal tiga kartu.
+- `ACCOUNT_INACTIVE` tetap satu-satunya kode sesi tidak berlaku selain 401 (`ambilSesi()`).
+
 ## Temuan kontrak Fase 6
 
 - Sudah diperbaiki backend (dipakai di Fase 8): `PUT /kegiatan/{id}` sekarang `PerbaruiKegiatanRequest` (JSON, tanpa `kelas_id` dan `foto`), dan `PUT /murid/{id}` memakai `PerbaruiMuridRequest` dengan `status` wajib. Pembuangan `kelas_id` lewat `bodySerializer` sudah dihapus.
@@ -407,8 +422,8 @@ Andika hanya punya bobot 400 dan 700, jadi `font-semibold` tampil sebagai 700.
 | `/ppdb/daftar` | publik | Form pendaftaran 4 langkah tanpa login (`POST /public/pendaftaran`); setelah terkirim tampil kode pendaftaran + salin. PPDB tutup/kuota penuh → pesan tanpa form |
 | `/ppdb/status?kode=` | publik | Cek status dengan kode + tanggal lahir anak (`GET /public/pendaftaran/status`) |
 | `/login` | publik (sudah masuk → beranda role) | Login wali murid: NIS anak + password, tanpa pilihan role. Tujuan setelah masuk: ganti password awal, onboarding, lalu `?next=` atau beranda |
-| `/mudarris/login` | publik (sudah masuk → beranda role) | Login guru dan Kepala Sekolah: email + password, tautan lupa password dan daftar guru. Hanya ditautkan kecil dari footer landing ("Masuk guru") dan dari halaman guru lain (daftar guru, lupa/reset password, menunggu persetujuan) |
-| `/mudarris/daftar`, `/mudarris/lupa-password`, `/mudarris/reset-password?token=&email=`, `/mudarris/menunggu-persetujuan` | publik | Alur akun guru/Kepala Sekolah |
+| `/mudarris/login` | publik (sudah masuk → beranda role) | Guru dan Kepala Sekolah: tombol Google; `?cara=password` membuka form email + password Kepala Sekolah dan tautan lupa password. Hanya ditautkan kecil dari footer landing ("Masuk guru") dan dari halaman lupa/reset password |
+| `/mudarris/lupa-password`, `/mudarris/reset-password?token=&email=` | publik | Reset password Kepala Sekolah; setelah berhasil ke `/mudarris/login?cara=password` |
 | `/dashboard` (W); `/mudarris` (SA, G) | SA, G, W | Beranda per role (B5): SA panel Perlu Tindakan, statistik, keuangan bulan ini, grafik pemasukan; G kelas diampu, progres rapor, tagihan kelas; W kartu anak, kartu tagihan, rapor terbaru, kegiatan, pengumuman, agenda |
 | `/dashboard/ganti-password` | pengguna dengan `wajib_ganti_password` | Ganti password awal (tanggal lahir anak). Tanpa menu, dengan tombol Keluar; yang tidak wajib diarahkan ke beranda |
 | `/dashboard/onboarding` | W (profil belum lengkap) | Lengkapi nama, nomor HP, alamat, pekerjaan, NIK opsional. Tanpa menu; wali yang sudah lengkap diarahkan ke beranda |
@@ -420,8 +435,8 @@ Andika hanya punya bobot 400 dan 700, jadi `font-semibold` tampil sebagai 700.
 | `/mudarris/website/galeri`, `/[id]` | SA | Album galeri; detail album dengan kelola foto |
 | `/mudarris/log-aktivitas` | SA | Tabel log + saringan jenis dan tanggal |
 | `/dashboard/notifikasi` (W); `/mudarris/notifikasi` (SA, G) | SA, G, W | Semua notifikasi berpaginasi (`?page=`), saring belum dibaca (`?belum=true`), tandai semua dibaca |
-| `/dashboard/profil` (W); `/mudarris/profil` (SA, G) | SA, G, W | Nama, nomor HP, foto profil, ganti password; wali juga alamat, pekerjaan, NIK (username NIS ditampilkan, tidak bisa diubah) |
-| `/mudarris/guru`, `/mudarris/guru/baru`, `/mudarris/guru/[id]` | SA | Daftar per status + persetujuan; tambah guru (password awal sekali tampil); ubah data, foto, izin keuangan, tampil di landing, status akun |
+| `/dashboard/profil` (W); `/mudarris/profil` (SA, G) | SA, G, W | Nama, nomor HP, foto profil, ganti password (SA, W; guru melihat keterangan akun Google); wali juga alamat, pekerjaan, NIK (username NIS ditampilkan, tidak bisa diubah) |
+| `/mudarris/guru`, `/mudarris/guru/baru`, `/mudarris/guru/[id]` | SA | Daftar Aktif/Nonaktif; tambah guru dengan email Google (tanpa password); ubah data, foto, izin keuangan, tampil di landing, aktif/nonaktif (tanpa hapus) |
 | `/mudarris/tahun-ajaran`, `/mudarris/tahun-ajaran/kenaikan` | SA | Tambah/ubah/aktifkan/hapus; wizard kenaikan kelas |
 | `/mudarris/kelas`, `/mudarris/kelas/[id]` | SA, G (kelas diampu, tanpa aksi) | Kartu kelas per tahun ajaran; detail + murid; SA tambah/ubah/hapus kelas, tempatkan dan keluarkan murid |
 | `/mudarris/murid`, `/mudarris/murid/baru`, `/mudarris/murid/[id]`, `/mudarris/murid/[id]/ubah` | SA, G (murid kelasnya, lihat saja) | Tabel + saringan; detail, kartu akun, wali tertaut (ubah hubungan, kontak utama, lepas); tambah/ubah/hapus (SA) |
@@ -443,8 +458,8 @@ Andika hanya punya bobot 400 dan 700, jadi `font-semibold` tampil sebagai 700.
 | `/mudarris/pengumuman/baru` | SA, G | Form Tiptap + sasaran; `?dari=tunggakan&kelas=` terisi murid penunggak (K) |
 | `/dashboard/pengumuman/[id]` (W); `/mudarris/pengumuman/[id]`, `/[id]/ubah` (SA, G) | SA, G, W / penulis, SA | Detail; ubah dan hapus untuk penulis dan SA |
 | `/dashboard/agenda` (W); `/mudarris/agenda` (SA, G) | SA (kelola), G, W | Kalender bulanan + daftar (`?bulan=`, `?hari=`); SA tambah/ubah/hapus |
-| `/dashboard/*`, `/mudarris/*` lain | | 404 di dalam kerangka area masing-masing (`[...lainnya]`) |
-| `/api/auth/staff/login`, `/api/auth/wali/login`, `/api/auth/logout`, `/api/auth/sesi-habis` | route handler | BFF sesi |
+| `/dashboard/*`, `/mudarris/*` lain | | 404 di dalam kerangka area masing-masing (`[...lainnya]`); di `/mudarris` dengan status HTTP 404 |
+| `/api/auth/staff/google`, `/api/auth/staff/login`, `/api/auth/wali/login`, `/api/auth/logout`, `/api/auth/sesi-habis` | route handler | BFF sesi |
 | `/api/proxy/[...path]` | route handler | Proxy ke backend |
 | `/api/revalidate` | route handler (SA) | Buang cache data publik per tag setelah konten website disimpan |
 
@@ -466,8 +481,41 @@ Tempat deploy belum ditentukan. Syarat yang sudah pasti:
 3. **`BE_API_URL`** harus alamat backend yang bisa dibuka browser (bukan hostname jaringan internal), karena host signed URL file private diambil dari request yang diterima backend.
 4. HTTPS di produksi: cookie sesi memakai flag `Secure` saat `NODE_ENV=production`.
 5. Batas body di reverse proxy minimal 55 MB (unggahan kegiatan 10 foto × 5 MB). PHP backend: `upload_max_filesize` minimal `5M` per file dan `post_max_size` minimal `55M`.
+6. **Masuk dengan Google**: `NEXT_PUBLIC_GOOGLE_CLIENT_ID` diisi sebelum `npm run build`, dan origin FE produksi (misalnya `https://tkta8.sch.id`) didaftarkan di Authorized JavaScript origins Client ID itu di Google Cloud Console. Backend memakai Client ID yang sama di `GOOGLE_CLIENT_ID`.
 
 ## Changelog
+
+### Login Google staff dan guru tanpa pendaftaran mandiri (branch `fe/login-google-staff`)
+
+Bergantung pada backend branch `be/login-google-staff` (`POST /auth/staff/google`, `api.json` baru). Keputusan detail ada di "Keputusan login Google staff".
+
+File baru:
+
+- `src/components/features/auth/tombol-masuk-google.tsx`: tombol Google Identity Services lewat `next/script`, status memuat/gagal/Client ID kosong, penanganan pesan backend dan hitung mundur.
+- `src/components/features/auth/use-pantau-jendela-google.ts`: petunjuk kalau jendela Google tidak terbuka atau ditutup.
+- `src/components/features/auth/pilihan-masuk-staff.tsx`: tombol Google + tautan "Masuk dengan password (Kepala Sekolah)" (`?cara=password`).
+- `src/app/api/auth/staff/google/route.ts`: BFF ke `POST /auth/staff/google`.
+- `src/types/google-identity.d.ts`: tipe minimal GIS tanpa `any`.
+- `docs/review/login-google-staff/*.png`: screenshot HP 390 px dari uji browser.
+
+File yang diubah:
+
+- `src/app/(auth)/mudarris/login/page.tsx`, `src/components/features/auth/{form-login-staff,form-login-wali,use-masuk,form-lupa-password,form-reset-password}.ts(x)`, `src/app/(auth)/mudarris/lupa-password/page.tsx`: login password khusus Kepala Sekolah tanpa tautan daftar guru; `pesanGagal` berupa fungsi; reset password berhasil → `/mudarris/login?cara=password`.
+- `src/lib/auth/{bff,masuk,rute-login,session}.ts`, `src/lib/api/errors.ts`, `src/types/domain.ts`: jenis login `google`, `masukGoogle()`, login password hanya `super_admin`, `RUTE_AKUN_STAFF` tanpa daftar dan menunggu persetujuan, kode `ACCOUNT_PENDING`/`ACCOUNT_REJECTED` dihapus.
+- `src/components/features/guru/{daftar-guru,detail-guru,form-guru,tambah-guru}.tsx`, `src/lib/api/guru.ts`, `src/app/mudarris/(halaman)/guru/{page,baru/page}.tsx`: tanpa persetujuan dan password awal, label "Email Google".
+- `src/components/features/beranda/kepala-sekolah/perlu-tindakan.tsx`, `src/components/features/profil/halaman-profil.tsx`, `src/lib/constants/{label,status,notifikasi}.ts`, `src/components/shared/{kotak-pesan,tombol-salin}.tsx`.
+- `src/app/mudarris/*` → `src/app/mudarris/(halaman)/*` (kecuali `layout.tsx`, `not-found.tsx`, `error.tsx`, `[...lainnya]`): status 404 untuk alamat tak dikenal.
+- `src/types/api.d.ts` (`npm run gen:api`), `.env.example` (`NEXT_PUBLIC_GOOGLE_CLIENT_ID`), `PROMPT_FE_TK.md` (Bagian A disalin dari backend, identik; B2–B5).
+
+File yang dihapus: `src/app/(auth)/mudarris/daftar/page.tsx`, `src/app/(auth)/mudarris/menunggu-persetujuan/page.tsx`, `src/components/features/auth/form-daftar-guru.tsx`, `src/components/features/guru/aksi-persetujuan-guru.tsx`.
+
+Pengujian (build produksi `next start` port 3001 dengan `NEXT_PUBLIC_GOOGLE_CLIENT_ID` uji, backend branch `be/login-google-staff` di port 8001 dengan MariaDB lokal berisi `DemoSeeder`, Firefox headless 390 × 844 lewat puppeteer-core di luar repo):
+
+- `lint`, `typecheck`, `build`, `check:slop` bersih; `build` juga dicoba dengan `.env.local` biasa (Client ID kosong).
+- Tanpa Client ID OAuth asli, skrip `https://accounts.google.com/gsi/client` diganti stub lewat intersepsi request di browser uji: tombol biasa yang memanggil callback GIS dengan ID token uji. Token itu ditandatangani kunci RSA uji yang kunci publiknya dipasang sementara di cache backend (`google:kunci-publik`), jadi BFF dan verifikasi backend (tanda tangan, `aud`, `iss`, `exp`, `email_verified`) berjalan sungguhan. Cache itu dihapus setelah uji.
+- 23 skenario lulus: tampilan awal tanpa scroll horizontal dan tanpa form password; jendela Google tidak terbuka dan ditutup → petunjuk; email tidak terdaftar, akun nonaktif, token kedaluwarsa, akun Google lain dengan email sama → pesan backend; guru masuk (email di token berhuruf besar) → `/mudarris`, `tk_role=guru`, profil tanpa ganti password, buka `/mudarris/login` → beranda; Kepala Sekolah masuk lewat Google dan lewat password (`aria-expanded=true`), panel Perlu Tindakan tanpa guru, daftar guru hanya Aktif/Nonaktif, tambah guru dengan Email Google; guru ditolak di login password; `/mudarris/daftar` dan `/mudarris/menunggu-persetujuan` → 404 di dalam kerangka untuk guru dan Kepala Sekolah, tanpa sesi → `/mudarris/login?next=`; reset password Kepala Sekolah → tombol Masuk membuka `?cara=password`; 11 permintaan dalam semenit → hitung mundur "Coba lagi dalam N detik" dan tombol Google disembunyikan.
+- curl dengan cookie sesi: kedua rute lama dan `/mudarris/tidak-ada` 404, `/mudarris`, `/mudarris/guru`, `/mudarris/profil` 200.
+- Belum diuji: tombol dan jendela Google asli (butuh Client ID OAuth), axe dan pembaca layar, Safari/Chromium, tampilan desktop.
 
 ### Area /mudarris (branch `fe/rute-mudarris`)
 
