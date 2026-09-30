@@ -19,6 +19,7 @@ Website publik dan dashboard sistem informasi TK Tarbiyathul Athfal 8 (TK Muslim
 | Login terpisah (endpoint auth baru backend) | Selesai, menunggu review (lihat "Keputusan login terpisah") |
 | Area `/mudarris` untuk guru dan Kepala Sekolah | Selesai, menunggu review (lihat "Keputusan area /mudarris") |
 | Login Google staff, guru tanpa pendaftaran mandiri (branch `fe/login-google-staff`) | Selesai, menunggu review (lihat "Keputusan login Google staff"); butuh backend branch `be/login-google-staff` |
+| `/mudarris/login` satu form (branch `fe/login-staff-satu-form`) | Selesai, menunggu review (lihat "Keputusan login Google staff") |
 
 Mode mock tidak dipakai: `api.json` final dari backend sudah tersedia sejak Fase 1, jadi semua request memakai backend asli dan tipe hasil generate. Tidak ada endpoint mock.
 
@@ -298,10 +299,11 @@ Diminta pemilik repo: wali murid dan staff sekolah memakai area yang benar-benar
 
 Diminta pemilik repo: guru dan Kepala Sekolah masuk dengan Google, password hanya untuk Kepala Sekolah, dan pendaftaran guru mandiri dihapus. Bagian A disalin dari `PROMPT_BE_TK.md` (identik, dicek `diff`); B2–B5 disesuaikan.
 
-- **Tombol resmi Google** (`renderButton`, `theme: outline`, `size: large`, `locale: id`, lebar mengikuti wadah, 200–400 px). Teks tombol dibuat Google sesuai bahasa, jadi di Indonesia tampil "Login dengan Google", bukan "Masuk dengan Google"; mengganti teks atau menumpuk tombol sendiri di atasnya melanggar pedoman merek Google. Kata "Masuk" dipakai di judul, tautan, dan pesan di sekitarnya.
-- **`?cara=password`** (nuqs) membuka form password Kepala Sekolah, supaya tetap terbuka setelah muat ulang dan bisa ditautkan dari halaman reset password. Tautan memakai pola disclosure (`aria-expanded`, `aria-controls`).
+- **Satu form** (branch `fe/login-staff-satu-form`, menggantikan toggle `?cara=password`): kartu judul, kotak pesan, form email + password Kepala Sekolah (lupa password, tombol Masuk, keterangan khusus Kepala Sekolah), pemisah "atau", tombol Google, keterangan untuk guru. Semua dalam kolom `max-w-100` (400 px) yang dipusatkan, karena 400 px adalah lebar maksimal tombol Google; dengan begitu kartu, isian, tombol Masuk, dan tombol Google sama lebar. Tautan ke login wali dihapus dari halaman ini. `?cara=password` dari tautan lama tidak dibaca lagi, jadi diabaikan.
+- **`MasukStaff`** memegang dua `useMasuk()` (password dan Google). Kotak pesan menampilkan pesan dari cara masuk yang terakhir dicoba. Selama password diproses, wadah tombol Google `inert` dan dipudarkan; selama Google diproses, tombol Masuk nonaktif. Hitung mundur 429 tetap per cara masuk, karena batas percobaan backend dihitung per endpoint. Petunjuk jendela Google, skrip Google gagal dimuat, dan Client ID kosong tetap tampil di tempat tombol Google karena menyangkut tombol itu sendiri.
+- **Tombol resmi Google** (`renderButton`, `theme: outline`, `size: large`, `shape: rectangular`, `text: signin_with`, `locale: id`). Lebar wadah diukur dengan `ResizeObserver`, dibatasi 200–400 px, dan tombol dirender ulang (isi wadah dikosongkan dulu) setiap lebarnya berubah. Lebar 0 (wadah disembunyikan saat memuat atau memeriksa) diabaikan. `initialize` dipanggil sekali per skrip siap, terpisah dari `renderButton`. Teks tombol dibuat Google sesuai bahasa, jadi di Indonesia tampil "Login dengan Google", bukan "Masuk dengan Google"; mengganti teks atau menumpuk tombol sendiri di atasnya melanggar pedoman merek Google. Kata "Masuk" dipakai di judul, tautan, dan pesan di sekitarnya.
 - **Jendela Google ditutup atau diblokir**: GIS tidak memanggil callback apa pun untuk kedua kejadian itu. `usePantauJendelaGoogle()` mulai memantau saat tombol diklik (`click_listener`): kalau `document.hasFocus()` tidak pernah bernilai false dalam 3 detik, jendela dianggap tidak terbuka (petunjuk izinkan pop-up); kalau fokus hilang lalu kembali dan 2 detik kemudian belum ada kredensial, dianggap ditutup. Keduanya petunjuk (nada kuning), bukan error, dan hilang kalau kredensial tetap datang. Kalau Google kelak memakai dialog FedCM untuk tombol, petunjuk "belum terbuka" bisa muncul saat dialog masih tampil; teksnya dibuat aman untuk kasus itu.
-- **Status tombol**: selama memeriksa atau hitung mundur 429, tombol Google disembunyikan (iframe tetap terpasang) dan diganti `TombolMasuk` nonaktif ("Memeriksa..." / "Coba lagi dalam N detik"), supaya tidak bisa diklik dua kali. Callback GIS didaftarkan sekali, jadi handler terbaru dibaca lewat ref.
+- **Status tombol**: selama memeriksa atau hitung mundur 429 login Google, tombol Google disembunyikan (elemen tetap terpasang) dan diganti `TombolMasuk` nonaktif ("Memeriksa..." / "Coba lagi dalam N detik"), supaya tidak bisa diklik dua kali. Callback GIS didaftarkan sekali, jadi handler terbaru dibaca lewat ref.
 - **`useMasuk()`**: `pesanGagal` sekarang fungsi dari `ApiError`. Login password tetap satu pesan umum untuk 401/422; login Google memakai `errors.credential[0]` dari backend (token tidak sah, email tidak terdaftar, akun Google lain). 503 (Google belum dikonfigurasi di backend) ditampilkan di atas form. Penanganan `ACCOUNT_PENDING` dan `ACCOUNT_REJECTED` dihapus bersama kodenya.
 - **Guru**: tab Aktif/Nonaktif saja; tambah guru meminta "Email Google" dan menampilkan alamat halaman masuk guru (bisa disalin), bukan password awal; tidak ada tombol hapus. Profil guru menampilkan "Cara masuk" (akun Google) sebagai ganti form ganti password. Panel Perlu Tindakan Kepala Sekolah tinggal tiga kartu.
 - `ACCOUNT_INACTIVE` tetap satu-satunya kode sesi tidak berlaku selain 401 (`ambilSesi()`).
@@ -423,8 +425,8 @@ Andika hanya punya bobot 400 dan 700, jadi `font-semibold` tampil sebagai 700.
 | `/ppdb/daftar` | publik | Form pendaftaran 4 langkah tanpa login (`POST /public/pendaftaran`); setelah terkirim tampil kode pendaftaran + salin. PPDB tutup/kuota penuh → pesan tanpa form |
 | `/ppdb/status?kode=` | publik | Cek status dengan kode + tanggal lahir anak (`GET /public/pendaftaran/status`) |
 | `/login` | publik (sudah masuk → beranda role) | Login wali murid: NIS anak + password, tanpa pilihan role. Tujuan setelah masuk: ganti password awal, onboarding, lalu `?next=` atau beranda |
-| `/mudarris/login` | publik (sudah masuk → beranda role) | Guru dan Kepala Sekolah: tombol Google; `?cara=password` membuka form email + password Kepala Sekolah dan tautan lupa password. Hanya ditautkan kecil dari footer landing ("Masuk guru") dan dari halaman lupa/reset password |
-| `/mudarris/lupa-password`, `/mudarris/reset-password?token=&email=` | publik | Reset password Kepala Sekolah; setelah berhasil ke `/mudarris/login?cara=password` |
+| `/mudarris/login` | publik (sudah masuk → beranda role) | Guru dan Kepala Sekolah: satu form, email + password Kepala Sekolah dan tautan lupa password, pemisah "atau", tombol Google selebar form. Hanya ditautkan kecil dari footer landing ("Masuk guru") dan dari halaman lupa/reset password |
+| `/mudarris/lupa-password`, `/mudarris/reset-password?token=&email=` | publik | Reset password Kepala Sekolah; setelah berhasil ke `/mudarris/login` |
 | `/dashboard` (W); `/mudarris` (SA, G) | SA, G, W | Beranda per role (B5): SA panel Perlu Tindakan, statistik, keuangan bulan ini, grafik pemasukan; G kelas diampu, progres rapor, tagihan kelas; W kartu anak, kartu tagihan, rapor terbaru, kegiatan, pengumuman, agenda |
 | `/dashboard/ganti-password` | pengguna dengan `wajib_ganti_password` | Ganti password awal (tanggal lahir anak). Tanpa menu, dengan tombol Keluar; yang tidak wajib diarahkan ke beranda |
 | `/dashboard/onboarding` | W (profil belum lengkap) | Lengkapi nama, nomor HP, alamat, pekerjaan, NIK opsional. Tanpa menu; wali yang sudah lengkap diarahkan ke beranda |
@@ -485,6 +487,35 @@ Tempat deploy belum ditentukan. Syarat yang sudah pasti:
 6. **Masuk dengan Google**: `NEXT_PUBLIC_GOOGLE_CLIENT_ID` diisi sebelum `npm run build`, dan origin FE produksi (misalnya `https://tkta8.sch.id`) didaftarkan di Authorized JavaScript origins Client ID itu di Google Cloud Console. Backend memakai Client ID yang sama di `GOOGLE_CLIENT_ID`.
 
 ## Changelog
+
+### `/mudarris/login` satu form (branch `fe/login-staff-satu-form`)
+
+Diminta pemilik repo: tombol Google tidak rata dengan elemen lain, dan form password di balik toggle terasa seperti dua halaman login yang ditumpuk. Keputusan detail ada di "Keputusan login Google staff".
+
+File baru: `src/components/features/auth/masuk-staff.tsx` (kotak pesan bersama, form password, pemisah "atau", tombol Google).
+
+`.gitignore`: `docs/review/` ditambahkan. Screenshot uji mulai dari perubahan ini tidak disimpan di repo; screenshot fase sebelumnya yang sudah ter-commit di `docs/review/` tetap ada.
+
+File yang diubah:
+
+- `src/app/(auth)/mudarris/login/page.tsx`: kolom `max-w-100`, `MasukStaff`, tanpa tautan login wali.
+- `src/components/features/auth/form-login-staff.tsx`: menerima `masuk`, `sedangMemeriksa`, `sisaJeda`, `nonaktif` dari `MasukStaff`; tanpa kotak pesan sendiri; keterangan khusus Kepala Sekolah di bawah tombol Masuk.
+- `src/components/features/auth/tombol-masuk-google.tsx`: menerima status dari `MasukStaff`; lebar lewat `ResizeObserver`; `initialize` dan `renderButton` dipisah; wadah `inert` selama login password diproses; pesan Client ID kosong menyebut password "di atas".
+- `src/components/features/auth/tombol-masuk.tsx`: prop `nonaktif`.
+- `src/components/features/auth/form-reset-password.tsx`: tombol Masuk setelah reset ke `/mudarris/login` tanpa `?cara=password`.
+- `PROMPT_FE_TK.md`: B3 dan B4 untuk `/mudarris/login` satu form.
+
+File yang dihapus: `src/components/features/auth/pilihan-masuk-staff.tsx` (toggle dan state `?cara`).
+
+Pengujian (build produksi `next start` port 3001 ke backend lokal port 8000 branch `main`, Client ID dari `.env.local`, Firefox 155 headless lewat puppeteer-core di luar repo):
+
+- `lint`, `typecheck`, `build`, `check:slop` bersih.
+- Tombol Google asli (skrip GIS dari Google) di 1280 × 800: kartu judul, isian email, tombol Masuk, dan tombol Google semua x = 707, lebar 400 px. Di 390 × 844: semua x = 16, lebar 346 px (Firefox headless memakai scrollbar 12 px). Tanpa scroll horizontal, tanpa toggle dan tanpa tautan wali; urutan elemen sesuai. `?cara=password` tetap menampilkan halaman yang sama.
+- Kolom dipersempit lewat DOM: 300 px → tombol Google 300 px, 150 px → 200 px (batas bawah), kembali → 346 px; selalu satu tombol di wadah.
+- Isian kosong → dua pesan validasi. Password salah → "Email atau password salah. ..." di kotak pesan di atas form.
+- Skrip GIS diganti stub lewat intersepsi request (callback dengan token tidak sah, respons BFF ditahan 2,5 detik), desktop dan HP: selama Google diproses tombol Masuk nonaktif dan tombol Google diganti "Memeriksa..."; pesan backend "Login Google tidak valid atau sudah kedaluwarsa. ..." tampil di kotak pesan yang sama di atas form, satu kotak saja, lalu tombol Masuk aktif lagi.
+- Selama login password diproses, wadah tombol Google `inert`. Percobaan password keempat dengan email yang sama → 429, tombol "Coba lagi dalam 52 detik", tombol Google tetap bisa dipakai.
+- Belum diuji: login password Kepala Sekolah yang berhasil (password akun Kepala Sekolah lokal tidak dibaca dari `.env` backend), jendela Google asli sampai masuk, `setViewport` dari 1280 ke 390 di halaman yang sama (Firefox headless tidak menata ulang halaman; perubahan lebar diuji lewat DOM), Safari/Chromium, pembaca layar.
 
 ### Login Google staff dan guru tanpa pendaftaran mandiri (branch `fe/login-google-staff`)
 

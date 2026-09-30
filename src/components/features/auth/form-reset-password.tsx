@@ -58,8 +58,7 @@ export function FormResetPassword({ token, email }: { token: string; email: stri
         <KotakPesan nada="sukses" judul="Password berhasil diganti">
           Silakan masuk dengan password baru Anda.
         </KotakPesan>
-        {/* Reset password hanya untuk Kepala Sekolah, jadi form password langsung dibuka. */}
-        <Link href={`${RUTE_LOGIN.staff}?cara=password`} className={buttonVariants({ size: "lg" })}>
+        <Link href={RUTE_LOGIN.staff} className={buttonVariants({ size: "lg" })}>
           Masuk
         </Link>
       </div>
