@@ -81,7 +81,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/auth/login": {
+    "/auth/staff/login": {
         parameters: {
             query?: never;
             header?: never;
@@ -92,17 +92,20 @@ export interface paths {
         put?: never;
         /**
          * Login Kepala Sekolah dan guru dengan email dan password
-         * @description Akun yang belum atau tidak lagi aktif ditolak 403 dengan kode `ACCOUNT_PENDING`,
-         *     `ACCOUNT_REJECTED` (alasan penolakan ada di `message`), atau `ACCOUNT_INACTIVE`.
+         * @description Role dikirim di `user.role` (`super_admin` atau `guru`). Email yang tidak terdaftar, password salah, dan akun
+         *     wali murid mendapat balasan yang sama. Akun yang belum atau tidak lagi aktif ditolak 403 dengan kode
+         *     `ACCOUNT_PENDING`, `ACCOUNT_REJECTED` (alasan penolakan ada di `message`), atau `ACCOUNT_INACTIVE`.
+         *     Dibatasi 3 percobaan per menit per email dan IP, dan 10 percobaan per menit per IP; balasan 429 membawa
+         *     header `Retry-After`.
          */
-        post: operations["auth.login"];
+        post: operations["auth.loginStaff"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/auth/login-wali": {
+    "/auth/wali/login": {
         parameters: {
             query?: never;
             header?: never;
@@ -113,9 +116,12 @@ export interface paths {
         put?: never;
         /**
          * Login wali murid dengan NIS anak sebagai `username` dan password
-         * @description Password awal akun wali adalah tanggal lahir anak (DDMMYYYY). Selama `user.wajib_ganti_password` bernilai
-         *     `true`, token hanya bisa dipakai untuk `GET /auth/me`, `PUT /auth/password`, dan `POST /auth/logout`;
-         *     endpoint lain membalas 403 `PASSWORD_WAJIB_DIGANTI`. Dibatasi 5 percobaan per menit per NIS dan IP.
+         * @description Role dikirim di `user.role` (selalu `wali_murid`). NIS yang tidak terdaftar, password salah, dan akun selain
+         *     wali murid mendapat balasan yang sama. Password awal akun wali adalah tanggal lahir anak (DDMMYYYY). Selama
+         *     `user.wajib_ganti_password` bernilai `true`, token hanya bisa dipakai untuk `GET /auth/me`,
+         *     `PUT /auth/password`, dan `POST /auth/logout`; endpoint lain membalas 403 `PASSWORD_WAJIB_DIGANTI`.
+         *     Dibatasi 5 percobaan per menit per NIS dan IP, dan 20 percobaan per menit per IP; balasan 429 membawa
+         *     header `Retry-After`.
          */
         post: operations["auth.loginWali"];
         delete?: never;
@@ -2386,8 +2392,8 @@ export interface components {
             /** Format: date-time */
             created_at: string | null;
         };
-        /** LoginRequest */
-        LoginRequest: {
+        /** LoginStaffRequest */
+        LoginStaffRequest: {
             /** Format: email */
             email: string;
             password: string;
@@ -3407,6 +3413,8 @@ export interface operations {
             /** @description TOO_MANY_REQUESTS */
             429: {
                 headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -3497,6 +3505,8 @@ export interface operations {
             /** @description TOO_MANY_REQUESTS */
             429: {
                 headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -3605,6 +3615,8 @@ export interface operations {
             /** @description TOO_MANY_REQUESTS */
             429: {
                 headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -3691,6 +3703,8 @@ export interface operations {
             /** @description TOO_MANY_REQUESTS */
             429: {
                 headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -3781,6 +3795,8 @@ export interface operations {
             /** @description TOO_MANY_REQUESTS */
             429: {
                 headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -3851,6 +3867,8 @@ export interface operations {
             /** @description TOO_MANY_REQUESTS */
             429: {
                 headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -3865,7 +3883,7 @@ export interface operations {
             };
         };
     };
-    "auth.login": {
+    "auth.loginStaff": {
         parameters: {
             query?: never;
             header?: never;
@@ -3874,7 +3892,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["LoginRequest"];
+                "application/json": components["schemas"]["LoginStaffRequest"];
             };
         };
         responses: {
@@ -3930,6 +3948,8 @@ export interface operations {
             /** @description TOO_MANY_REQUESTS */
             429: {
                 headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -4009,6 +4029,8 @@ export interface operations {
             /** @description TOO_MANY_REQUESTS */
             429: {
                 headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -4079,6 +4101,8 @@ export interface operations {
             /** @description TOO_MANY_REQUESTS */
             429: {
                 headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -4149,6 +4173,8 @@ export interface operations {
             /** @description TOO_MANY_REQUESTS */
             429: {
                 headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -4315,6 +4341,8 @@ export interface operations {
             /** @description TOO_MANY_REQUESTS */
             429: {
                 headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -4385,6 +4413,8 @@ export interface operations {
             /** @description TOO_MANY_REQUESTS */
             429: {
                 headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -4475,6 +4505,8 @@ export interface operations {
             /** @description TOO_MANY_REQUESTS */
             429: {
                 headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -4583,6 +4615,8 @@ export interface operations {
             /** @description TOO_MANY_REQUESTS */
             429: {
                 headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -4684,6 +4718,8 @@ export interface operations {
             /** @description TOO_MANY_REQUESTS */
             429: {
                 headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -4782,6 +4818,8 @@ export interface operations {
             /** @description TOO_MANY_REQUESTS */
             429: {
                 headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -4872,6 +4910,8 @@ export interface operations {
             /** @description TOO_MANY_REQUESTS */
             429: {
                 headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -4959,6 +4999,8 @@ export interface operations {
             /** @description TOO_MANY_REQUESTS */
             429: {
                 headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -5067,6 +5109,8 @@ export interface operations {
             /** @description TOO_MANY_REQUESTS */
             429: {
                 headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -5153,6 +5197,8 @@ export interface operations {
             /** @description TOO_MANY_REQUESTS */
             429: {
                 headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -5260,6 +5306,8 @@ export interface operations {
             /** @description TOO_MANY_REQUESTS */
             429: {
                 headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -5372,6 +5420,8 @@ export interface operations {
             /** @description TOO_MANY_REQUESTS */
             429: {
                 headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -5459,6 +5509,8 @@ export interface operations {
             /** @description TOO_MANY_REQUESTS */
             429: {
                 headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -5557,6 +5609,8 @@ export interface operations {
             /** @description TOO_MANY_REQUESTS */
             429: {
                 headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -5648,6 +5702,8 @@ export interface operations {
             /** @description TOO_MANY_REQUESTS */
             429: {
                 headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -5735,6 +5791,8 @@ export interface operations {
             /** @description TOO_MANY_REQUESTS */
             429: {
                 headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -5843,6 +5901,8 @@ export interface operations {
             /** @description TOO_MANY_REQUESTS */
             429: {
                 headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -5944,6 +6004,8 @@ export interface operations {
             /** @description TOO_MANY_REQUESTS */
             429: {
                 headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -6051,6 +6113,8 @@ export interface operations {
             /** @description TOO_MANY_REQUESTS */
             429: {
                 headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -6158,6 +6222,8 @@ export interface operations {
             /** @description TOO_MANY_REQUESTS */
             429: {
                 headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -6287,6 +6353,8 @@ export interface operations {
             /** @description TOO_MANY_REQUESTS */
             429: {
                 headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -6377,6 +6445,8 @@ export interface operations {
             /** @description TOO_MANY_REQUESTS */
             429: {
                 headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -6485,6 +6555,8 @@ export interface operations {
             /** @description TOO_MANY_REQUESTS */
             429: {
                 headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -6586,6 +6658,8 @@ export interface operations {
             /** @description TOO_MANY_REQUESTS */
             429: {
                 headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -6684,6 +6758,8 @@ export interface operations {
             /** @description TOO_MANY_REQUESTS */
             429: {
                 headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -6774,6 +6850,8 @@ export interface operations {
             /** @description TOO_MANY_REQUESTS */
             429: {
                 headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -6861,6 +6939,8 @@ export interface operations {
             /** @description TOO_MANY_REQUESTS */
             429: {
                 headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -6969,6 +7049,8 @@ export interface operations {
             /** @description TOO_MANY_REQUESTS */
             429: {
                 headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -7055,6 +7137,8 @@ export interface operations {
             /** @description TOO_MANY_REQUESTS */
             429: {
                 headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -7162,6 +7246,8 @@ export interface operations {
             /** @description TOO_MANY_REQUESTS */
             429: {
                 headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -7274,6 +7360,8 @@ export interface operations {
             /** @description TOO_MANY_REQUESTS */
             429: {
                 headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -7361,6 +7449,8 @@ export interface operations {
             /** @description TOO_MANY_REQUESTS */
             429: {
                 headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -7459,6 +7549,8 @@ export interface operations {
             /** @description TOO_MANY_REQUESTS */
             429: {
                 headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -7549,6 +7641,8 @@ export interface operations {
             /** @description TOO_MANY_REQUESTS */
             429: {
                 headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -7636,6 +7730,8 @@ export interface operations {
             /** @description TOO_MANY_REQUESTS */
             429: {
                 headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -7744,6 +7840,8 @@ export interface operations {
             /** @description TOO_MANY_REQUESTS */
             429: {
                 headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -7845,6 +7943,8 @@ export interface operations {
             /** @description TOO_MANY_REQUESTS */
             429: {
                 headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -7944,6 +8044,8 @@ export interface operations {
             /** @description TOO_MANY_REQUESTS */
             429: {
                 headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -8035,6 +8137,8 @@ export interface operations {
             /** @description TOO_MANY_REQUESTS */
             429: {
                 headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -8143,6 +8247,8 @@ export interface operations {
             /** @description TOO_MANY_REQUESTS */
             429: {
                 headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -8230,6 +8336,8 @@ export interface operations {
             /** @description TOO_MANY_REQUESTS */
             429: {
                 headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -8351,6 +8459,8 @@ export interface operations {
             /** @description TOO_MANY_REQUESTS */
             429: {
                 headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -8437,6 +8547,8 @@ export interface operations {
             /** @description TOO_MANY_REQUESTS */
             429: {
                 headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -8550,6 +8662,8 @@ export interface operations {
             /** @description TOO_MANY_REQUESTS */
             429: {
                 headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -8648,6 +8762,8 @@ export interface operations {
             /** @description TOO_MANY_REQUESTS */
             429: {
                 headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -8800,6 +8916,8 @@ export interface operations {
             /** @description TOO_MANY_REQUESTS */
             429: {
                 headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -8890,6 +9008,8 @@ export interface operations {
             /** @description TOO_MANY_REQUESTS */
             429: {
                 headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -8977,6 +9097,8 @@ export interface operations {
             /** @description TOO_MANY_REQUESTS */
             429: {
                 headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -9085,6 +9207,8 @@ export interface operations {
             /** @description TOO_MANY_REQUESTS */
             429: {
                 headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -9186,6 +9310,8 @@ export interface operations {
             /** @description TOO_MANY_REQUESTS */
             429: {
                 headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -9283,6 +9409,8 @@ export interface operations {
             /** @description TOO_MANY_REQUESTS */
             429: {
                 headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -9370,6 +9498,8 @@ export interface operations {
             /** @description TOO_MANY_REQUESTS */
             429: {
                 headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -9478,6 +9608,8 @@ export interface operations {
             /** @description TOO_MANY_REQUESTS */
             429: {
                 headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -9574,6 +9706,8 @@ export interface operations {
             /** @description TOO_MANY_REQUESTS */
             429: {
                 headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -9646,6 +9780,8 @@ export interface operations {
             /** @description TOO_MANY_REQUESTS */
             429: {
                 headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -9717,6 +9853,8 @@ export interface operations {
             /** @description TOO_MANY_REQUESTS */
             429: {
                 headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -9804,6 +9942,8 @@ export interface operations {
             /** @description TOO_MANY_REQUESTS */
             429: {
                 headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -9905,6 +10045,8 @@ export interface operations {
             /** @description TOO_MANY_REQUESTS */
             429: {
                 headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -10012,6 +10154,8 @@ export interface operations {
             /** @description TOO_MANY_REQUESTS */
             429: {
                 headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -10119,6 +10263,8 @@ export interface operations {
             /** @description TOO_MANY_REQUESTS */
             429: {
                 headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -10219,6 +10365,8 @@ export interface operations {
             /** @description TOO_MANY_REQUESTS */
             429: {
                 headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -10306,6 +10454,8 @@ export interface operations {
             /** @description TOO_MANY_REQUESTS */
             429: {
                 headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -10388,6 +10538,8 @@ export interface operations {
             /** @description TOO_MANY_REQUESTS */
             429: {
                 headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -10485,6 +10637,8 @@ export interface operations {
             /** @description TOO_MANY_REQUESTS */
             429: {
                 headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -10586,6 +10740,8 @@ export interface operations {
             /** @description TOO_MANY_REQUESTS */
             429: {
                 headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -10693,6 +10849,8 @@ export interface operations {
             /** @description TOO_MANY_REQUESTS */
             429: {
                 headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -10800,6 +10958,8 @@ export interface operations {
             /** @description TOO_MANY_REQUESTS */
             429: {
                 headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -10900,6 +11060,8 @@ export interface operations {
             /** @description TOO_MANY_REQUESTS */
             429: {
                 headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -10990,6 +11152,8 @@ export interface operations {
             /** @description TOO_MANY_REQUESTS */
             429: {
                 headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -11077,6 +11241,8 @@ export interface operations {
             /** @description TOO_MANY_REQUESTS */
             429: {
                 headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -11137,6 +11303,8 @@ export interface operations {
             /** @description TOO_MANY_REQUESTS */
             429: {
                 headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -11212,6 +11380,8 @@ export interface operations {
             /** @description TOO_MANY_REQUESTS */
             429: {
                 headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -11319,6 +11489,8 @@ export interface operations {
             /** @description TOO_MANY_REQUESTS */
             429: {
                 headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -11421,6 +11593,8 @@ export interface operations {
             /** @description TOO_MANY_REQUESTS */
             429: {
                 headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -11530,6 +11704,8 @@ export interface operations {
             /** @description TOO_MANY_REQUESTS */
             429: {
                 headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -11621,6 +11797,8 @@ export interface operations {
             /** @description TOO_MANY_REQUESTS */
             429: {
                 headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -11714,6 +11892,8 @@ export interface operations {
             /** @description TOO_MANY_REQUESTS */
             429: {
                 headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -11808,6 +11988,8 @@ export interface operations {
             /** @description TOO_MANY_REQUESTS */
             429: {
                 headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -11906,6 +12088,8 @@ export interface operations {
             /** @description TOO_MANY_REQUESTS */
             429: {
                 headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -11997,6 +12181,8 @@ export interface operations {
             /** @description TOO_MANY_REQUESTS */
             429: {
                 headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -12084,6 +12270,8 @@ export interface operations {
             /** @description TOO_MANY_REQUESTS */
             429: {
                 headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -12192,6 +12380,8 @@ export interface operations {
             /** @description TOO_MANY_REQUESTS */
             429: {
                 headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -12279,6 +12469,8 @@ export interface operations {
             /** @description TOO_MANY_REQUESTS */
             429: {
                 headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -12370,6 +12562,8 @@ export interface operations {
             /** @description TOO_MANY_REQUESTS */
             429: {
                 headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -12461,6 +12655,8 @@ export interface operations {
             /** @description TOO_MANY_REQUESTS */
             429: {
                 headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -12552,6 +12748,8 @@ export interface operations {
             /** @description TOO_MANY_REQUESTS */
             429: {
                 headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -12627,6 +12825,8 @@ export interface operations {
             /** @description TOO_MANY_REQUESTS */
             429: {
                 headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -12692,6 +12892,8 @@ export interface operations {
             /** @description TOO_MANY_REQUESTS */
             429: {
                 headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -12749,6 +12951,8 @@ export interface operations {
             /** @description TOO_MANY_REQUESTS */
             429: {
                 headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -12808,6 +13012,8 @@ export interface operations {
             /** @description TOO_MANY_REQUESTS */
             429: {
                 headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -12873,6 +13079,8 @@ export interface operations {
             /** @description TOO_MANY_REQUESTS */
             429: {
                 headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -12930,6 +13138,8 @@ export interface operations {
             /** @description TOO_MANY_REQUESTS */
             429: {
                 headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -12970,6 +13180,8 @@ export interface operations {
             /** @description TOO_MANY_REQUESTS */
             429: {
                 headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -13021,6 +13233,8 @@ export interface operations {
             /** @description TOO_MANY_REQUESTS */
             429: {
                 headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -13122,6 +13336,8 @@ export interface operations {
             /** @description TOO_MANY_REQUESTS */
             429: {
                 headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -13230,6 +13446,8 @@ export interface operations {
             /** @description TOO_MANY_REQUESTS */
             429: {
                 headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -13337,6 +13555,8 @@ export interface operations {
             /** @description TOO_MANY_REQUESTS */
             429: {
                 headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -13439,6 +13659,8 @@ export interface operations {
             /** @description TOO_MANY_REQUESTS */
             429: {
                 headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -13529,6 +13751,8 @@ export interface operations {
             /** @description TOO_MANY_REQUESTS */
             429: {
                 headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -13616,6 +13840,8 @@ export interface operations {
             /** @description TOO_MANY_REQUESTS */
             429: {
                 headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -13724,6 +13950,8 @@ export interface operations {
             /** @description TOO_MANY_REQUESTS */
             429: {
                 headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -13833,6 +14061,8 @@ export interface operations {
             /** @description TOO_MANY_REQUESTS */
             429: {
                 headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -13935,6 +14165,8 @@ export interface operations {
             /** @description TOO_MANY_REQUESTS */
             429: {
                 headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -14017,6 +14249,8 @@ export interface operations {
             /** @description TOO_MANY_REQUESTS */
             429: {
                 headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -14078,6 +14312,8 @@ export interface operations {
             /** @description TOO_MANY_REQUESTS */
             429: {
                 headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -14139,6 +14375,8 @@ export interface operations {
             /** @description TOO_MANY_REQUESTS */
             429: {
                 headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -14200,6 +14438,8 @@ export interface operations {
             /** @description TOO_MANY_REQUESTS */
             429: {
                 headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -14293,6 +14533,8 @@ export interface operations {
             /** @description TOO_MANY_REQUESTS */
             429: {
                 headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -14400,6 +14642,8 @@ export interface operations {
             /** @description TOO_MANY_REQUESTS */
             429: {
                 headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -14501,6 +14745,8 @@ export interface operations {
             /** @description TOO_MANY_REQUESTS */
             429: {
                 headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -14603,6 +14849,8 @@ export interface operations {
             /** @description TOO_MANY_REQUESTS */
             429: {
                 headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -14711,6 +14959,8 @@ export interface operations {
             /** @description TOO_MANY_REQUESTS */
             429: {
                 headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -14798,6 +15048,8 @@ export interface operations {
             /** @description TOO_MANY_REQUESTS */
             429: {
                 headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -14905,6 +15157,8 @@ export interface operations {
             /** @description TOO_MANY_REQUESTS */
             429: {
                 headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -15002,6 +15256,8 @@ export interface operations {
             /** @description TOO_MANY_REQUESTS */
             429: {
                 headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -15092,6 +15348,8 @@ export interface operations {
             /** @description TOO_MANY_REQUESTS */
             429: {
                 headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -15200,6 +15458,8 @@ export interface operations {
             /** @description TOO_MANY_REQUESTS */
             429: {
                 headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -15301,6 +15561,8 @@ export interface operations {
             /** @description TOO_MANY_REQUESTS */
             429: {
                 headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -15387,6 +15649,8 @@ export interface operations {
             /** @description TOO_MANY_REQUESTS */
             429: {
                 headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -15484,6 +15748,8 @@ export interface operations {
             /** @description TOO_MANY_REQUESTS */
             429: {
                 headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -15571,6 +15837,8 @@ export interface operations {
             /** @description TOO_MANY_REQUESTS */
             429: {
                 headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -15678,6 +15946,8 @@ export interface operations {
             /** @description TOO_MANY_REQUESTS */
             429: {
                 headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -15785,6 +16055,8 @@ export interface operations {
             /** @description TOO_MANY_REQUESTS */
             429: {
                 headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -15886,6 +16158,8 @@ export interface operations {
             /** @description TOO_MANY_REQUESTS */
             429: {
                 headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
                     [name: string]: unknown;
                 };
                 content: {

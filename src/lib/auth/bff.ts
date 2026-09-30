@@ -10,16 +10,26 @@ import {
   responsOriginDitolak,
 } from "@/lib/api/be";
 import { pasangCookieSesi } from "@/lib/auth/sesi-cookie";
+import type { paths } from "@/types/api";
 import type { ResponsError, Role } from "@/types/domain";
 
-const ROLE: readonly Role[] = ["super_admin", "guru", "wali_murid"];
+type AturanLogin = {
+  bePath: keyof paths;
+  field: readonly string[];
+  role: readonly Role[];
+};
+
+// Role dicek ulang supaya cookie sesi tidak pernah dipasang untuk role yang
+// bukan milik halaman login itu, walaupun backend sudah menolaknya.
+const LOGIN = {
+  staff: { bePath: "/auth/staff/login", field: ["email", "password"], role: ["super_admin", "guru"] },
+  wali: { bePath: "/auth/wali/login", field: ["username", "password"], role: ["wali_murid"] },
+} as const satisfies Record<string, AturanLogin>;
+
+export type JenisLogin = keyof typeof LOGIN;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
-}
-
-function isRole(value: unknown): value is Role {
-  return typeof value === "string" && ROLE.some((role) => role === value);
 }
 
 function responsBodyTidakValid(): NextResponse<ResponsError> {
@@ -44,18 +54,16 @@ async function bacaBodyJson(request: NextRequest): Promise<Record<string, unknow
  * Meneruskan login ke backend, lalu menyimpan token di cookie httpOnly.
  * Token tidak pernah dikirim ke browser; respons ke browser hanya berisi user.
  */
-export async function masukLewatBackend(
-  request: NextRequest,
-  bePath: "/auth/login" | "/auth/login-wali",
-  fieldDiizinkan: readonly string[],
-): Promise<NextResponse> {
+export async function masukLewatBackend(request: NextRequest, jenis: JenisLogin): Promise<NextResponse> {
   if (!dariOriginSendiri(request.headers)) return responsOriginDitolak();
+
+  const aturan: AturanLogin = LOGIN[jenis];
 
   const bodyMasuk = await bacaBodyJson(request);
   if (!bodyMasuk) return responsBodyTidakValid();
 
   const bodyKeluar: Record<string, unknown> = { perangkat: "web" };
-  for (const field of fieldDiizinkan) {
+  for (const field of aturan.field) {
     if (field in bodyMasuk) bodyKeluar[field] = bodyMasuk[field];
   }
 
@@ -64,7 +72,7 @@ export async function masukLewatBackend(
 
   let upstream: Response;
   try {
-    upstream = await fetch(`${beApiUrl()}${bePath}`, {
+    upstream = await fetch(`${beApiUrl()}${aturan.bePath}`, {
       method: "POST",
       headers,
       body: JSON.stringify(bodyKeluar),
@@ -90,8 +98,10 @@ export async function masukLewatBackend(
   }
 
   const data = isRecord(body) ? body.data : null;
-  if (!isRecord(data) || typeof data.token !== "string" || !isRecord(data.user) || !isRole(data.user.role)) {
-    return responsBackendTidakTerjangkau(new Error(`Respons ${bePath} tidak sesuai kontrak`));
+  const user = isRecord(data) ? data.user : null;
+  const role = isRecord(user) ? aturan.role.find((item) => item === user.role) : undefined;
+  if (!isRecord(data) || typeof data.token !== "string" || !role) {
+    return responsBackendTidakTerjangkau(new Error(`Respons ${aturan.bePath} tidak sesuai kontrak`));
   }
 
   const token = data.token;
@@ -102,6 +112,6 @@ export async function masukLewatBackend(
     data: dataTanpaToken,
     meta: null,
   });
-  pasangCookieSesi(response, token, data.user.role);
+  pasangCookieSesi(response, token, role);
   return response;
 }

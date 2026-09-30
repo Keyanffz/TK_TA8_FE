@@ -51,7 +51,7 @@ export function FormLupaPassword() {
         <Button type="submit" size="lg" disabled={mutation.isPending}>
           {mutation.isPending ? "Mengirim..." : "Kirim Tautan Reset"}
         </Button>
-        <Link href={RUTE_LOGIN.guru} className="text-sm font-semibold text-primary-strong hover:underline">
+        <Link href={RUTE_LOGIN.staff} className="text-sm font-semibold text-primary-strong hover:underline">
           Kembali ke halaman masuk
         </Link>
       </FieldGroup>

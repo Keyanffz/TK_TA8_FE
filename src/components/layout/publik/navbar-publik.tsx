@@ -32,7 +32,7 @@ export function NavbarPublik({ namaSekolah, logoUrl }: NavbarPublikProps) {
         </nav>
 
         <div className="ml-auto flex items-center gap-2 md:ml-2">
-          <Link href={RUTE_LOGIN.pilihan} className={buttonVariants({ size: "sm", variant: "highlight" })}>
+          <Link href={RUTE_LOGIN.wali} className={buttonVariants({ size: "sm", variant: "highlight" })}>
             Masuk
           </Link>
           <MenuPublikHp namaSekolah={namaSekolah} />

@@ -58,7 +58,7 @@ export function FormResetPassword({ token, email }: { token: string; email: stri
         <KotakPesan nada="sukses" judul="Password berhasil diganti">
           Silakan masuk dengan password baru Anda.
         </KotakPesan>
-        <Link href={RUTE_LOGIN.guru} className={buttonVariants({ size: "lg" })}>
+        <Link href={RUTE_LOGIN.staff} className={buttonVariants({ size: "lg" })}>
           Masuk
         </Link>
       </div>
