@@ -492,7 +492,9 @@ Tempat deploy belum ditentukan. Syarat yang sudah pasti:
 
 Diminta pemilik repo: tombol Google tidak rata dengan elemen lain, dan form password di balik toggle terasa seperti dua halaman login yang ditumpuk. Keputusan detail ada di "Keputusan login Google staff".
 
-File baru: `src/components/features/auth/masuk-staff.tsx` (kotak pesan bersama, form password, pemisah "atau", tombol Google), `docs/review/login-staff-satu-form/*.png` (screenshot uji).
+File baru: `src/components/features/auth/masuk-staff.tsx` (kotak pesan bersama, form password, pemisah "atau", tombol Google).
+
+`.gitignore`: `docs/review/` ditambahkan. Screenshot uji mulai dari perubahan ini tidak disimpan di repo; screenshot fase sebelumnya yang sudah ter-commit di `docs/review/` tetap ada.
 
 File yang diubah:
 
