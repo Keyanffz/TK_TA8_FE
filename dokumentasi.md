@@ -16,6 +16,7 @@ Website publik dan dashboard sistem informasi TK Tarbiyathul Athfal 8 (TK Muslim
 | 6. Akademik & komunikasi | Selesai, disetujui (lihat "Review Fase 6–7") |
 | 7. PPDB, CMS, pengaturan | Selesai, disetujui (lihat "Review Fase 6–7") |
 | 8. Integrasi & polish | Selesai, menunggu review (lihat "Review Fase 8") |
+| Login terpisah (endpoint auth baru backend) | Selesai, menunggu review (lihat "Keputusan login terpisah") |
 
 Mode mock tidak dipakai: `api.json` final dari backend sudah tersedia sejak Fase 1, jadi semua request memakai backend asli dan tipe hasil generate. Tidak ada endpoint mock.
 
@@ -80,10 +81,10 @@ Perintah lain:
 
 ### Autentikasi (BFF)
 
-- Browser tidak pernah memegang token. `POST /api/auth/login` (email) dan `POST /api/auth/login-wali` (NIS anak) meneruskan body ke backend (ditambah `perangkat: "web"`), lalu menyimpan token di cookie `tk_token` (httpOnly, `secure` di produksi, sameSite lax, 30 hari) dan `tk_role` (bukan httpOnly, hanya nama role). Respons ke browser berisi `user` tanpa token.
+- Browser tidak pernah memegang token. `POST /api/auth/staff/login` (email, ke backend `/auth/staff/login`) dan `POST /api/auth/wali/login` (NIS anak, ke `/auth/wali/login`) meneruskan body ke backend (ditambah `perangkat: "web"`), lalu menyimpan token di cookie `tk_token` (httpOnly, `secure` di produksi, sameSite lax, 30 hari) dan `tk_role` (bukan httpOnly, hanya nama role). Cookie hanya dipasang kalau `user.role` milik endpoint itu (`super_admin`/`guru` untuk staff, `wali_murid` untuk wali). Respons ke browser berisi `user` tanpa token; header `Retry-After` dari 429 ikut diteruskan.
 - Tujuan setelah masuk (`tujuanSetelahMasuk()`): `wajib_ganti_password` → `/dashboard/ganti-password`; wali dengan `profil_lengkap = false` → `/dashboard/onboarding`; selain itu `?next=`.
-- `POST /api/auth/logout` memanggil `/auth/logout` backend lalu menghapus `tk_token`, `tk_role`, `tk_anak`. Cookie tetap dihapus walau backend tidak bisa dihubungi.
-- `GET /api/auth/sesi-habis?next=` menghapus cookie lalu redirect ke `/login?next=`. Dipakai layout dashboard saat `/auth/me` menolak token, karena Server Component tidak bisa menghapus cookie.
+- `POST /api/auth/logout` memanggil `/auth/logout` backend lalu menghapus `tk_token`, `tk_role`, `tk_anak`. Cookie tetap dihapus walau backend tidak bisa dihubungi. Browser lalu dimuat ulang penuh ke halaman login sesuai role (`ruteLogin()`).
+- `GET /api/auth/sesi-habis?next=` menghapus cookie lalu redirect ke halaman login sesuai `tk_role` (`/staff/login` untuk guru dan Kepala Sekolah, selain itu `/login`) dengan `?next=`. Dipakai layout dashboard saat `/auth/me` menolak token, karena Server Component tidak bisa menghapus cookie.
 - `/api/proxy/[...path]` meneruskan method, query, header `Content-Type`/`Content-Length`, dan body (stream, termasuk multipart dan PUT multipart) ke `{BE_API_URL}/...` dengan `Authorization: Bearer` dari cookie. Respons diteruskan sebagai stream beserta `Content-Type`, `Content-Disposition`, `Cache-Control`, `Retry-After`, dan header rate limit. Backend membalas 401 → cookie sesi dihapus.
 - Request yang mengubah data (selain GET/HEAD) ke `/api/proxy` dan `/api/auth/*` ditolak 403 kalau header `Origin` bukan host FE sendiri.
 - Segmen path `.` dan `..` di proxy ditolak supaya tidak bisa keluar dari prefix `/api/v1`.
@@ -99,7 +100,7 @@ Request dari Server Component ke endpoint publik (landing, ISR) tidak membawa `X
 
 ### Route guard
 
-- `src/proxy.ts` (matcher `/dashboard/:path*`, `/login`, `/login/:path*`): tanpa cookie `tk_token` ke `/dashboard/*` → `/login?next=...`; sudah punya cookie buka `/login` atau `/login/*` → `/dashboard`. `/api` sengaja tidak dicocokkan karena proxy Next.js membatasi body 10 MB (`proxyClientMaxBodySize`), sedangkan unggahan kegiatan bisa lebih besar.
+- `src/proxy.ts` (matcher `/dashboard/:path*`, `/login`, `/staff/login`): tanpa cookie `tk_token` ke `/dashboard/*` → `/login?next=...` (role tidak diketahui tanpa cookie); sudah punya cookie buka `/login` atau `/staff/login` → `/dashboard` (beranda yang sama untuk semua role, isinya per role). Kedua halaman login `force-dynamic` supaya tidak diambil dari cache browser tanpa melewati proxy. `/api` sengaja tidak dicocokkan karena proxy Next.js membatasi body 10 MB (`proxyClientMaxBodySize`), sedangkan unggahan kegiatan bisa lebih besar.
 - `src/app/dashboard/layout.tsx` memanggil `ambilSesi()` (`GET /auth/me`, di-cache per request). Token ditolak (401 atau `ACCOUNT_*`) → `/api/auth/sesi-habis`. Urutan wajib wali: `wajib_ganti_password` → semua path selain `/dashboard/ganti-password` diarahkan ke sana; lalu `profil_lengkap = false` → `/dashboard/onboarding`. Kedua halaman itu tampil tanpa menu (`KerangkaTanpaMenu`).
 - Layout tidak dirender ulang saat navigasi di browser, jadi `Providers` juga menangani `PASSWORD_WAJIB_DIGANTI` dari query/mutation mana pun dengan mengarahkan ke `/dashboard/ganti-password`.
 - Otorisasi sebenarnya tetap di backend.
@@ -108,7 +109,7 @@ Request dari Server Component ke endpoint publik (landing, ISR) tidak membawa `X
 
 - Browser: `api` (`src/lib/api/client.ts`), openapi-fetch dengan `paths` dari `api.d.ts` dan `baseUrl: "/api/proxy"`. `ambilData()` mengubah hasilnya menjadi data atau melempar `ApiError`.
 - Server Component: `apiServer({ token, revalidate, tags })` (`src/lib/api/server.ts`). Opsi cache Next.js dipasang lewat `fetch` kustom, karena openapi-fetch membungkus request dalam objek `Request` dan opsi `next` di dalamnya tidak terbaca fetch Next.js.
-- React Query: `staleTime` 60 detik (jauh di bawah masa berlaku signed URL 30 menit), tidak mencoba ulang error 4xx. Error 401 di query atau mutation mana pun mengosongkan cache lalu mengarahkan ke `/login?next=`.
+- React Query: `staleTime` 60 detik (jauh di bawah masa berlaku signed URL 30 menit), tidak mencoba ulang error 4xx. Error 401 di query atau mutation mana pun mengosongkan cache lalu mengarahkan ke halaman login sesuai role sesi (dibaca dari `['me']` sebelum cache dikosongkan) dengan `?next=`.
 - Sesi di React Query dengan key `['me']`, diisi dari server lewat `HydrationBoundary` di layout dashboard. `useSession()` → `{ user, role, isSuperAdmin, isGuru, isWali, bisaKelolaKeuangan }`.
 - Error terpusat di `src/lib/api/errors.ts`: `ApiError { status, code, message, errors }`, `pesanError()` untuk toast, `terapkanErrorValidasi()` memasang `errors` VALIDATION_ERROR ke field react-hook-form.
 
@@ -126,7 +127,7 @@ Request dari Server Component ke endpoint publik (landing, ISR) tidak membawa `X
 - Peta hanya ditampilkan untuk URL `https` dengan host `www.google.com` atau `maps.google.com`.
 - HTML dari CMS/pengumuman dirender apa adanya (`KontenHtml`) karena backend sudah menyanitasinya dengan Purify; gayanya di kelas `.konten-html` (`globals.css`).
 - Skeleton `loading.tsx` hanya dipasang di route group `pengumuman/(daftar)` dan `galeri/(daftar)`. Kalau dipasang di level `(public)`, halaman detail sudah mengirim status 200 sebelum `notFound()` dipanggil, sehingga slug yang tidak ada tidak membalas 404.
-- Login dipisah (revisi review Fase 2): `/login` halaman pilihan, `/login/wali` (NIS anak + password, sejak penyesuaian sebelum Fase 4; sebelumnya Google), `/login/guru` (email + password). `?next=` dibawa dari halaman pilihan. Semua tautan memakai `RUTE_LOGIN`/`urlLogin()` (`src/lib/auth/rute-login.ts`). Kode `ACCOUNT_PENDING` → `/menunggu-persetujuan`; `ACCOUNT_REJECTED`, `ACCOUNT_INACTIVE`, dan `TOO_MANY_REQUESTS` ditampilkan di atas form dengan pesan dari backend (termasuk alasan penolakan dan lama tunggu); `VALIDATION_ERROR` dipasang ke field.
+- Login dipisah (revisi review Fase 2; diganti lagi, lihat "Keputusan login terpisah"): `/login` halaman pilihan, `/login/wali` (NIS anak + password, sejak penyesuaian sebelum Fase 4; sebelumnya Google), `/login/guru` (email + password). `?next=` dibawa dari halaman pilihan. Semua tautan memakai `RUTE_LOGIN`/`urlLogin()` (`src/lib/auth/rute-login.ts`). Kode `ACCOUNT_PENDING` → `/menunggu-persetujuan`; `ACCOUNT_REJECTED`, `ACCOUNT_INACTIVE`, dan `TOO_MANY_REQUESTS` ditampilkan di atas form dengan pesan dari backend (termasuk alasan penolakan dan lama tunggu); `VALIDATION_ERROR` dipasang ke field.
 - Validasi form di browser mengikuti aturan backend (`src/lib/auth/skema.ts`): password minimal 8 karakter berisi huruf dan angka, nomor HP diawali 08 dengan 10–15 angka. Backend tetap pemeriksa akhir.
 - Pendaftaran guru, lupa password, dan reset password memanggil backend lewat `/api/proxy` (endpoint publik tanpa token).
 
@@ -262,6 +263,20 @@ Semua keputusan Fase 6 dan 7 disetujui pemilik repo (setelah penutupan Fase 8). 
 - **Fokus di `ZonaUnggah`**: input file dinonaktifkan selama kompres dan dilepas saat kuota penuh, tombol hapus hilang bersama filenya, sehingga fokus jatuh ke `body`. Setelah file masuk dan kuota penuh, fokus pindah ke tombol "Hapus <nama file>" file terakhir; setelah menghapus atau kalau kuota belum penuh, fokus kembali ke input file. Berlaku untuk semua unggahan (bukti transfer, PPDB, foto murid/guru, kegiatan, galeri, CMS).
 - **Ubah murid dan kegiatan** mengikuti tipe baru dari backend: body tambah dan ubah murid dibentuk dari satu fungsi `keBody()` (`form-murid.tsx`); ubah kegiatan mengirim JSON.
 
+## Keputusan login terpisah
+
+Backend mengganti endpoint login (path lama `/auth/login` dan `/auth/login-wali` sekarang 404): `POST /auth/staff/login` (email, rate limit 3/menit per email+IP) dan `POST /auth/wali/login` (NIS anak, 5/menit per NIS+IP). Bagian A `PROMPT_FE_TK.md` disalin ulang dari `PROMPT_BE_TK.md` (hanya A7 Auth yang berubah) dan B2–B4 disesuaikan.
+
+- **Dua halaman, tanpa pilihan role**: `/login` untuk wali murid, `/staff/login` untuk guru dan Kepala Sekolah. Halaman pilihan, `/login/wali`, `/login/guru`, `KembaliKePilihan`, dan `RUTE_LOGIN.pilihan` dihapus. Tidak ada redirect dari URL lama karena aplikasi belum di-deploy.
+- **Tautan ke `/staff/login`**: tidak ada di navbar dan di `/login`; hanya teks kecil "Masuk guru" di baris hak cipta footer landing, ditambah tautan dari halaman khusus guru (daftar guru, lupa/reset password, menunggu persetujuan). Tombol "Masuk" navbar dan footer ke `/login`.
+- **Tujuan setelah masuk** tetap lewat `tujuanSetelahMasuk()`: `wajib_ganti_password` → `/dashboard/ganti-password`, wali dengan profil belum lengkap → onboarding, selain itu `?next=` atau `/dashboard`. Beranda semua role di `/dashboard` (A1), isinya dipilih dari `user.role`.
+- **Pesan gagal**: 401/422 → satu pesan di atas form yang tidak menyebut isian mana yang salah ("NIS anak atau password salah. ..." / "Email atau password salah. ..."), bukan pesan backend per field. `ACCOUNT_PENDING` → `/menunggu-persetujuan` (halaman A6 yang sudah ada); `ACCOUNT_REJECTED` dan `ACCOUNT_INACTIVE` → pesan backend di atas form; error lain → toast.
+- **429**: `ApiError.tungguDetik` dibaca dari header `Retry-After` (detik). Tombol berisi "Coba lagi dalam N detik", nonaktif sampai hitungan habis, dengan warna `primary-soft`/`primary-strong` (5,67:1) karena tombol nonaktif bawaan memudar 50%. Kotak pesan (`role="alert"`) berisi teks tetap tanpa angka supaya pembaca layar tidak membacakannya tiap detik. Sisa detik dihitung dari jam, bukan dikurangi per tik, karena interval di tab latar belakang diperlambat. Kalau header tidak ada, pesan backend ditampilkan dan tombol tetap aktif. Logika bersama kedua form ada di `useMasuk()` (`src/components/features/auth/use-masuk.ts`).
+- **Route guard**: halaman login untuk pengguna yang sudah masuk → `/dashboard` (proxy). Wali yang membuka halaman khusus guru/Kepala Sekolah dan sebaliknya diarahkan ke `/dashboard?akses=ditolak` oleh `wajibAkses()` di tiap halaman (sudah ada sejak Fase 3, tidak diduplikasi di proxy). Otorisasi tetap di backend.
+- **Halaman login sesuai role** saat sesi berakhir: `sesi-habis` membaca `tk_role`, handler 401 di `Providers` membaca role dari cache `['me']`, logout memakai role dari `useSession()`. Tanpa cookie sama sekali (belum masuk atau sudah keluar), `/dashboard/*` diarahkan ke `/login`.
+- **Keluar dengan muat ulang penuh** (`window.location.replace`): sebelumnya `queryClient.clear()` membuat query yang masih terpasang (notifikasi, beranda) mengambil ulang data, gagal 401, lalu handler 401 mengarahkan ke login wali karena role sudah hilang dari cache. Ditemukan saat uji: guru yang keluar mendarat di `/login?next=/dashboard`. Akibatnya toast error logout tidak lagi tampil; cookie tetap terhapus dan kegagalan backend dicatat di log server.
+- **Halaman login `force-dynamic`**: setelah tidak lagi membaca `searchParams`, `/login` menjadi statis dan Firefox mengambilnya dari cache sehingga wali yang sudah masuk tetap melihat form login (ditemukan saat uji).
+
 ## Temuan kontrak Fase 6
 
 - Sudah diperbaiki backend (dipakai di Fase 8): `PUT /kegiatan/{id}` sekarang `PerbaruiKegiatanRequest` (JSON, tanpa `kelas_id` dan `foto`), dan `PUT /murid/{id}` memakai `PerbaruiMuridRequest` dengan `status` wajib. Pembuangan `kelas_id` lewat `bodySerializer` sudah dihapus.
@@ -377,9 +392,8 @@ Andika hanya punya bobot 400 dan 700, jadi `font-semibold` tampil sebagai 700.
 | `/ppdb` | publik | Status buka/tutup, jadwal, kuota, sisa kuota, info HTML; tombol ke `/ppdb/daftar` dan tautan cek status |
 | `/ppdb/daftar` | publik | Form pendaftaran 4 langkah tanpa login (`POST /public/pendaftaran`); setelah terkirim tampil kode pendaftaran + salin. PPDB tutup/kuota penuh → pesan tanpa form |
 | `/ppdb/status?kode=` | publik | Cek status dengan kode + tanggal lahir anak (`GET /public/pendaftaran/status`) |
-| `/login` | publik (sudah masuk → `/dashboard`) | Pilihan "Orang Tua / Wali Murid" atau "Guru & Kepala Sekolah"; `?next=` diteruskan |
-| `/login/wali` | publik (sudah masuk → `/dashboard`) | NIS anak + password wali murid |
-| `/login/guru` | publik (sudah masuk → `/dashboard`) | Email + password, tautan daftar guru dan lupa password |
+| `/login` | publik (sudah masuk → `/dashboard`) | Login wali murid: NIS anak + password, tanpa pilihan role. Tujuan setelah masuk: ganti password awal, onboarding, lalu `?next=` atau beranda |
+| `/staff/login` | publik (sudah masuk → `/dashboard`) | Login guru dan Kepala Sekolah: email + password, tautan lupa password dan daftar guru. Hanya ditautkan kecil dari footer landing ("Masuk guru") dan dari halaman guru lain (daftar guru, lupa/reset password, menunggu persetujuan) |
 | `/daftar-guru`, `/lupa-password`, `/reset-password?token=&email=`, `/menunggu-persetujuan` | publik | Alur akun guru/Kepala Sekolah |
 | `/dashboard` | SA, G, W | Beranda per role (B5): SA panel Perlu Tindakan, statistik, keuangan bulan ini, grafik pemasukan; G kelas diampu, progres rapor, tagihan kelas; W kartu anak, kartu tagihan, rapor terbaru, kegiatan, pengumuman, agenda |
 | `/dashboard/ganti-password` | pengguna dengan `wajib_ganti_password` | Ganti password awal (tanggal lahir anak). Tanpa menu, dengan tombol Keluar; yang tidak wajib diarahkan ke beranda |
@@ -416,7 +430,7 @@ Andika hanya punya bobot 400 dan 700, jadi `font-semibold` tampil sebagai 700.
 | `/dashboard/pengumuman/[id]`, `/[id]/ubah` | SA, G, W / penulis, SA | Detail; ubah dan hapus untuk penulis dan SA |
 | `/dashboard/agenda` | SA (kelola), G, W | Kalender bulanan + daftar (`?bulan=`, `?hari=`); SA tambah/ubah/hapus |
 | `/dashboard/*` lain | | 404 di dalam kerangka dashboard (`[...lainnya]`) |
-| `/api/auth/login`, `/api/auth/login-wali`, `/api/auth/logout`, `/api/auth/sesi-habis` | route handler | BFF sesi |
+| `/api/auth/staff/login`, `/api/auth/wali/login`, `/api/auth/logout`, `/api/auth/sesi-habis` | route handler | BFF sesi |
 | `/api/proxy/[...path]` | route handler | Proxy ke backend |
 | `/api/revalidate` | route handler (SA) | Buang cache data publik per tag setelah konten website disimpan |
 
@@ -425,6 +439,8 @@ Route lain mengikuti B4 dan ditambahkan per fase. `/api/auth/me` tidak dibuat (d
 Menu sidebar untuk semua route B4 sudah ada sejak Fase 3 (`src/lib/navigation.ts`); tautan ke halaman fase berikutnya menampilkan 404 di dalam dashboard sampai halamannya dibuat.
 
 ## Rencana perbaikan berikutnya
+
+- **Email persetujuan guru (backend)**: `GuruDisetujuiNotification` membuat tombol "Masuk ke Dashboard" ke `FRONTEND_URL/login`, yang sekarang halaman login wali. Perlu diganti ke `/staff/login` di repo backend. Kartu akun wali (`KartuAkunService`, `/login`) sudah benar.
 
 - **File gambar pengaturan yang tidak jadi disimpan (F7-3)**: `POST /pengaturan/upload` langsung menyimpan file ke disk `public` folder `pengaturan/` (`PengaturanService::FOLDER_GAMBAR`), sedangkan path-nya baru tercatat saat tab CMS disimpan. Kalau Kepala Sekolah memilih gambar lalu membatalkan atau meninggalkan halaman, file itu tidak pernah dipakai dan tidak pernah dihapus. Gambar yang diganti saat menyimpan sudah dihapus backend (`PengaturanService`, perbandingan `semuaGambar()` sebelum dan sesudah simpan), jadi yang tertinggal hanya unggahan yang tidak pernah disimpan.
   Usulan untuk repo backend (belum dikerjakan): perintah artisan `pengaturan:bersihkan-gambar` yang menghapus file di `pengaturan/` pada disk `public` yang tidak ada di `semuaGambar()` pengaturan saat ini dan berumur lebih dari 1 hari (dari waktu ubah file). Batas 1 hari menjaga file yang baru diunggah dan masih menunggu disimpan di form yang sedang terbuka. Dijadwalkan harian di `routes/console.php` pada jam sepi, misalnya `Schedule::command('pengaturan:bersihkan-gambar')->dailyAt('02:00');`, dengan jumlah file yang dihapus dicatat di log. FE tidak perlu berubah.
@@ -440,6 +456,42 @@ Tempat deploy belum ditentukan. Syarat yang sudah pasti:
 5. Batas body di reverse proxy minimal 55 MB (unggahan kegiatan 10 foto × 5 MB). PHP backend: `upload_max_filesize` minimal `5M` per file dan `post_max_size` minimal `55M`.
 
 ## Changelog
+
+### Login terpisah (branch `fe/login-terpisah`)
+
+File baru:
+
+- `src/app/(auth)/staff/login/page.tsx`: login guru dan Kepala Sekolah.
+- `src/app/api/auth/staff/login/route.ts`, `src/app/api/auth/wali/login/route.ts`: BFF ke endpoint backend baru.
+- `src/components/features/auth/use-masuk.ts`: alur bersama kedua form (kirim, tujuan, pesan gagal, hitung mundur 429).
+- `src/components/features/auth/tombol-masuk.tsx`: tombol Masuk dengan status memeriksa dan hitung mundur.
+
+File yang diubah:
+
+- `PROMPT_FE_TK.md`: Bagian A disalin dari `PROMPT_BE_TK.md` (identik, dicek dengan `diff`); B2, B3, B4 ke route baru.
+- `src/types/api.d.ts`: `npm run gen:api` (path auth baru, `LoginStaffRequest`, header `Retry-After` di respons 429).
+- `src/app/(auth)/login/page.tsx`: sekarang form login wali (isi `/login/wali` lama tanpa tautan ke login guru).
+- `src/components/features/auth/form-login-guru.tsx` → `form-login-staff.tsx`, `form-login-wali.tsx`: memakai `useMasuk()` dan `TombolMasuk`.
+- `src/lib/auth/bff.ts`: aturan per jenis login (path backend dicek terhadap `paths` hasil generate, field, role yang boleh).
+- `src/lib/auth/masuk.ts`: `masukStaff()`, `masukWali()`.
+- `src/lib/auth/rute-login.ts`: `RUTE_LOGIN { wali, staff }`, `ruteLogin(role)`.
+- `src/lib/api/errors.ts`: `ApiError.tungguDetik` dari `Retry-After`.
+- `src/proxy.ts`: matcher dan redirect halaman login.
+- `src/app/api/auth/sesi-habis/route.ts`, `src/components/providers.tsx`, `src/components/features/auth/use-keluar.ts`: login sesuai role; keluar dengan muat ulang penuh.
+- `src/components/layout/publik/{navbar-publik,footer-publik}.tsx`: "Masuk" ke `/login`, tautan kecil "Masuk guru".
+- `src/components/features/auth/{form-lupa-password,form-reset-password,form-daftar-guru}.tsx`, `src/app/(auth)/menunggu-persetujuan/page.tsx`: tautan ke `/staff/login`.
+
+File yang dihapus: `src/app/(auth)/login/wali/page.tsx`, `src/app/(auth)/login/guru/page.tsx`, `src/app/api/auth/login/route.ts`, `src/app/api/auth/login-wali/route.ts`, `src/components/features/auth/kembali-ke-pilihan.tsx`.
+
+Pengujian (build produksi `next start` di port 3001, Firefox headless 390 × 844 lewat puppeteer-core di luar repo):
+
+- Backend: `php artisan serve --port=8001` dari repo backend `main` (merge PR #4) dengan database SQLite sementara di luar repo berisi `DatabaseSeeder` + `DemoSeeder`, karena database MariaDB lokal hanya berisi 3 akun tanpa data demo. MariaDB tidak diubah.
+- `lint`, `typecheck`, `build`, `check:slop` bersih.
+- curl ke BFF: wali salah → 422; wali `ta2026 0001` benar → 200, cookie `tk_token` + `tk_role=wali_murid`, token tidak ada di body; guru → `tk_role=guru`; Kepala Sekolah → `super_admin`; guru pending → 403 `ACCOUNT_PENDING`; body wali ke endpoint staff → 422; percobaan ke-4 staff dengan email sama → 429 dengan `Retry-After: 60` diteruskan. `/api/auth/login`, `/api/auth/login-wali`, `/login/wali`, `/login/guru` → 404. `sesi-habis` dengan `tk_role=guru` → `/staff/login?next=`, dengan `wali_murid` → `/login?next=`. Sudah masuk buka `/login` atau `/staff/login` → 307 `/dashboard` (wali, guru, Kepala Sekolah). Wali buka `/dashboard/guru` dan `/dashboard/keuangan/laporan`, guru buka `/dashboard/anak` dan `/dashboard/onboarding` → redirect `/dashboard?akses=ditolak` (redirect setelah streaming: HTTP 200 dengan meta refresh + `NEXT_REDIRECT`).
+- Browser, wali: landing punya tepat satu tautan ke `/staff/login` (footer); `/login` tanpa tautan ke login staff dan tanpa pilihan role, tanpa scroll horizontal; isian kosong → dua pesan; NIS/password salah → pesan generik; tombol "Memeriksa..." nonaktif selama request; masuk → `/dashboard`; buka `/staff/login` dan `/login` → `/dashboard`; buka `/dashboard/guru` → beranda; Keluar → `/login`. Wali `TA20250022` dengan password awal (`21092021`) → `/dashboard/ganti-password`, buka `/dashboard/tagihan` tetap ke ganti password.
+- Browser, staff: guru pending → `/menunggu-persetujuan` dengan tautan kembali ke `/staff/login`; email/password salah → pesan generik; 4 percobaan salah → pesan jeda, tombol "Coba lagi dalam 57 detik" nonaktif, 3 detik kemudian 54, Enter tidak mengirim. Guru dengan `?next=/dashboard/murid` → `/dashboard/murid`; buka `/dashboard/anak` → beranda; buka `/login` → `/dashboard`; Keluar → `/staff/login`. Kepala Sekolah → beranda dengan "Perlu Tindakan".
+- Browser, jeda wali sampai habis: 6 percobaan salah untuk NIS yang sama → hitungan, gaya tombol `opacity 1`, teks `#0A6E04` di atas `#E6F4E1`; setelah hitungan habis tombol kembali "Masuk", pesan jeda hilang, login berhasil.
+- Belum diuji: axe dan pembaca layar untuk halaman login baru; Safari/Chromium; tampilan desktop (hanya 390 px).
 
 ### Fase 8 (branch `fe/fase-6-8`)
 
