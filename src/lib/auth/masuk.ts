@@ -4,8 +4,8 @@ import { errorDariResponse } from "@/lib/api/errors";
 import { RUTE_GANTI_PASSWORD, RUTE_ONBOARDING } from "@/lib/auth/path";
 import { amankanTujuan } from "@/lib/auth/redirect";
 
-// Respons route handler /api/auth/login dan /api/auth/login-wali. Hanya bagian
-// yang dibutuhkan untuk menentukan halaman tujuan yang dibaca.
+// Respons route handler /api/auth/staff/login dan /api/auth/wali/login. Hanya
+// bagian yang dibutuhkan untuk menentukan halaman tujuan yang dibaca.
 const skemaResponsMasuk = z.object({
   data: z.object({
     user: z.object({
@@ -18,7 +18,7 @@ const skemaResponsMasuk = z.object({
 
 export type HasilMasuk = z.output<typeof skemaResponsMasuk>["data"]["user"];
 
-async function kirim(path: "/api/auth/login" | "/api/auth/login-wali", body: Record<string, string>): Promise<HasilMasuk> {
+async function kirim(path: "/api/auth/staff/login" | "/api/auth/wali/login", body: Record<string, string>): Promise<HasilMasuk> {
   const response = await fetch(path, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -29,13 +29,14 @@ async function kirim(path: "/api/auth/login" | "/api/auth/login-wali", body: Rec
   return skemaResponsMasuk.parse(json).data.user;
 }
 
-export function masukDenganEmail(nilai: { email: string; password: string }): Promise<HasilMasuk> {
-  return kirim("/api/auth/login", nilai);
+/** Kepala Sekolah dan guru. */
+export function masukStaff(nilai: { email: string; password: string }): Promise<HasilMasuk> {
+  return kirim("/api/auth/staff/login", nilai);
 }
 
 /** Wali murid: username = NIS anak (A2.1). */
-export function masukDenganNis(nilai: { username: string; password: string }): Promise<HasilMasuk> {
-  return kirim("/api/auth/login-wali", nilai);
+export function masukWali(nilai: { username: string; password: string }): Promise<HasilMasuk> {
+  return kirim("/api/auth/wali/login", nilai);
 }
 
 /**

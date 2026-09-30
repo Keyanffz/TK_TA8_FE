@@ -31,7 +31,7 @@ export function FooterPublik({ profil }: { profil: ProfilSekolah }) {
               </li>
             ))}
             <li>
-              <Link href={RUTE_LOGIN.pilihan} className="hover:underline">
+              <Link href={RUTE_LOGIN.wali} className="hover:underline">
                 Masuk
               </Link>
             </li>
@@ -39,9 +39,14 @@ export function FooterPublik({ profil }: { profil: ProfilSekolah }) {
         </nav>
       </div>
       <div className="border-t border-primary-foreground/20">
-        <p className="mx-auto max-w-6xl px-4 py-4 text-xs text-primary-foreground/85 sm:px-6">
-          © {tahun} {profil.namaSekolah}
-        </p>
+        <div className="mx-auto flex max-w-6xl flex-wrap justify-between gap-x-6 gap-y-2 px-4 py-4 text-xs text-primary-foreground/85 sm:px-6">
+          <p>
+            © {tahun} {profil.namaSekolah}
+          </p>
+          <Link href={RUTE_LOGIN.staff} className="hover:underline">
+            Masuk guru
+          </Link>
+        </div>
       </div>
     </footer>
   );

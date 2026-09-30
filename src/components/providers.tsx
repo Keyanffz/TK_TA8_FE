@@ -7,8 +7,10 @@ import { useState, type ReactNode } from "react";
 import { Toaster } from "sonner";
 
 import { ApiError } from "@/lib/api/errors";
+import { queryKeys } from "@/lib/api/query-keys";
 import { RUTE_GANTI_PASSWORD } from "@/lib/auth/path";
-import { RUTE_LOGIN, urlLogin } from "@/lib/auth/rute-login";
+import { ruteLogin, urlLogin } from "@/lib/auth/rute-login";
+import type { User } from "@/types/domain";
 
 // Data yang memuat signed URL file private (berlaku 30 menit) harus diambil
 // ulang jauh sebelum URL-nya kedaluwarsa.
@@ -33,9 +35,11 @@ export function Providers({ children }: { children: ReactNode }) {
     const tanganiError = (error: unknown) => {
       if (!(error instanceof ApiError)) return;
       if (error.status === 401) {
+        // Role dibaca sebelum cache dikosongkan; cookie tk_role sudah ikut dihapus proxy.
+        const login = ruteLogin(client.getQueryData<User>(queryKeys.me)?.role);
         client.clear();
         const asal = `${window.location.pathname}${window.location.search}`;
-        router.replace(urlLogin(RUTE_LOGIN.pilihan, asal));
+        router.replace(urlLogin(login, asal));
       } else if (error.code === "PASSWORD_WAJIB_DIGANTI") {
         router.replace(RUTE_GANTI_PASSWORD);
         router.refresh();

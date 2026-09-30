@@ -122,7 +122,7 @@ export function FormDaftarGuru() {
         </Button>
         <p className="text-sm text-muted-foreground">
           Sudah punya akun?{" "}
-          <Link href={RUTE_LOGIN.guru} className="font-semibold text-primary-strong hover:underline">
+          <Link href={RUTE_LOGIN.staff} className="font-semibold text-primary-strong hover:underline">
             Masuk
           </Link>
         </p>

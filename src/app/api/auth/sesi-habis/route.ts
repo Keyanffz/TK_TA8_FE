@@ -1,8 +1,9 @@
 import { NextResponse, type NextRequest } from "next/server";
 
+import { ROLE_COOKIE } from "@/lib/auth/cookies";
 import { amankanTujuan } from "@/lib/auth/redirect";
+import { ruteLogin } from "@/lib/auth/rute-login";
 import { hapusCookieSesi } from "@/lib/auth/sesi-cookie";
-import { RUTE_LOGIN } from "@/lib/auth/rute-login";
 
 /**
  * Tujuan redirect dari Server Component saat token di cookie ditolak backend.
@@ -10,7 +11,7 @@ import { RUTE_LOGIN } from "@/lib/auth/rute-login";
  */
 export function GET(request: NextRequest) {
   const tujuan = amankanTujuan(request.nextUrl.searchParams.get("next"));
-  const login = new URL(RUTE_LOGIN.pilihan, request.nextUrl.origin);
+  const login = new URL(ruteLogin(request.cookies.get(ROLE_COOKIE)?.value), request.nextUrl.origin);
   login.searchParams.set("next", tujuan);
   const response = NextResponse.redirect(login);
   hapusCookieSesi(response);

@@ -15,7 +15,7 @@ export default function MenungguPersetujuanPage() {
         yang Anda daftarkan setelah akun disetujui.
       </p>
       <div className="mt-8 flex flex-wrap gap-3">
-        <Link href={RUTE_LOGIN.guru} className={buttonVariants({ variant: "outline" })}>
+        <Link href={RUTE_LOGIN.staff} className={buttonVariants({ variant: "outline" })}>
           Kembali ke Halaman Masuk
         </Link>
         <Link href="/" className={buttonVariants({ variant: "ghost" })}>

@@ -23,18 +23,22 @@ export class ApiError extends Error {
   readonly status: number;
   readonly code: KodeError;
   readonly errors: Record<string, string[]> | null;
+  /** Detik dari header Retry-After pada 429, null kalau tidak ada. */
+  readonly tungguDetik: number | null;
 
   constructor(params: {
     status: number;
     code: KodeError;
     message: string;
     errors?: Record<string, string[]> | null;
+    tungguDetik?: number | null;
   }) {
     super(params.message);
     this.name = "ApiError";
     this.status = params.status;
     this.code = params.code;
     this.errors = params.errors ?? null;
+    this.tungguDetik = params.tungguDetik ?? null;
   }
 }
 
@@ -75,6 +79,13 @@ function kodeDariStatus(status: number): KodeError {
   return "SERVER_ERROR";
 }
 
+// Backend (Laravel) mengirim Retry-After dalam detik, bukan tanggal HTTP.
+function bacaRetryAfter(response: Response): number | null {
+  if (response.status !== 429) return null;
+  const detik = Number(response.headers.get("Retry-After"));
+  return Number.isInteger(detik) && detik > 0 ? detik : null;
+}
+
 export function buatApiError(response: Response, body: unknown): ApiError {
   if (isResponsError(body)) {
     return new ApiError({
@@ -82,6 +93,7 @@ export function buatApiError(response: Response, body: unknown): ApiError {
       code: body.code,
       message: body.message,
       errors: bacaErrorsField(body.errors),
+      tungguDetik: bacaRetryAfter(response),
     });
   }
 
