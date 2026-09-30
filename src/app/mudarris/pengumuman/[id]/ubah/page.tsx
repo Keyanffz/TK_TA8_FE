@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 
 import { UbahPengumuman } from "@/components/features/pengumuman/ubah-pengumuman";
 import { KepalaHalaman } from "@/components/shared/kepala-halaman";
+import { TautanKembali } from "@/components/shared/tautan-kembali";
 import { wajibAkses } from "@/lib/auth/akses";
 import { idDariParam } from "@/lib/halaman";
 
@@ -14,9 +14,7 @@ export default async function UbahPengumumanPage({ params }: PageProps<"/mudarri
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
-      <Link href={`/mudarris/pengumuman/${id}`} className="mb-4 inline-flex min-h-11 items-center font-heading text-sm font-bold text-primary-strong hover:underline">
-        Kembali ke pengumuman
-      </Link>
+      <TautanKembali href={`/mudarris/pengumuman/${id}`}>Kembali ke pengumuman</TautanKembali>
       <KepalaHalaman judul="Ubah Pengumuman" />
       <UbahPengumuman id={id} />
     </div>

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 
 import { DetailPendaftaran } from "@/components/features/ppdb-sekolah/detail-pendaftaran";
+import { TautanKembali } from "@/components/shared/tautan-kembali";
 import { wajibAkses } from "@/lib/auth/akses";
 import { idDariParam } from "@/lib/halaman";
 
@@ -13,9 +13,7 @@ export default async function DetailPendaftaranMudarrisPage({ params }: PageProp
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
-      <Link href="/mudarris/ppdb" className="mb-4 inline-flex min-h-11 items-center font-heading text-sm font-bold text-primary-strong hover:underline">
-        Kembali ke PPDB
-      </Link>
+      <TautanKembali href="/mudarris/ppdb">Kembali ke PPDB</TautanKembali>
       <DetailPendaftaran id={id} kepalaSekolah />
     </div>
   );
