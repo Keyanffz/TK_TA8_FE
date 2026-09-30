@@ -24,7 +24,7 @@ function Identitas({ guru }: { guru: Guru }) {
     <div className="flex min-w-0 items-center gap-3">
       <FotoProfil nama={guru.user.name} url={guru.foto_url} ukuran={40} className="size-10 text-sm" />
       <div className="min-w-0">
-        <Link href={`/dashboard/guru/${guru.id}`} className="block truncate font-bold hover:underline">
+        <Link href={`/mudarris/guru/${guru.id}`} className="block truncate font-bold hover:underline">
           {guru.user.name}
         </Link>
         <p className="truncate text-xs text-muted-foreground">{guru.user.email}</p>
@@ -48,7 +48,7 @@ function Peran({ guru }: { guru: Guru }) {
 function Aksi({ guru }: { guru: Guru }) {
   if (guru.user.status === "pending") return <AksiPersetujuanGuru id={guru.id} nama={guru.user.name} />;
   return (
-    <Link href={`/dashboard/guru/${guru.id}`} className={buttonVariants({ size: "sm", variant: "outline" })}>
+    <Link href={`/mudarris/guru/${guru.id}`} className={buttonVariants({ size: "sm", variant: "outline" })}>
       Buka
     </Link>
   );

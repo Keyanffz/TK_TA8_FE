@@ -31,7 +31,7 @@ function KartuAntrean({ bayar }: { bayar: Pembayaran }) {
             Dikirim {bayar.dibayar_oleh?.nama ?? "wali"} · {bayar.created_at ? formatRelatif(bayar.created_at) : "-"}
           </p>
           <h2 className="font-heading text-lg leading-tight font-extrabold">
-            <Link href={`/dashboard/tagihan/${bayar.tagihan_id}`} className="hover:underline">
+            <Link href={`/mudarris/tagihan/${bayar.tagihan_id}`} className="hover:underline">
               {namaTagihan(bayar.tagihan)}
             </Link>
           </h2>

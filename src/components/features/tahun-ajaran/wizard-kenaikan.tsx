@@ -53,7 +53,7 @@ export function WizardKenaikan() {
         <p>
           {hasil.naik} murid naik kelas, {hasil.tinggal} tinggal kelas, {hasil.lulus} lulus.
         </p>
-        <Link href="/dashboard/kelas" className={buttonVariants({ variant: "outline", size: "sm", className: "mt-3" })}>
+        <Link href="/mudarris/kelas" className={buttonVariants({ variant: "outline", size: "sm", className: "mt-3" })}>
           Lihat Kelas
         </Link>
       </KotakPesan>
@@ -108,7 +108,7 @@ export function WizardKenaikan() {
         <EmptyState
           judul={`Belum ada kelas di Tahun Ajaran ${namaTujuan ?? ""}.`}
           deskripsi="Buat kelas tujuan dulu di menu Kelas, lalu kembali ke halaman ini."
-          aksi={<Link href="/dashboard/kelas" className={buttonVariants({ variant: "outline" })}>Buka Menu Kelas</Link>}
+          aksi={<Link href="/mudarris/kelas" className={buttonVariants({ variant: "outline" })}>Buka Menu Kelas</Link>}
         />
       ) : (
         <>

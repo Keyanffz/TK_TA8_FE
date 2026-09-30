@@ -11,10 +11,15 @@ import { formatRupiah, formatTanggal, formatTanggalWaktu } from "@/lib/format";
 import { namaTagihan } from "@/lib/tagihan";
 import type { TagihanDetail } from "@/types/domain";
 
-type RiwayatPembayaranProps = { tagihan: TagihanDetail; bisaVerifikasi: boolean };
+type RiwayatPembayaranProps = {
+  tagihan: TagihanDetail;
+  bisaVerifikasi: boolean;
+  /** Backend hanya melayani kwitansi untuk petugas keuangan dan wali; guru lain mendapat 403. */
+  bisaUnduhKwitansi: boolean;
+};
 
 /** Semua percobaan pembayaran satu tagihan, terbaru di atas. */
-export function RiwayatPembayaran({ tagihan, bisaVerifikasi }: RiwayatPembayaranProps) {
+export function RiwayatPembayaran({ tagihan, bisaVerifikasi, bisaUnduhKwitansi }: RiwayatPembayaranProps) {
   if (tagihan.pembayaran.length === 0) return <p className="text-sm text-muted-foreground">Belum ada pembayaran untuk tagihan ini.</p>;
 
   return (
@@ -48,7 +53,7 @@ export function RiwayatPembayaran({ tagihan, bisaVerifikasi }: RiwayatPembayaran
             </KotakPesan>
           ) : null}
           <div className="mt-3 flex flex-wrap gap-2">
-            {bayar.status === "diterima" ? <TombolKwitansi id={bayar.id} kode={bayar.kode} /> : null}
+            {bayar.status === "diterima" && bisaUnduhKwitansi ? <TombolKwitansi id={bayar.id} kode={bayar.kode} /> : null}
             {bayar.status === "menunggu" && bisaVerifikasi ? (
               <AksiVerifikasi id={bayar.id} jumlah={bayar.jumlah} namaTagihan={namaTagihan(tagihan)} namaMurid={tagihan.murid.nama_panggilan} />
             ) : null}

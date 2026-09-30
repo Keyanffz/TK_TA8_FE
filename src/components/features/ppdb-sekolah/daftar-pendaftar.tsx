@@ -29,7 +29,7 @@ const KOLOM: ColumnDef<Pendaftaran>[] = [
     header: "Calon murid",
     cell: ({ row }) => (
       <div>
-        <Link href={`/dashboard/ppdb/${row.original.id}`} className="font-bold hover:underline">
+        <Link href={`/mudarris/ppdb/${row.original.id}`} className="font-bold hover:underline">
           {row.original.nama_lengkap}
         </Link>
         <p className="text-xs text-muted-foreground tabular-nums">{row.original.kode}</p>
@@ -49,7 +49,7 @@ const KOLOM: ColumnDef<Pendaftaran>[] = [
     id: "aksi",
     header: () => <span className="sr-only">Aksi</span>,
     cell: ({ row }) => (
-      <Link href={`/dashboard/ppdb/${row.original.id}`} className={buttonVariants({ size: "sm", variant: row.original.status === "diajukan" ? "default" : "outline" })}>
+      <Link href={`/mudarris/ppdb/${row.original.id}`} className={buttonVariants({ size: "sm", variant: row.original.status === "diajukan" ? "default" : "outline" })}>
         {row.original.status === "diajukan" ? "Periksa" : "Buka"}
       </Link>
     ),
@@ -110,7 +110,7 @@ export function DaftarPendaftar() {
           />
         }
         kartu={(item) => (
-          <Link href={`/dashboard/ppdb/${item.id}`} className="flex flex-col gap-2 rounded-xl border border-border bg-card p-4 shadow-sm">
+          <Link href={`/mudarris/ppdb/${item.id}`} className="flex flex-col gap-2 rounded-xl border border-border bg-card p-4 shadow-sm">
             <span className="flex items-start justify-between gap-2">
               <span>
                 <span className="block font-bold">{item.nama_lengkap}</span>

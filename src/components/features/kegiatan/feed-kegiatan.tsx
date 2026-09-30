@@ -16,11 +16,20 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useDaftarKegiatan } from "@/lib/api/kegiatan";
 import { useKelasAktif } from "@/lib/api/kelas";
 import { useAnakWali } from "@/lib/api/wali";
+import { BERANDA_STAFF, BERANDA_WALI } from "@/lib/auth/path";
 import { cn } from "@/lib/utils";
 
-type DaftarProps = { kelasId: number | null; search: string; halaman: number; onUbahHalaman: (halaman: number) => void; kosong: ReactNode; tampilkanKelas: boolean };
+type DaftarProps = {
+  kelasId: number | null;
+  search: string;
+  halaman: number;
+  onUbahHalaman: (halaman: number) => void;
+  kosong: ReactNode;
+  tampilkanKelas: boolean;
+  beranda: string;
+};
 
-function Daftar({ kelasId, search, halaman, onUbahHalaman, kosong, tampilkanKelas }: DaftarProps) {
+function Daftar({ kelasId, search, halaman, onUbahHalaman, kosong, tampilkanKelas, beranda }: DaftarProps) {
   const { data, isPending, isError, error, refetch, isPlaceholderData } = useDaftarKegiatan({ halaman, kelasId, search });
 
   if (isPending) {
@@ -40,7 +49,7 @@ function Daftar({ kelasId, search, halaman, onUbahHalaman, kosong, tampilkanKela
       <Muncul as="ul" efek="jatuh" className={cn("grid gap-5 sm:grid-cols-2 xl:grid-cols-3", isPlaceholderData && "opacity-60")}>
         {data.data.map((kegiatan, indeks) => (
           <li key={kegiatan.id}>
-            <KartuKegiatan kegiatan={kegiatan} indeks={indeks} tampilkanKelas={tampilkanKelas} />
+            <KartuKegiatan kegiatan={kegiatan} indeks={indeks} tampilkanKelas={tampilkanKelas} beranda={beranda} />
           </li>
         ))}
       </Muncul>
@@ -78,6 +87,7 @@ export function FeedKegiatanWali() {
         halaman={halaman}
         onUbahHalaman={(nomor) => void setHalaman(nomor)}
         tampilkanKelas={kelas === null}
+        beranda={BERANDA_WALI}
         kosong={<EmptyState judul="Belum ada kegiatan kelas." deskripsi="Foto dan cerita kegiatan dari guru kelas akan muncul di sini." />}
       />
     </div>
@@ -130,12 +140,13 @@ export function FeedKegiatanSekolah() {
         halaman={halaman}
         onUbahHalaman={(nomor) => void setHalaman(nomor)}
         tampilkanKelas={kelasId === null && pilihanKelas.length !== 1}
+        beranda={BERANDA_STAFF}
         kosong={
           <EmptyState
             judul={cari ? `Tidak ada kegiatan yang cocok dengan "${cari}".` : "Belum ada kegiatan kelas."}
             deskripsi="Catat kegiatan beserta fotonya supaya wali murid bisa melihat apa yang dilakukan anak di sekolah."
             aksi={
-              <Link href="/dashboard/kegiatan/baru" className={buttonVariants()}>
+              <Link href="/mudarris/kegiatan/baru" className={buttonVariants()}>
                 Catat Kegiatan
               </Link>
             }

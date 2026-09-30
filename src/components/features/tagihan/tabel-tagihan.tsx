@@ -28,7 +28,7 @@ const KOLOM: ColumnDef<Tagihan>[] = [
     id: "tagihan",
     header: "Tagihan",
     cell: ({ row }) => (
-      <Link href={`/dashboard/tagihan/${row.original.id}`} className="block hover:underline">
+      <Link href={`/mudarris/tagihan/${row.original.id}`} className="block hover:underline">
         <span className="block font-bold">{namaTagihan(row.original)}</span>
         <span className="block text-xs text-muted-foreground tabular-nums">{row.original.kode}</span>
       </Link>
@@ -138,7 +138,7 @@ export function TabelTagihan({ petugasKeuangan }: { petugasKeuangan: boolean }) 
         kelasKolom={{ total: "text-right" }}
         kosong={<EmptyState judul={adaFilter ? "Tidak ada tagihan yang cocok dengan saringan." : "Belum ada tagihan."} />}
         kartu={(tagihan) => (
-          <Link href={`/dashboard/tagihan/${tagihan.id}`} className="flex items-center gap-3 rounded-xl border border-border bg-card p-4 shadow-sm">
+          <Link href={`/mudarris/tagihan/${tagihan.id}`} className="flex items-center gap-3 rounded-xl border border-border bg-card p-4 shadow-sm">
             <span className="min-w-0 flex-1">
               <span className="block truncate font-bold">{namaTagihan(tagihan)}</span>
               <span className="block truncate text-sm">{tagihan.murid.nama_lengkap}</span>

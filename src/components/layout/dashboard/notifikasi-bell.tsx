@@ -10,11 +10,13 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { pesanError } from "@/lib/api/errors";
 import { useBacaSemuaNotifikasi, useJumlahBelumDibaca, useNotifikasiTerbaru } from "@/lib/api/notifikasi";
+import { useSession } from "@/lib/auth/use-session";
 import { cn } from "@/lib/utils";
 
 const BATAS_ANGKA_BADGE = 9;
 
 export function NotifikasiBell() {
+  const { beranda } = useSession();
   const [terbuka, setTerbuka] = useState(false);
   const { data: jumlah = 0 } = useJumlahBelumDibaca();
   const terbaru = useNotifikasiTerbaru(terbuka);
@@ -66,7 +68,7 @@ export function NotifikasiBell() {
           )}
         </div>
         <Link
-          href="/dashboard/notifikasi"
+          href={`${beranda}/notifikasi`}
           onClick={() => setTerbuka(false)}
           className="block border-t border-border px-4 py-3 text-center font-heading text-sm font-bold text-primary-strong hover:bg-muted"
         >

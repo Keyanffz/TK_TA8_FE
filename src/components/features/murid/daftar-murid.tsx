@@ -25,7 +25,7 @@ function Identitas({ murid }: { murid: Murid }) {
     <div className="flex min-w-0 items-center gap-3">
       <FotoProfil nama={murid.nama_lengkap} url={murid.foto_url} ukuran={40} className="size-10 text-sm" />
       <div className="min-w-0">
-        <Link href={`/dashboard/murid/${murid.id}`} className="block truncate font-bold hover:underline">
+        <Link href={`/mudarris/murid/${murid.id}`} className="block truncate font-bold hover:underline">
           {murid.nama_lengkap}
         </Link>
         <p className="text-xs text-muted-foreground">{murid.nama_panggilan}</p>
@@ -114,7 +114,7 @@ export function DaftarMurid() {
         onUbahHalaman={(nomor) => void setHalaman(nomor)}
         kosong={<EmptyState judul={adaFilter ? "Tidak ada murid yang cocok dengan saringan." : "Belum ada data murid."} />}
         kartu={(murid) => (
-          <Link href={`/dashboard/murid/${murid.id}`} className="flex items-center gap-3 rounded-xl border border-border bg-card p-4 shadow-sm">
+          <Link href={`/mudarris/murid/${murid.id}`} className="flex items-center gap-3 rounded-xl border border-border bg-card p-4 shadow-sm">
             <FotoProfil nama={murid.nama_lengkap} url={murid.foto_url} ukuran={44} className="size-11 text-sm" />
             <span className="min-w-0 flex-1">
               <span className="block truncate font-bold">{murid.nama_lengkap}</span>

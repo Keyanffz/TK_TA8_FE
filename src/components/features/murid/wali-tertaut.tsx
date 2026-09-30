@@ -91,7 +91,7 @@ export function WaliTertaut({ murid, bisaKelola }: { murid: MuridDetail; bisaKel
           <div className="flex flex-wrap items-start justify-between gap-2">
             <div className="min-w-0">
               {bisaKelola ? (
-                <Link href={`/dashboard/wali-murid/${wali.id}`} className="font-bold hover:underline">
+                <Link href={`/mudarris/wali-murid/${wali.id}`} className="font-bold hover:underline">
                   {wali.nama}
                 </Link>
               ) : (

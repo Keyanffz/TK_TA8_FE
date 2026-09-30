@@ -38,7 +38,7 @@ export function RingkasanPpdb() {
         <p className={cn("text-sm", data.dibuka ? "text-primary-foreground/85" : "text-muted-foreground")}>Jadwal</p>
         <p className="font-bold">{jadwal}</p>
       </div>
-      <Link href="/dashboard/pengaturan?tab=ppdb" className={buttonVariants({ variant: data.dibuka ? "terang" : "outline" })}>
+      <Link href="/mudarris/pengaturan?tab=ppdb" className={buttonVariants({ variant: data.dibuka ? "terang" : "outline" })}>
         Atur PPDB
       </Link>
     </div>

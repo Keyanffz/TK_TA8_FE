@@ -12,6 +12,7 @@ import { SapaanBeranda } from "@/components/features/beranda/sapaan-beranda";
 import { GalatMuat } from "@/components/shared/galat-muat";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useDashboardKepalaSekolah, type DashboardKepalaSekolah } from "@/lib/api/dashboard";
+import { BERANDA_STAFF } from "@/lib/auth/path";
 import { formatRupiah } from "@/lib/format";
 
 const KELAS_ISI = "mx-auto max-w-6xl px-4 sm:px-6 lg:px-8";
@@ -38,7 +39,7 @@ export function BerandaKepalaSekolah({ nama }: { nama: string }) {
               <KartuAngka label="Wali murid" nilai={data.statistik.wali_murid} ikon={Users} urutan={4} />
             </div>
             <div className="grid gap-6 lg:grid-cols-[1fr_1.6fr]">
-              <PanelBeranda judul="Keuangan Bulan Ini" tautan={{ href: "/dashboard/keuangan/laporan", label: "Laporan" }}>
+              <PanelBeranda judul="Keuangan Bulan Ini" tautan={{ href: "/mudarris/keuangan/laporan", label: "Laporan" }}>
                 <KeuanganBulanIni keuangan={data.keuangan_bulan_ini} />
               </PanelBeranda>
               <PanelBeranda judul="Pemasukan 12 Bulan Terakhir">
@@ -46,10 +47,10 @@ export function BerandaKepalaSekolah({ nama }: { nama: string }) {
               </PanelBeranda>
             </div>
             <div className="grid gap-6 lg:grid-cols-2">
-              <PanelBeranda judul="Pengumuman Terbaru" tautan={{ href: "/dashboard/pengumuman", label: "Kelola" }}>
-                <PengumumanRingkas pengumuman={data.pengumuman_terbaru} />
+              <PanelBeranda judul="Pengumuman Terbaru" tautan={{ href: "/mudarris/pengumuman", label: "Kelola" }}>
+                <PengumumanRingkas pengumuman={data.pengumuman_terbaru} beranda={BERANDA_STAFF} />
               </PanelBeranda>
-              <PanelBeranda judul="Agenda Mendatang" tautan={{ href: "/dashboard/agenda", label: "Kelola" }}>
+              <PanelBeranda judul="Agenda Mendatang" tautan={{ href: "/mudarris/agenda", label: "Kelola" }}>
                 <AgendaRingkas agenda={data.agenda_mendatang} />
               </PanelBeranda>
             </div>

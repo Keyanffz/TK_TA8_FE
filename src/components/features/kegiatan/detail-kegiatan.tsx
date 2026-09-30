@@ -83,7 +83,7 @@ export function DetailKegiatan({ id }: { id: number }) {
                 onKonfirmasi={async () => {
                   const { message } = await hapus.mutateAsync(kegiatan.id);
                   toast.success(message);
-                  router.replace("/dashboard/kegiatan");
+                  router.replace("/mudarris/kegiatan");
                 }}
               />
             </div>

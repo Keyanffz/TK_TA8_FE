@@ -23,7 +23,8 @@ const TAB = ["semua", "terbit", "draft"] as const;
 const LABEL_TAB = { semua: "Semua", terbit: "Terbit", draft: "Draft" } as const;
 
 /** Feed pengumuman: yang disematkan di atas. Penulis (Kepala Sekolah, guru) juga melihat draft dan sasaran. */
-export function FeedPengumuman({ penulis }: { penulis: boolean }) {
+/** `beranda`: /dashboard (wali) atau /mudarris (guru, Kepala Sekolah). */
+export function FeedPengumuman({ penulis, beranda }: { penulis: boolean; beranda: string }) {
   const [tab, setTab] = useQueryState("tab", parseAsStringLiteral(TAB).withDefault("semua"));
   const [cari, setCari] = useQueryState("cari", parseAsString.withDefault(""));
   const [halaman, setHalaman] = useQueryState("page", parseAsInteger.withDefault(1));
@@ -73,7 +74,7 @@ export function FeedPengumuman({ penulis }: { penulis: boolean }) {
             {data.data.map((item) => (
               <li key={item.id}>
                 <Link
-                  href={`/dashboard/pengumuman/${item.id}`}
+                  href={`${beranda}/pengumuman/${item.id}`}
                   className={cn(
                     "angkat flex flex-col gap-2 rounded-xl border bg-card p-4 shadow-sm sm:p-5",
                     item.is_pinned ? "border-highlight-strong border-l-4" : "border-border",

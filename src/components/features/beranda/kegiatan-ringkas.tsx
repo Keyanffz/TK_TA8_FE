@@ -13,7 +13,14 @@ const KEMIRINGAN = ["-1.5deg", "1deg", "-0.5deg"] as const;
  * Kegiatan kelas terbaru sebagai foto cetak yang sedikit miring. Di HP bisa
  * digeser ke samping. Foto memakai signed URL (tanpa optimasi gambar Next).
  */
-export function KegiatanRingkas({ kegiatan, tampilkanKelas = false }: { kegiatan: KegiatanKelas[]; tampilkanKelas?: boolean }) {
+type KegiatanRingkasProps = {
+  kegiatan: KegiatanKelas[];
+  /** /dashboard (wali) atau /mudarris (guru, Kepala Sekolah). */
+  beranda: string;
+  tampilkanKelas?: boolean;
+};
+
+export function KegiatanRingkas({ kegiatan, beranda, tampilkanKelas = false }: KegiatanRingkasProps) {
   if (kegiatan.length === 0) {
     return <EmptyState ringkas judul="Belum ada kegiatan kelas." deskripsi="Foto dan cerita kegiatan dari guru muncul di sini." />;
   }
@@ -24,7 +31,7 @@ export function KegiatanRingkas({ kegiatan, tampilkanKelas = false }: { kegiatan
         return (
           <li key={item.id} className="w-56 shrink-0 snap-start sm:w-auto">
             <Link
-              href={`/dashboard/kegiatan/${item.id}`}
+              href={`${beranda}/kegiatan/${item.id}`}
               className="angkat flex h-full flex-col rounded-md border border-border bg-card p-2 shadow-sm rotate-(--miring) hover:rotate-0"
               style={{ "--miring": KEMIRINGAN[indeks % KEMIRINGAN.length], "--miring-hover": "0deg" } as CSSProperties}
             >

@@ -7,6 +7,7 @@ import { toast } from "sonner";
 
 import { ApiError, pesanError } from "@/lib/api/errors";
 import { tujuanSetelahMasuk, type HasilMasuk } from "@/lib/auth/masuk";
+import { RUTE_AKUN_STAFF } from "@/lib/auth/rute-login";
 
 // Pesan backend untuk kode ini sudah menjelaskan penyebab dan langkahnya
 // (alasan penolakan, akun nonaktif).
@@ -68,7 +69,7 @@ export function useMasuk<TNilai>({ kirim, pesanGagal }: { kirim: (nilai: TNilai)
       } else if (error.code === "TOO_MANY_REQUESTS" && error.tungguDetik) {
         jeda.mulai(error.tungguDetik);
       } else if (error.code === "ACCOUNT_PENDING") {
-        router.push("/menunggu-persetujuan");
+        router.push(RUTE_AKUN_STAFF.menungguPersetujuan);
       } else if (error.code === "TOO_MANY_REQUESTS" || KODE_PESAN_BACKEND.includes(error.code)) {
         setPesan(error.message);
       } else {

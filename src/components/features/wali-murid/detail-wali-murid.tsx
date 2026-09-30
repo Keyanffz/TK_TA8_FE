@@ -98,7 +98,7 @@ export function DetailWaliMurid({ id }: { id: number }) {
           <ul className="flex flex-col gap-3">
             {wali.anak.map((anak) => (
               <li key={anak.id}>
-                <Link href={`/dashboard/murid/${anak.id}`} className="angkat flex items-center gap-3 rounded-xl border border-border bg-card p-4 shadow-sm">
+                <Link href={`/mudarris/murid/${anak.id}`} className="angkat flex items-center gap-3 rounded-xl border border-border bg-card p-4 shadow-sm">
                   <FotoProfil nama={anak.nama_lengkap} url={anak.foto_url} ukuran={44} className="size-11 text-sm" />
                   <span className="min-w-0 flex-1">
                     <span className="block truncate font-bold">{anak.nama_lengkap}</span>

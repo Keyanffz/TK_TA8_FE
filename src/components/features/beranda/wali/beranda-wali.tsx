@@ -17,6 +17,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useDashboardWali } from "@/lib/api/dashboard";
 import type { AnakRingkas } from "@/lib/auth/anak-aktif";
+import { BERANDA_WALI } from "@/lib/auth/path";
 
 const KELAS_ISI = "mx-auto max-w-6xl px-4 sm:px-6 lg:px-8";
 
@@ -71,10 +72,10 @@ function BerandaAnak({ namaWali, anak }: { namaWali: string; anak: AnakRingkas }
               </PanelBeranda>
             </div>
             <PanelBeranda judul="Kegiatan Kelas" tautan={{ href: "/dashboard/kegiatan", label: "Semua kegiatan" }}>
-              <KegiatanRingkas kegiatan={data.kegiatan_terbaru} />
+              <KegiatanRingkas kegiatan={data.kegiatan_terbaru} beranda={BERANDA_WALI} />
             </PanelBeranda>
             <PanelBeranda judul="Pengumuman" tautan={{ href: "/dashboard/pengumuman", label: "Semua" }}>
-              <PengumumanRingkas pengumuman={data.pengumuman_terbaru} />
+              <PengumumanRingkas pengumuman={data.pengumuman_terbaru} beranda={BERANDA_WALI} />
             </PanelBeranda>
             <PanelBeranda judul="Agenda Sekolah" tautan={{ href: "/dashboard/agenda", label: "Kalender" }} className="lg:hidden">
               <AgendaRingkas agenda={data.agenda_mendatang} />

@@ -10,7 +10,8 @@ import type { Agenda, Pengumuman } from "@/types/domain";
 
 const PANJANG_CUPLIKAN = 110;
 
-export function PengumumanRingkas({ pengumuman }: { pengumuman: Pengumuman[] }) {
+/** `beranda`: /dashboard (wali) atau /mudarris (guru, Kepala Sekolah). */
+export function PengumumanRingkas({ pengumuman, beranda }: { pengumuman: Pengumuman[]; beranda: string }) {
   if (pengumuman.length === 0) {
     return <EmptyState ringkas judul="Belum ada pengumuman." deskripsi="Pengumuman dari sekolah muncul di sini." />;
   }
@@ -18,7 +19,7 @@ export function PengumumanRingkas({ pengumuman }: { pengumuman: Pengumuman[] }) 
     <ul className="divide-y divide-border">
       {pengumuman.map((item) => (
         <li key={item.id}>
-          <Link href={`/dashboard/pengumuman/${item.id}`} className="group block rounded-md py-3 hover:bg-primary-soft/50">
+          <Link href={`${beranda}/pengumuman/${item.id}`} className="group block rounded-md py-3 hover:bg-primary-soft/50">
             <p className="flex items-center gap-2 text-xs text-muted-foreground">
               {item.is_pinned ? (
                 <span className="inline-flex items-center gap-1 rounded-full bg-highlight px-2 py-0.5 font-bold text-highlight-foreground">

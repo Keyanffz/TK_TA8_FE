@@ -63,7 +63,7 @@ export function DetailAlbum({ id }: { id: number }) {
             berbahaya
             onKonfirmasi={async () => {
               toast.success((await hapus.mutateAsync(album.id)).message);
-              router.replace("/dashboard/website/galeri");
+              router.replace("/mudarris/website/galeri");
             }}
           />
         </div>

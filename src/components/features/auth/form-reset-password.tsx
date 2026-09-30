@@ -15,7 +15,7 @@ import { ambilData } from "@/lib/api/ambil-data";
 import { api } from "@/lib/api/client";
 import { ApiError, pesanError, terapkanErrorValidasi } from "@/lib/api/errors";
 import { skemaPasswordBaru } from "@/lib/auth/skema";
-import { RUTE_LOGIN } from "@/lib/auth/rute-login";
+import { RUTE_AKUN_STAFF, RUTE_LOGIN } from "@/lib/auth/rute-login";
 
 const skemaReset = z
   .object({
@@ -71,7 +71,7 @@ export function FormResetPassword({ token, email }: { token: string; email: stri
         {errors.root?.message ? (
           <KotakPesan nada="bahaya">
             <p>{errors.root.message}</p>
-            <Link href="/lupa-password" className="mt-2 inline-block font-semibold underline underline-offset-4">
+            <Link href={RUTE_AKUN_STAFF.lupaPassword} className="mt-2 inline-block font-semibold underline underline-offset-4">
               Buka halaman lupa password
             </Link>
           </KotakPesan>

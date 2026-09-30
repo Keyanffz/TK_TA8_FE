@@ -17,7 +17,7 @@ export function TambahMurid() {
       kirim={async (body) => {
         const { data } = await tambah.mutateAsync(body);
         toast.success(`${data.nama_lengkap} tersimpan dengan NIS ${data.nis}. Akun wali otomatis sudah dibuat.`);
-        router.replace(`/dashboard/murid/${data.id}`);
+        router.replace(`/mudarris/murid/${data.id}`);
       }}
     />
   );

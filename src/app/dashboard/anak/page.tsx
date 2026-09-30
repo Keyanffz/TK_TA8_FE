@@ -4,13 +4,10 @@ import Link from "next/link";
 import { DaftarAnak } from "@/components/features/wali/daftar-anak";
 import { FormTambahAnak } from "@/components/features/wali/form-tambah-anak";
 import { KepalaHalaman } from "@/components/shared/kepala-halaman";
-import { wajibAkses } from "@/lib/auth/akses";
 
 export const metadata: Metadata = { title: "Anak Saya" };
 
-export default async function AnakPage() {
-  await wajibAkses((sesi) => sesi.isWali);
-
+export default function AnakPage() {
   return (
     <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
       <KepalaHalaman judul="Anak Saya" deskripsi="Anak yang sudah tertaut dengan akun Anda." />

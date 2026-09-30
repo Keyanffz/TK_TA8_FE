@@ -17,7 +17,7 @@ import { LABEL_ROLE } from "@/lib/constants/label";
 import { useSession } from "@/lib/auth/use-session";
 
 export function MenuPengguna() {
-  const { user } = useSession();
+  const { user, beranda } = useSession();
   const keluar = useKeluar();
   if (!user) return null;
 
@@ -36,7 +36,7 @@ export function MenuPengguna() {
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuItem asChild>
-          <Link href="/dashboard/profil">
+          <Link href={`${beranda}/profil`}>
             <UserRound aria-hidden="true" />
             Profil Saya
           </Link>

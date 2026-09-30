@@ -62,7 +62,7 @@ export function DetailTagihan({ id, peran }: { id: number; peran: PeranTagihan }
                 <dt className="text-muted-foreground">Murid</dt>
                 <dd className="font-bold">
                   {petugas || peran === "guru" ? (
-                    <Link href={`/dashboard/murid/${tagihan.murid.id}`} className="hover:underline">
+                    <Link href={`/mudarris/murid/${tagihan.murid.id}`} className="hover:underline">
                       {tagihan.murid.nama_lengkap}
                     </Link>
                   ) : (
@@ -129,7 +129,7 @@ export function DetailTagihan({ id, peran }: { id: number; peran: PeranTagihan }
           </Bagian>
         ) : null}
         <Bagian judul="Riwayat pembayaran">
-          <RiwayatPembayaran tagihan={tagihan} bisaVerifikasi={petugas} />
+          <RiwayatPembayaran tagihan={tagihan} bisaVerifikasi={petugas} bisaUnduhKwitansi={peran !== "guru"} />
         </Bagian>
       </div>
     </div>

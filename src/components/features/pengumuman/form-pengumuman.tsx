@@ -85,7 +85,7 @@ export function FormPengumuman({ id, awal, sudahTerbit }: FormPengumumanProps) {
           publish,
         });
         toast.success(message);
-        router.replace(`/dashboard/pengumuman/${data.id}`);
+        router.replace(`/mudarris/pengumuman/${data.id}`);
       } catch (error) {
         const errorsApi = error instanceof ApiError ? (error.errors ?? {}) : {};
         const pesanMurid = Object.entries(errorsApi).find(([kunci]) => kunci.startsWith("murid_ids"))?.[1][0];

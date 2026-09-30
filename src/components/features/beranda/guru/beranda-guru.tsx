@@ -14,6 +14,7 @@ import { EmptyState } from "@/components/shared/empty-state";
 import { GalatMuat } from "@/components/shared/galat-muat";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useDashboardGuru, type DashboardGuru } from "@/lib/api/dashboard";
+import { BERANDA_STAFF } from "@/lib/auth/path";
 
 const KELAS_ISI = "mx-auto max-w-6xl px-4 sm:px-6 lg:px-8";
 
@@ -34,21 +35,21 @@ export function BerandaGuru({ namaGuru }: { namaGuru: string }) {
         ) : (
           <div className="flex flex-col gap-6">
             <div className="grid gap-6 lg:grid-cols-[1.4fr_1fr]">
-              <PanelBeranda judul="Progres Rapor" tautan={{ href: "/dashboard/rapor", label: "Buka rapor" }}>
+              <PanelBeranda judul="Progres Rapor" tautan={{ href: "/mudarris/rapor", label: "Buka rapor" }}>
                 <ProgresRapor progres={data.progres_rapor} />
               </PanelBeranda>
-              <PanelBeranda judul="Tagihan Jatuh Tempo Bulan Ini" tautan={{ href: "/dashboard/tagihan", label: "Lihat status" }}>
+              <PanelBeranda judul="Tagihan Jatuh Tempo Bulan Ini" tautan={{ href: "/mudarris/tagihan", label: "Lihat status" }}>
                 <KeuanganKelas lunas={data.keuangan_kelas.lunas} belum={data.keuangan_kelas.belum} />
               </PanelBeranda>
             </div>
-            <PanelBeranda judul="Kegiatan Kelas Terbaru" tautan={{ href: "/dashboard/kegiatan", label: "Semua kegiatan" }}>
-              <KegiatanRingkas kegiatan={data.kegiatan_terbaru} tampilkanKelas />
+            <PanelBeranda judul="Kegiatan Kelas Terbaru" tautan={{ href: "/mudarris/kegiatan", label: "Semua kegiatan" }}>
+              <KegiatanRingkas kegiatan={data.kegiatan_terbaru} beranda={BERANDA_STAFF} tampilkanKelas />
             </PanelBeranda>
             <div className="grid gap-6 lg:grid-cols-2">
-              <PanelBeranda judul="Pengumuman" tautan={{ href: "/dashboard/pengumuman", label: "Semua" }}>
-                <PengumumanRingkas pengumuman={data.pengumuman_terbaru} />
+              <PanelBeranda judul="Pengumuman" tautan={{ href: "/mudarris/pengumuman", label: "Semua" }}>
+                <PengumumanRingkas pengumuman={data.pengumuman_terbaru} beranda={BERANDA_STAFF} />
               </PanelBeranda>
-              <PanelBeranda judul="Agenda Sekolah" tautan={{ href: "/dashboard/agenda", label: "Kalender" }}>
+              <PanelBeranda judul="Agenda Sekolah" tautan={{ href: "/mudarris/agenda", label: "Kalender" }}>
                 <AgendaRingkas agenda={data.agenda_mendatang} />
               </PanelBeranda>
             </div>
@@ -76,7 +77,7 @@ function KelasSaya({ data }: { data: DashboardGuru }) {
       {data.kelas_saya.map((kelas, indeks) => (
         <li key={kelas.id} className="gerak-masuk" style={{ "--i": indeks + 2 } as CSSProperties}>
           <Link
-            href={`/dashboard/kelas/${kelas.id}`}
+            href={`/mudarris/kelas/${kelas.id}`}
             className="angkat group flex h-full flex-col rounded-xl bg-card p-4 text-foreground shadow-sm"
           >
             <span className="font-heading text-lg font-extrabold text-primary-strong">{kelas.nama}</span>
@@ -92,7 +93,7 @@ function KelasSaya({ data }: { data: DashboardGuru }) {
       {data.pembayaran_menunggu !== null ? (
         <li className="gerak-masuk" style={{ "--i": data.kelas_saya.length + 2 } as CSSProperties}>
           <Link
-            href="/dashboard/pembayaran"
+            href="/mudarris/pembayaran"
             className="angkat group flex h-full flex-col rounded-xl bg-highlight p-4 text-highlight-foreground shadow-sm"
           >
             <span className="flex items-center gap-2 font-heading font-extrabold">

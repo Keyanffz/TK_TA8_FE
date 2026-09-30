@@ -35,7 +35,7 @@ function BarisMurid({ murid, rapor, semester }: { murid: KelasDetail["murid"][nu
       {rapor ? (
         <>
           <StatusBadge nada={NADA_STATUS_RAPOR[rapor.status]}>{LABEL_STATUS_RAPOR[rapor.status]}</StatusBadge>
-          <Link href={`/dashboard/rapor/${rapor.id}`} className={buttonVariants({ size: "sm", variant: rapor.status === "draft" || rapor.status === "revisi" ? "default" : "outline" })}>
+          <Link href={`/mudarris/rapor/${rapor.id}`} className={buttonVariants({ size: "sm", variant: rapor.status === "draft" || rapor.status === "revisi" ? "default" : "outline" })}>
             {rapor.status === "draft" || rapor.status === "revisi" ? "Isi Rapor" : "Buka"}
           </Link>
         </>
@@ -52,7 +52,7 @@ function BarisMurid({ murid, rapor, semester }: { murid: KelasDetail["murid"][nu
                 {
                   onSuccess: ({ data, message }) => {
                     toast.success(message);
-                    router.push(`/dashboard/rapor/${data.id}`);
+                    router.push(`/mudarris/rapor/${data.id}`);
                   },
                   onError: (error) => toast.error(pesanError(error)),
                 },
