@@ -17,6 +17,7 @@ Website publik dan dashboard sistem informasi TK Tarbiyathul Athfal 8 (TK Muslim
 | 7. PPDB, CMS, pengaturan | Selesai, disetujui (lihat "Review Fase 6–7") |
 | 8. Integrasi & polish | Selesai, menunggu review (lihat "Review Fase 8") |
 | Login terpisah (endpoint auth baru backend) | Selesai, menunggu review (lihat "Keputusan login terpisah") |
+| Area `/mudarris` untuk guru dan Kepala Sekolah | Selesai, menunggu review (lihat "Keputusan area /mudarris") |
 
 Mode mock tidak dipakai: `api.json` final dari backend sudah tersedia sejak Fase 1, jadi semua request memakai backend asli dan tipe hasil generate. Tidak ada endpoint mock.
 
@@ -82,9 +83,9 @@ Perintah lain:
 ### Autentikasi (BFF)
 
 - Browser tidak pernah memegang token. `POST /api/auth/staff/login` (email, ke backend `/auth/staff/login`) dan `POST /api/auth/wali/login` (NIS anak, ke `/auth/wali/login`) meneruskan body ke backend (ditambah `perangkat: "web"`), lalu menyimpan token di cookie `tk_token` (httpOnly, `secure` di produksi, sameSite lax, 30 hari) dan `tk_role` (bukan httpOnly, hanya nama role). Cookie hanya dipasang kalau `user.role` milik endpoint itu (`super_admin`/`guru` untuk staff, `wali_murid` untuk wali). Respons ke browser berisi `user` tanpa token; header `Retry-After` dari 429 ikut diteruskan.
-- Tujuan setelah masuk (`tujuanSetelahMasuk()`): `wajib_ganti_password` → `/dashboard/ganti-password`; wali dengan `profil_lengkap = false` → `/dashboard/onboarding`; selain itu `?next=`.
+- Tujuan setelah masuk (`tujuanSetelahMasuk()`): `wajib_ganti_password` → `/dashboard/ganti-password`; wali dengan `profil_lengkap = false` → `/dashboard/onboarding`; selain itu `?next=` atau beranda role (`/dashboard` untuk wali, `/mudarris` untuk guru dan Kepala Sekolah).
 - `POST /api/auth/logout` memanggil `/auth/logout` backend lalu menghapus `tk_token`, `tk_role`, `tk_anak`. Cookie tetap dihapus walau backend tidak bisa dihubungi. Browser lalu dimuat ulang penuh ke halaman login sesuai role (`ruteLogin()`).
-- `GET /api/auth/sesi-habis?next=` menghapus cookie lalu redirect ke halaman login sesuai `tk_role` (`/staff/login` untuk guru dan Kepala Sekolah, selain itu `/login`) dengan `?next=`. Dipakai layout dashboard saat `/auth/me` menolak token, karena Server Component tidak bisa menghapus cookie.
+- `GET /api/auth/sesi-habis?next=` menghapus cookie lalu redirect ke halaman login sesuai `tk_role` (`/mudarris/login` untuk guru dan Kepala Sekolah, selain itu `/login`) dengan `?next=`. Dipakai layout dashboard saat `/auth/me` menolak token, karena Server Component tidak bisa menghapus cookie.
 - `/api/proxy/[...path]` meneruskan method, query, header `Content-Type`/`Content-Length`, dan body (stream, termasuk multipart dan PUT multipart) ke `{BE_API_URL}/...` dengan `Authorization: Bearer` dari cookie. Respons diteruskan sebagai stream beserta `Content-Type`, `Content-Disposition`, `Cache-Control`, `Retry-After`, dan header rate limit. Backend membalas 401 → cookie sesi dihapus.
 - Request yang mengubah data (selain GET/HEAD) ke `/api/proxy` dan `/api/auth/*` ditolak 403 kalau header `Origin` bukan host FE sendiri.
 - Segmen path `.` dan `..` di proxy ditolak supaya tidak bisa keluar dari prefix `/api/v1`.
@@ -100,8 +101,8 @@ Request dari Server Component ke endpoint publik (landing, ISR) tidak membawa `X
 
 ### Route guard
 
-- `src/proxy.ts` (matcher `/dashboard/:path*`, `/login`, `/staff/login`): tanpa cookie `tk_token` ke `/dashboard/*` → `/login?next=...` (role tidak diketahui tanpa cookie); sudah punya cookie buka `/login` atau `/staff/login` → `/dashboard` (beranda yang sama untuk semua role, isinya per role). Kedua halaman login `force-dynamic` supaya tidak diambil dari cache browser tanpa melewati proxy. `/api` sengaja tidak dicocokkan karena proxy Next.js membatasi body 10 MB (`proxyClientMaxBodySize`), sedangkan unggahan kegiatan bisa lebih besar.
-- `src/app/dashboard/layout.tsx` memanggil `ambilSesi()` (`GET /auth/me`, di-cache per request). Token ditolak (401 atau `ACCOUNT_*`) → `/api/auth/sesi-habis`. Urutan wajib wali: `wajib_ganti_password` → semua path selain `/dashboard/ganti-password` diarahkan ke sana; lalu `profil_lengkap = false` → `/dashboard/onboarding`. Kedua halaman itu tampil tanpa menu (`KerangkaTanpaMenu`).
+- `src/proxy.ts` (matcher `/dashboard/:path*`, `/mudarris/:path*`, `/login`): wali murid di `/dashboard/*`, guru dan Kepala Sekolah di `/mudarris/*`. Tanpa cookie `tk_token`: `/dashboard/*` → `/login?next=...`, `/mudarris/*` → `/mudarris/login?next=...`; halaman akun guru (`/mudarris/login`, `/daftar`, `/lupa-password`, `/reset-password`, `/menunggu-persetujuan`) tetap terbuka. Sudah punya cookie buka `/login` atau `/mudarris/login` → beranda sesuai `tk_role`. `tk_role` staff membuka `/dashboard/x` → `/mudarris/x` (tautan notifikasi yang tersimpan sebelum area dipisah, bookmark); `tk_role` wali membuka `/mudarris/*` → `/dashboard?akses=ditolak`. Kedua halaman login `force-dynamic` supaya tidak diambil dari cache browser tanpa melewati proxy. `/api` sengaja tidak dicocokkan karena proxy Next.js membatasi body 10 MB (`proxyClientMaxBodySize`), sedangkan unggahan kegiatan bisa lebih besar.
+- `src/app/dashboard/layout.tsx` (wali) dan `src/app/mudarris/layout.tsx` (guru, Kepala Sekolah) memanggil `ambilSesi()` (`GET /auth/me`, di-cache per request) dan memeriksa role sebenarnya: staff di `/dashboard` → `/mudarris`, wali di `/mudarris` → `/dashboard?akses=ditolak`. Token ditolak (401 atau `ACCOUNT_*`) → `/api/auth/sesi-habis`. Di dalam `/mudarris`, halaman khusus Kepala Sekolah atau petugas keuangan memakai `wajibAkses()` (→ `/mudarris?akses=ditolak`). Urutan wajib wali: `wajib_ganti_password` → semua path selain `/dashboard/ganti-password` diarahkan ke sana; lalu `profil_lengkap = false` → `/dashboard/onboarding`. Kedua halaman itu tampil tanpa menu (`KerangkaTanpaMenu`).
 - Layout tidak dirender ulang saat navigasi di browser, jadi `Providers` juga menangani `PASSWORD_WAJIB_DIGANTI` dari query/mutation mana pun dengan mengarahkan ke `/dashboard/ganti-password`.
 - Otorisasi sebenarnya tetap di backend.
 
@@ -110,7 +111,7 @@ Request dari Server Component ke endpoint publik (landing, ISR) tidak membawa `X
 - Browser: `api` (`src/lib/api/client.ts`), openapi-fetch dengan `paths` dari `api.d.ts` dan `baseUrl: "/api/proxy"`. `ambilData()` mengubah hasilnya menjadi data atau melempar `ApiError`.
 - Server Component: `apiServer({ token, revalidate, tags })` (`src/lib/api/server.ts`). Opsi cache Next.js dipasang lewat `fetch` kustom, karena openapi-fetch membungkus request dalam objek `Request` dan opsi `next` di dalamnya tidak terbaca fetch Next.js.
 - React Query: `staleTime` 60 detik (jauh di bawah masa berlaku signed URL 30 menit), tidak mencoba ulang error 4xx. Error 401 di query atau mutation mana pun mengosongkan cache lalu mengarahkan ke halaman login sesuai role sesi (dibaca dari `['me']` sebelum cache dikosongkan) dengan `?next=`.
-- Sesi di React Query dengan key `['me']`, diisi dari server lewat `HydrationBoundary` di layout dashboard. `useSession()` → `{ user, role, isSuperAdmin, isGuru, isWali, bisaKelolaKeuangan }`.
+- Sesi di React Query dengan key `['me']`, diisi dari server lewat `HydrationBoundary` di layout dashboard. `useSession()` → `{ user, role, isSuperAdmin, isGuru, isWali, bisaKelolaKeuangan, beranda }`; `beranda` (`/dashboard` atau `/mudarris`) dipakai komponen kerangka (sidebar, topbar, menu) untuk membentuk tautan.
 - Error terpusat di `src/lib/api/errors.ts`: `ApiError { status, code, message, errors }`, `pesanError()` untuk toast, `terapkanErrorValidasi()` memasang `errors` VALIDATION_ERROR ke field react-hook-form.
 
 ## Keputusan Fase 2
@@ -265,6 +266,8 @@ Semua keputusan Fase 6 dan 7 disetujui pemilik repo (setelah penutupan Fase 8). 
 
 ## Keputusan login terpisah
 
+`/staff/login` dan halaman akun guru di bawah ini sudah dipindah ke `/mudarris/...` (lihat "Keputusan area /mudarris").
+
 Backend mengganti endpoint login (path lama `/auth/login` dan `/auth/login-wali` sekarang 404): `POST /auth/staff/login` (email, rate limit 3/menit per email+IP) dan `POST /auth/wali/login` (NIS anak, 5/menit per NIS+IP). Bagian A `PROMPT_FE_TK.md` disalin ulang dari `PROMPT_BE_TK.md` (hanya A7 Auth yang berubah) dan B2–B4 disesuaikan.
 
 - **Dua halaman, tanpa pilihan role**: `/login` untuk wali murid, `/staff/login` untuk guru dan Kepala Sekolah. Halaman pilihan, `/login/wali`, `/login/guru`, `KembaliKePilihan`, dan `RUTE_LOGIN.pilihan` dihapus. Tidak ada redirect dari URL lama karena aplikasi belum di-deploy.
@@ -276,6 +279,17 @@ Backend mengganti endpoint login (path lama `/auth/login` dan `/auth/login-wali`
 - **Halaman login sesuai role** saat sesi berakhir: `sesi-habis` membaca `tk_role`, handler 401 di `Providers` membaca role dari cache `['me']`, logout memakai role dari `useSession()`. Tanpa cookie sama sekali (belum masuk atau sudah keluar), `/dashboard/*` diarahkan ke `/login`.
 - **Keluar dengan muat ulang penuh** (`window.location.replace`): sebelumnya `queryClient.clear()` membuat query yang masih terpasang (notifikasi, beranda) mengambil ulang data, gagal 401, lalu handler 401 mengarahkan ke login wali karena role sudah hilang dari cache. Ditemukan saat uji: guru yang keluar mendarat di `/login?next=/dashboard`. Akibatnya toast error logout tidak lagi tampil; cookie tetap terhapus dan kegagalan backend dicatat di log server.
 - **Halaman login `force-dynamic`**: setelah tidak lagi membaca `searchParams`, `/login` menjadi statis dan Firefox mengambilnya dari cache sehingga wali yang sudah masuk tetap melihat form login (ditemukan saat uji).
+
+## Keputusan area /mudarris
+
+Diminta pemilik repo: wali murid dan staff sekolah memakai area yang benar-benar terpisah. A1 ("satu dashboard bersama") diubah di kedua prompt (Bagian A identik), backend ikut disesuaikan (branch `be/rute-mudarris`).
+
+- **Dua pohon route**: `src/app/dashboard/*` hanya untuk wali murid, `src/app/mudarris/*` hanya untuk guru dan Kepala Sekolah, masing-masing dengan layout sendiri yang memeriksa role dari `GET /auth/me`. Halaman yang dipakai keduanya (beranda, tagihan, pembayaran, kegiatan, rapor, pengumuman, agenda, PPDB, notifikasi, profil) dipecah per area, sehingga cabang `isWali`/staff di dalam halaman hilang. Halaman wali tidak lagi memakai `wajibAkses()` karena layout sudah menjamin role; `wajibAkses()` sekarang hanya di `/mudarris` dan mengarahkan ke `/mudarris?akses=ditolak`.
+- **Halaman akun guru** pindah ke `/mudarris/login`, `/mudarris/daftar`, `/mudarris/lupa-password`, `/mudarris/reset-password`, `/mudarris/menunggu-persetujuan` (`RUTE_LOGIN.staff`, `RUTE_AKUN_STAFF`). Alamat lama 404; aplikasi belum di-deploy, jadi tidak ada redirect.
+- **Tautan**: komponen khusus staff menulis `/mudarris/...`, komponen khusus wali `/dashboard/...`. Komponen tampilan yang dipakai kedua area (`KartuKegiatan`, `KegiatanRingkas`, `PengumumanRingkas`, `FeedPengumuman`) menerima prop `beranda` dari pemanggilnya; komponen kerangka (sidebar, topbar, menu akun, lonceng notifikasi) memakai `useSession().beranda`. Menu di `lib/navigation.ts` ditulis sebagai path relatif (`path`) dan `href`-nya dibentuk dari beranda role.
+- **Tautan lama**: notifikasi yang tersimpan sebelum perubahan berisi `/dashboard/...`. `proxy.ts` memetakan `/dashboard/x` milik staff (cookie `tk_role`) ke `/mudarris/x`, jadi tidak perlu migrasi data di backend. Notifikasi baru dari backend sudah berisi `/mudarris/...` untuk staff (`Role::beranda()`).
+- **Wali yang membuka `/mudarris/*`** diarahkan ke `/dashboard?akses=ditolak` (toast "Anda tidak punya akses ke halaman itu."), tidak dipetakan, karena halaman staff tidak punya padanan wali.
+- `loading.tsx`, `error.tsx`, dan `[...lainnya]` di `/mudarris` mengekspor ulang milik `/dashboard`; `not-found.tsx` terpisah karena tombolnya kembali ke beranda area.
 
 ## Temuan kontrak Fase 6
 
@@ -392,44 +406,44 @@ Andika hanya punya bobot 400 dan 700, jadi `font-semibold` tampil sebagai 700.
 | `/ppdb` | publik | Status buka/tutup, jadwal, kuota, sisa kuota, info HTML; tombol ke `/ppdb/daftar` dan tautan cek status |
 | `/ppdb/daftar` | publik | Form pendaftaran 4 langkah tanpa login (`POST /public/pendaftaran`); setelah terkirim tampil kode pendaftaran + salin. PPDB tutup/kuota penuh → pesan tanpa form |
 | `/ppdb/status?kode=` | publik | Cek status dengan kode + tanggal lahir anak (`GET /public/pendaftaran/status`) |
-| `/login` | publik (sudah masuk → `/dashboard`) | Login wali murid: NIS anak + password, tanpa pilihan role. Tujuan setelah masuk: ganti password awal, onboarding, lalu `?next=` atau beranda |
-| `/staff/login` | publik (sudah masuk → `/dashboard`) | Login guru dan Kepala Sekolah: email + password, tautan lupa password dan daftar guru. Hanya ditautkan kecil dari footer landing ("Masuk guru") dan dari halaman guru lain (daftar guru, lupa/reset password, menunggu persetujuan) |
-| `/daftar-guru`, `/lupa-password`, `/reset-password?token=&email=`, `/menunggu-persetujuan` | publik | Alur akun guru/Kepala Sekolah |
-| `/dashboard` | SA, G, W | Beranda per role (B5): SA panel Perlu Tindakan, statistik, keuangan bulan ini, grafik pemasukan; G kelas diampu, progres rapor, tagihan kelas; W kartu anak, kartu tagihan, rapor terbaru, kegiatan, pengumuman, agenda |
+| `/login` | publik (sudah masuk → beranda role) | Login wali murid: NIS anak + password, tanpa pilihan role. Tujuan setelah masuk: ganti password awal, onboarding, lalu `?next=` atau beranda |
+| `/mudarris/login` | publik (sudah masuk → beranda role) | Login guru dan Kepala Sekolah: email + password, tautan lupa password dan daftar guru. Hanya ditautkan kecil dari footer landing ("Masuk guru") dan dari halaman guru lain (daftar guru, lupa/reset password, menunggu persetujuan) |
+| `/mudarris/daftar`, `/mudarris/lupa-password`, `/mudarris/reset-password?token=&email=`, `/mudarris/menunggu-persetujuan` | publik | Alur akun guru/Kepala Sekolah |
+| `/dashboard` (W); `/mudarris` (SA, G) | SA, G, W | Beranda per role (B5): SA panel Perlu Tindakan, statistik, keuangan bulan ini, grafik pemasukan; G kelas diampu, progres rapor, tagihan kelas; W kartu anak, kartu tagihan, rapor terbaru, kegiatan, pengumuman, agenda |
 | `/dashboard/ganti-password` | pengguna dengan `wajib_ganti_password` | Ganti password awal (tanggal lahir anak). Tanpa menu, dengan tombol Keluar; yang tidak wajib diarahkan ke beranda |
 | `/dashboard/onboarding` | W (profil belum lengkap) | Lengkapi nama, nomor HP, alamat, pekerjaan, NIK opsional. Tanpa menu; wali yang sudah lengkap diarahkan ke beranda |
 | `/dashboard/anak` | W | Kartu anak tertaut + form Tambah Anak (NIS, tanggal lahir, hubungan) |
-| `/dashboard/ppdb` | SA, W | SA: ringkasan status PPDB + tabel pendaftar per status. W: pendaftaran miliknya + tombol daftar |
+| `/dashboard/ppdb` (W); `/mudarris/ppdb` (SA, G) | SA, W | SA: ringkasan status PPDB + tabel pendaftar per status. W: pendaftaran miliknya + tombol daftar |
 | `/dashboard/ppdb/daftar` | W | Form yang sama dengan form publik (`POST /pendaftaran`), nomor HP dan alamat terisi dari profil |
-| `/dashboard/ppdb/[id]` | SA, W (miliknya) | Detail + dokumen; SA: verifikasi, terima (pilih kelas), tolak |
-| `/dashboard/website` | SA | CMS lima tab (`?tab=`), Lihat Pratinjau, penjaga perubahan belum disimpan |
-| `/dashboard/website/galeri`, `/[id]` | SA | Album galeri; detail album dengan kelola foto |
-| `/dashboard/log-aktivitas` | SA | Tabel log + saringan jenis dan tanggal |
-| `/dashboard/notifikasi` | SA, G, W | Semua notifikasi berpaginasi (`?page=`), saring belum dibaca (`?belum=true`), tandai semua dibaca |
-| `/dashboard/profil` | SA, G, W | Nama, nomor HP, foto profil, ganti password; wali juga alamat, pekerjaan, NIK (username NIS ditampilkan, tidak bisa diubah) |
-| `/dashboard/guru`, `/dashboard/guru/baru`, `/dashboard/guru/[id]` | SA | Daftar per status + persetujuan; tambah guru (password awal sekali tampil); ubah data, foto, izin keuangan, tampil di landing, status akun |
-| `/dashboard/tahun-ajaran`, `/dashboard/tahun-ajaran/kenaikan` | SA | Tambah/ubah/aktifkan/hapus; wizard kenaikan kelas |
-| `/dashboard/kelas`, `/dashboard/kelas/[id]` | SA, G (kelas diampu, tanpa aksi) | Kartu kelas per tahun ajaran; detail + murid; SA tambah/ubah/hapus kelas, tempatkan dan keluarkan murid |
-| `/dashboard/murid`, `/dashboard/murid/baru`, `/dashboard/murid/[id]`, `/dashboard/murid/[id]/ubah` | SA, G (murid kelasnya, lihat saja) | Tabel + saringan; detail, kartu akun, wali tertaut (ubah hubungan, kontak utama, lepas); tambah/ubah/hapus (SA) |
-| `/dashboard/wali-murid`, `/dashboard/wali-murid/[id]` | SA | Daftar wali; ubah data, aktif/nonaktif, reset password, anak tertaut |
-| `/dashboard/pengaturan` | SA | Tab Rekening, Tagihan, PPDB, Beranda Wali, Elemen Penilaian (`?tab=`) |
-| `/dashboard/tagihan` | SA, G (kelasnya, lihat saja), W | W: kartu tagihan anak aktif. K: tabel + saringan, tagihan sekali bayar; SA juga generate bulanan |
-| `/dashboard/tagihan/[id]` | SA, G, W | Detail, riwayat pembayaran, kwitansi. W: rekening sekolah + unggah bukti. K: catat pembayaran, ubah, terima/tolak. SA: batalkan, aktifkan kembali |
-| `/dashboard/pembayaran` | K, W | K: antrean verifikasi + semua pembayaran dengan saringan. W: riwayat + kwitansi |
-| `/dashboard/keuangan/jenis-tagihan` | SA | Jenis tagihan per tahun ajaran |
-| `/dashboard/keuangan/keringanan` | K | Keringanan persen/rupiah per murid dan jenis tagihan |
-| `/dashboard/keuangan/laporan` | K | Ringkasan, grafik per bulan, tabel per bulan dan per jenis, unduh Excel |
-| `/dashboard/keuangan/tunggakan` | K | Murid dengan tagihan terlambat dan kontak walinya; tombol Kirim Pengumuman |
-| `/dashboard/kegiatan` | SA, G, W (lihat) | SA/G: feed + saringan kelas + cari, tombol Catat Kegiatan. W: feed kelas anak aktif |
-| `/dashboard/kegiatan/baru` | SA, G | Form kegiatan + unggah foto (maks 10); `?kelas=` memilih kelas awal |
-| `/dashboard/kegiatan/[id]` | SA, G, W | Detail + galeri + lightbox; pembuat/SA: ubah, hapus, kelola foto (keterangan, urutan, hapus, tambah) |
-| `/dashboard/rapor` | SA, G, W | G: kelas + semester → murid + status → buat/isi. SA: Menunggu Review, Semua Rapor, Kelas Saya. W: rapor terbit anak aktif + unduh PDF |
-| `/dashboard/rapor/[id]` | SA, G, W | Editor (pembuat saat draft/revisi, SA saat diajukan) atau tampilan; ajukan, terbitkan, minta revisi, tarik; PDF. W: rapor ditarik → pesan ramah |
-| `/dashboard/pengumuman` | SA, G, W (lihat) | Feed (disematkan di atas); SA/G: tab Semua/Terbit/Draft, cari, Tulis Pengumuman |
-| `/dashboard/pengumuman/baru` | SA, G | Form Tiptap + sasaran; `?dari=tunggakan&kelas=` terisi murid penunggak (K) |
-| `/dashboard/pengumuman/[id]`, `/[id]/ubah` | SA, G, W / penulis, SA | Detail; ubah dan hapus untuk penulis dan SA |
-| `/dashboard/agenda` | SA (kelola), G, W | Kalender bulanan + daftar (`?bulan=`, `?hari=`); SA tambah/ubah/hapus |
-| `/dashboard/*` lain | | 404 di dalam kerangka dashboard (`[...lainnya]`) |
+| `/dashboard/ppdb/[id]` (W); `/mudarris/ppdb/[id]` (SA, G) | SA, W (miliknya) | Detail + dokumen; SA: verifikasi, terima (pilih kelas), tolak |
+| `/mudarris/website` | SA | CMS lima tab (`?tab=`), Lihat Pratinjau, penjaga perubahan belum disimpan |
+| `/mudarris/website/galeri`, `/[id]` | SA | Album galeri; detail album dengan kelola foto |
+| `/mudarris/log-aktivitas` | SA | Tabel log + saringan jenis dan tanggal |
+| `/dashboard/notifikasi` (W); `/mudarris/notifikasi` (SA, G) | SA, G, W | Semua notifikasi berpaginasi (`?page=`), saring belum dibaca (`?belum=true`), tandai semua dibaca |
+| `/dashboard/profil` (W); `/mudarris/profil` (SA, G) | SA, G, W | Nama, nomor HP, foto profil, ganti password; wali juga alamat, pekerjaan, NIK (username NIS ditampilkan, tidak bisa diubah) |
+| `/mudarris/guru`, `/mudarris/guru/baru`, `/mudarris/guru/[id]` | SA | Daftar per status + persetujuan; tambah guru (password awal sekali tampil); ubah data, foto, izin keuangan, tampil di landing, status akun |
+| `/mudarris/tahun-ajaran`, `/mudarris/tahun-ajaran/kenaikan` | SA | Tambah/ubah/aktifkan/hapus; wizard kenaikan kelas |
+| `/mudarris/kelas`, `/mudarris/kelas/[id]` | SA, G (kelas diampu, tanpa aksi) | Kartu kelas per tahun ajaran; detail + murid; SA tambah/ubah/hapus kelas, tempatkan dan keluarkan murid |
+| `/mudarris/murid`, `/mudarris/murid/baru`, `/mudarris/murid/[id]`, `/mudarris/murid/[id]/ubah` | SA, G (murid kelasnya, lihat saja) | Tabel + saringan; detail, kartu akun, wali tertaut (ubah hubungan, kontak utama, lepas); tambah/ubah/hapus (SA) |
+| `/mudarris/wali-murid`, `/mudarris/wali-murid/[id]` | SA | Daftar wali; ubah data, aktif/nonaktif, reset password, anak tertaut |
+| `/mudarris/pengaturan` | SA | Tab Rekening, Tagihan, PPDB, Beranda Wali, Elemen Penilaian (`?tab=`) |
+| `/dashboard/tagihan` (W); `/mudarris/tagihan` (SA, G) | SA, G (kelasnya, lihat saja), W | W: kartu tagihan anak aktif. K: tabel + saringan, tagihan sekali bayar; SA juga generate bulanan |
+| `/dashboard/tagihan/[id]` (W); `/mudarris/tagihan/[id]` (SA, G) | SA, G, W | Detail, riwayat pembayaran, kwitansi. W: rekening sekolah + unggah bukti. K: catat pembayaran, ubah, terima/tolak. SA: batalkan, aktifkan kembali |
+| `/dashboard/pembayaran` (W); `/mudarris/pembayaran` (SA, G) | K, W | K: antrean verifikasi + semua pembayaran dengan saringan. W: riwayat + kwitansi |
+| `/mudarris/keuangan/jenis-tagihan` | SA | Jenis tagihan per tahun ajaran |
+| `/mudarris/keuangan/keringanan` | K | Keringanan persen/rupiah per murid dan jenis tagihan |
+| `/mudarris/keuangan/laporan` | K | Ringkasan, grafik per bulan, tabel per bulan dan per jenis, unduh Excel |
+| `/mudarris/keuangan/tunggakan` | K | Murid dengan tagihan terlambat dan kontak walinya; tombol Kirim Pengumuman |
+| `/dashboard/kegiatan` (W); `/mudarris/kegiatan` (SA, G) | SA, G, W (lihat) | SA/G: feed + saringan kelas + cari, tombol Catat Kegiatan. W: feed kelas anak aktif |
+| `/mudarris/kegiatan/baru` | SA, G | Form kegiatan + unggah foto (maks 10); `?kelas=` memilih kelas awal |
+| `/dashboard/kegiatan/[id]` (W); `/mudarris/kegiatan/[id]` (SA, G) | SA, G, W | Detail + galeri + lightbox; pembuat/SA: ubah, hapus, kelola foto (keterangan, urutan, hapus, tambah) |
+| `/dashboard/rapor` (W); `/mudarris/rapor` (SA, G) | SA, G, W | G: kelas + semester → murid + status → buat/isi. SA: Menunggu Review, Semua Rapor, Kelas Saya. W: rapor terbit anak aktif + unduh PDF |
+| `/dashboard/rapor/[id]` (W); `/mudarris/rapor/[id]` (SA, G) | SA, G, W | Editor (pembuat saat draft/revisi, SA saat diajukan) atau tampilan; ajukan, terbitkan, minta revisi, tarik; PDF. W: rapor ditarik → pesan ramah |
+| `/dashboard/pengumuman` (W); `/mudarris/pengumuman` (SA, G) | SA, G, W (lihat) | Feed (disematkan di atas); SA/G: tab Semua/Terbit/Draft, cari, Tulis Pengumuman |
+| `/mudarris/pengumuman/baru` | SA, G | Form Tiptap + sasaran; `?dari=tunggakan&kelas=` terisi murid penunggak (K) |
+| `/dashboard/pengumuman/[id]` (W); `/mudarris/pengumuman/[id]`, `/[id]/ubah` (SA, G) | SA, G, W / penulis, SA | Detail; ubah dan hapus untuk penulis dan SA |
+| `/dashboard/agenda` (W); `/mudarris/agenda` (SA, G) | SA (kelola), G, W | Kalender bulanan + daftar (`?bulan=`, `?hari=`); SA tambah/ubah/hapus |
+| `/dashboard/*`, `/mudarris/*` lain | | 404 di dalam kerangka area masing-masing (`[...lainnya]`) |
 | `/api/auth/staff/login`, `/api/auth/wali/login`, `/api/auth/logout`, `/api/auth/sesi-habis` | route handler | BFF sesi |
 | `/api/proxy/[...path]` | route handler | Proxy ke backend |
 | `/api/revalidate` | route handler (SA) | Buang cache data publik per tag setelah konten website disimpan |
@@ -454,6 +468,33 @@ Tempat deploy belum ditentukan. Syarat yang sudah pasti:
 5. Batas body di reverse proxy minimal 55 MB (unggahan kegiatan 10 foto × 5 MB). PHP backend: `upload_max_filesize` minimal `5M` per file dan `post_max_size` minimal `55M`.
 
 ## Changelog
+
+### Area /mudarris (branch `fe/rute-mudarris`)
+
+File baru: `src/app/mudarris/{layout,page,loading,error,not-found}.tsx`, `src/app/mudarris/[...lainnya]/page.tsx`, dan halaman `/mudarris` untuk agenda, kegiatan, kegiatan/[id], pengumuman, pengumuman/[id], rapor, rapor/[id], tagihan, tagihan/[id], pembayaran, ppdb, ppdb/[id], notifikasi, profil.
+
+File dipindah: halaman staff `src/app/dashboard/{guru,kelas,murid,keuangan,log-aktivitas,pengaturan,tahun-ajaran,wali-murid,website}`, `kegiatan/baru`, `pengumuman/baru`, `pengumuman/[id]/ubah` → `src/app/mudarris/...`; `src/app/(auth)/{staff/login,daftar-guru,lupa-password,reset-password,menunggu-persetujuan}` → `src/app/(auth)/mudarris/{login,daftar,lupa-password,reset-password,menunggu-persetujuan}`.
+
+File yang diubah:
+
+- `src/app/dashboard/*`: halaman bersama menjadi versi wali saja; layout mengarahkan staff ke `/mudarris`.
+- `src/proxy.ts`: dua area, login per area, pemetaan `/dashboard/*` staff ke `/mudarris/*`, penolakan wali di `/mudarris/*`.
+- `src/lib/auth/{path,role,rute-login,akses,masuk,redirect}.ts`: `BERANDA_WALI`, `BERANDA_STAFF`, `urlAksesDitolak()`, `aksesDitolak()`, `isRoleStaff()`, `berandaUntuk()`, `StatusSesi.beranda`, `RUTE_AKUN_STAFF`; tujuan setelah masuk ke beranda role.
+- `src/lib/navigation.ts`: menu dengan path relatif.
+- `src/components/layout/dashboard/{shell-dashboard,sidebar,menu-pengguna,notifikasi-bell,pesan-akses-ditolak}.tsx`: tautan dari beranda sesi.
+- 35 komponen khusus staff di `src/components/features/*`: `/dashboard/...` → `/mudarris/...`. `KartuKegiatan`, `KegiatanRingkas`, `PengumumanRingkas`, `FeedPengumuman`: prop `beranda`.
+- `src/components/features/auth/{form-login-staff,form-reset-password,use-masuk}.ts(x)`: tautan halaman akun guru.
+- `src/types/api.d.ts`: `npm run gen:api` (deskripsi field `url` notifikasi).
+- `PROMPT_FE_TK.md`: Bagian A disalin dari backend (identik, dicek `diff`); B2, B3, B4 untuk dua area.
+
+Pengujian (build produksi `next start` port 3001, backend branch `be/rute-mudarris` di port 8001 dengan SQLite sementara berisi `DemoSeeder`, Firefox headless lewat puppeteer-core di luar repo):
+
+- `lint`, `typecheck`, `build`, `check:slop` bersih. Backend: 691 test lulus, Pint, PHPStan, `check:slop` bersih.
+- Tanpa sesi: `/mudarris` dan `/mudarris/murid` → `/mudarris/login?next=`, `/dashboard/tagihan` → `/login?next=`. Lima halaman akun guru di `/mudarris/*` 200; `/staff/login`, `/daftar-guru`, `/lupa-password`, `/reset-password`, `/menunggu-persetujuan` 404. Footer landing "Masuk guru" → `/mudarris/login`.
+- Kepala Sekolah (1280 px): masuk → `/mudarris`; 22 item menu semua `/mudarris`; 23 halaman `/mudarris` terbuka tanpa halaman galat dan tanpa satu pun tautan `/dashboard`; detail murid juga. Notifikasi baru dari backend (`guru_baru`, url `/mudarris/guru/8`) dibuka dari lonceng → `/mudarris/guru/8`. `/dashboard/tagihan/1` → `/mudarris/tagihan/1`; `/dashboard`, `/login`, `/mudarris/login` → `/mudarris`; keluar → `/mudarris/login`.
+- Guru petugas keuangan (390 px): `?next=/mudarris/tagihan` dihormati; `/mudarris/guru` → `/mudarris` (akses ditolak); notifikasi lama berisi `/dashboard/tagihan/1` → `/mudarris/tagihan/1`; menu HP semua `/mudarris`; keluar → `/mudarris/login`. Guru pending → `/mudarris/menunggu-persetujuan`.
+- Wali (390 px): masuk → `/dashboard`; 11 halaman wali terbuka tanpa tautan `/mudarris`; navigasi bawah `/dashboard`; `/mudarris/murid` → `/dashboard` dengan toast akses; `/mudarris/login` → `/dashboard`; keluar → `/login`. Wali dengan password awal → `/dashboard/ganti-password`.
+- Belum diuji: axe dan pembaca layar untuk halaman yang dipindah (markup tidak berubah), guru tanpa izin keuangan, Safari/Chromium.
 
 ### Login terpisah (branch `fe/login-terpisah`)
 
