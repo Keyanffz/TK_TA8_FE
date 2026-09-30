@@ -45,7 +45,7 @@ export function DialogAlbum({ album, pemicu }: { album: GaleriAlbum | null; pemi
       const { data, message } = await simpan.mutateAsync({ ...nilai, deskripsi, cover: cover[0] ?? null });
       toast.success(message);
       setTerbuka(false);
-      if (!album) router.push(`/dashboard/website/galeri/${data.id}`);
+      if (!album) router.push(`/mudarris/website/galeri/${data.id}`);
     } catch (error) {
       if (!terapkanErrorValidasi(error, form.setError, ["judul", "tanggal", "deskripsi", "is_publik", "cover"])) toast.error(pesanError(error));
     }

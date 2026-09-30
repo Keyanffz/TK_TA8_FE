@@ -3,6 +3,7 @@ import Link from "next/link";
 
 import { FormResetPassword } from "@/components/features/auth/form-reset-password";
 import { KotakPesan } from "@/components/shared/kotak-pesan";
+import { RUTE_AKUN_STAFF } from "@/lib/auth/rute-login";
 
 export const metadata: Metadata = { title: "Buat Password Baru" };
 
@@ -11,7 +12,7 @@ function nilaiTunggal(nilai: string | string[] | undefined): string | null {
   return teks ? teks : null;
 }
 
-export default async function ResetPasswordPage({ searchParams }: PageProps<"/reset-password">) {
+export default async function ResetPasswordPage({ searchParams }: PageProps<"/mudarris/reset-password">) {
   const parameter = await searchParams;
   const token = nilaiTunggal(parameter.token);
   const email = nilaiTunggal(parameter.email);
@@ -24,7 +25,7 @@ export default async function ResetPasswordPage({ searchParams }: PageProps<"/re
       ) : (
         <KotakPesan nada="bahaya">
           Tautan reset password tidak lengkap. Buka lagi tautan dari email, atau{" "}
-          <Link href="/lupa-password" className="font-semibold underline underline-offset-4">
+          <Link href={RUTE_AKUN_STAFF.lupaPassword} className="font-semibold underline underline-offset-4">
             minta tautan baru
           </Link>
           .

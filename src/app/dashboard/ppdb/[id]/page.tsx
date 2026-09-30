@@ -2,14 +2,12 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { DetailPendaftaran } from "@/components/features/ppdb-sekolah/detail-pendaftaran";
-import { wajibAkses } from "@/lib/auth/akses";
 import { idDariParam } from "@/lib/halaman";
 
 export const metadata: Metadata = { title: "Pendaftaran PPDB" };
 
-// Juga tujuan notifikasi `pendaftaran_diproses` untuk wali (backend hanya mengirim pendaftaran miliknya).
+// Juga tujuan notifikasi `pendaftaran_diproses` (backend hanya mengirim pendaftaran milik wali itu).
 export default async function DetailPendaftaranPage({ params }: PageProps<"/dashboard/ppdb/[id]">) {
-  const user = await wajibAkses((sesi) => sesi.isSuperAdmin || sesi.isWali);
   const id = idDariParam((await params).id);
 
   return (
@@ -17,7 +15,7 @@ export default async function DetailPendaftaranPage({ params }: PageProps<"/dash
       <Link href="/dashboard/ppdb" className="mb-4 inline-flex min-h-11 items-center font-heading text-sm font-bold text-primary-strong hover:underline">
         Kembali ke PPDB
       </Link>
-      <DetailPendaftaran id={id} kepalaSekolah={user.role === "super_admin"} />
+      <DetailPendaftaran id={id} kepalaSekolah={false} />
     </div>
   );
 }

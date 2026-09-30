@@ -6,7 +6,7 @@ import { wajibAkses } from "@/lib/auth/akses";
 
 export const metadata: Metadata = { title: "Catat Kegiatan" };
 
-export default async function KegiatanBaruPage({ searchParams }: PageProps<"/dashboard/kegiatan/baru">) {
+export default async function KegiatanBaruPage({ searchParams }: PageProps<"/mudarris/kegiatan/baru">) {
   await wajibAkses((sesi) => sesi.isSuperAdmin || sesi.isGuru);
   const kelas = Number((await searchParams).kelas);
 

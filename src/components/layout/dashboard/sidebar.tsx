@@ -6,6 +6,7 @@ import Link from "next/link";
 import { DaftarMenu } from "@/components/layout/dashboard/daftar-menu";
 import { LogoSekolah } from "@/components/shared/logo-sekolah";
 import { PolaGeometri } from "@/components/shared/ornamen/pola-geometri";
+import { useSession } from "@/lib/auth/use-session";
 import { cn } from "@/lib/utils";
 
 type SidebarProps = {
@@ -16,12 +17,13 @@ type SidebarProps = {
 };
 
 export function Sidebar({ namaSekolah, logoUrl, ciut, onUbahCiut }: SidebarProps) {
+  const { beranda } = useSession();
   return (
     // Pembungkus hijau ikut setinggi halaman; isi menu menempel di layar saat digulir.
     <div className={cn("hidden shrink-0 bg-primary transition-[width] duration-200 lg:block", ciut ? "w-20" : "w-64")}>
     <aside className="sticky top-0 isolate flex h-dvh flex-col overflow-hidden text-primary-foreground">
       <PolaGeometri className="-z-10 text-primary-foreground/[0.06]" />
-      <Link href="/dashboard" className={cn("flex h-16 shrink-0 items-center gap-3 px-4", ciut && "justify-center px-0")}>
+      <Link href={beranda} className={cn("flex h-16 shrink-0 items-center gap-3 px-4", ciut && "justify-center px-0")}>
         <span className="rounded-full bg-card p-0.5">
           <LogoSekolah logoUrl={logoUrl} namaSekolah={namaSekolah} ukuran={40} className="size-10" />
         </span>

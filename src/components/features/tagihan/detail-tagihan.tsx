@@ -62,7 +62,7 @@ export function DetailTagihan({ id, peran }: { id: number; peran: PeranTagihan }
                 <dt className="text-muted-foreground">Murid</dt>
                 <dd className="font-bold">
                   {petugas || peran === "guru" ? (
-                    <Link href={`/dashboard/murid/${tagihan.murid.id}`} className="hover:underline">
+                    <Link href={`/mudarris/murid/${tagihan.murid.id}`} className="hover:underline">
                       {tagihan.murid.nama_lengkap}
                     </Link>
                   ) : (

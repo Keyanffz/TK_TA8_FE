@@ -33,7 +33,7 @@ function DaftarMuridKelas({ kelas, bisaKelola }: { kelas: KelasDetail; bisaKelol
         <li key={murid.id} className="flex flex-wrap items-center gap-3 px-4 py-3">
           <FotoProfil nama={murid.nama_lengkap} url={murid.foto_url} ukuran={40} className="size-10 text-sm" />
           <div className="min-w-0 flex-1">
-            <Link href={`/dashboard/murid/${murid.id}`} className="block truncate font-bold hover:underline">
+            <Link href={`/mudarris/murid/${murid.id}`} className="block truncate font-bold hover:underline">
               {murid.nama_lengkap}
             </Link>
             <p className="text-xs text-muted-foreground">

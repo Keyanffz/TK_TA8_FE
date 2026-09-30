@@ -24,7 +24,7 @@ export function TagihanMurid({ muridId }: { muridId: number }) {
           Tagihan
         </h2>
         {data && data.meta.total > JUMLAH_TAMPIL ? (
-          <Link href={`/dashboard/tagihan?cari=${encodeURIComponent(data.data[0]?.murid.nis ?? "")}`} className="text-sm font-bold text-primary-strong hover:underline">
+          <Link href={`/mudarris/tagihan?cari=${encodeURIComponent(data.data[0]?.murid.nis ?? "")}`} className="text-sm font-bold text-primary-strong hover:underline">
             Semua {data.meta.total} tagihan
           </Link>
         ) : null}
@@ -46,7 +46,7 @@ export function TagihanMurid({ muridId }: { muridId: number }) {
           <ul className="divide-y divide-border rounded-lg border border-border">
             {data.data.map((tagihan) => (
               <li key={tagihan.id}>
-                <Link href={`/dashboard/tagihan/${tagihan.id}`} className="flex min-h-12 items-center gap-3 px-3 py-2 text-sm hover:bg-muted/60">
+                <Link href={`/mudarris/tagihan/${tagihan.id}`} className="flex min-h-12 items-center gap-3 px-3 py-2 text-sm hover:bg-muted/60">
                   <span className="min-w-0 flex-1">
                     <span className="block truncate font-bold">{namaTagihan(tagihan)}</span>
                     <span className="block text-xs text-muted-foreground">Jatuh tempo {formatTanggal(tagihan.jatuh_tempo)}</span>

@@ -19,7 +19,7 @@ export function TambahKegiatan({ kelasAwal }: { kelasAwal: number | null }) {
         kirim={async (body) => {
           const { data, message } = await tambah.mutateAsync(body);
           toast.success(message);
-          router.replace(`/dashboard/kegiatan/${data.id}`);
+          router.replace(`/mudarris/kegiatan/${data.id}`);
         }}
       />
     </div>

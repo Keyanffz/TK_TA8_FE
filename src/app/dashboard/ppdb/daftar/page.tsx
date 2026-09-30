@@ -4,12 +4,12 @@ import { redirect } from "next/navigation";
 import { DaftarPpdbWali } from "@/components/features/ppdb/daftar-ppdb-wali";
 import { KepalaHalaman } from "@/components/shared/kepala-halaman";
 import { ambilPpdbPublik } from "@/lib/api/publik";
-import { wajibAkses } from "@/lib/auth/akses";
+import { wajibSesi } from "@/lib/auth/akses";
 
 export const metadata: Metadata = { title: "Daftarkan Anak" };
 
 export default async function DaftarPpdbWaliPage() {
-  const [user, ppdb] = await Promise.all([wajibAkses((sesi) => sesi.isWali), ambilPpdbPublik()]);
+  const [user, ppdb] = await Promise.all([wajibSesi(), ambilPpdbPublik()]);
   if (!ppdb.dibuka || ppdb.sisa_kuota <= 0) redirect("/dashboard/ppdb");
 
   return (

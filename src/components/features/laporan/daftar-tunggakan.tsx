@@ -46,7 +46,7 @@ export function DaftarTunggakan() {
               <span className="font-heading text-lg font-extrabold text-destructive tabular-nums">{formatRupiah(data.total_tunggakan)}</span>
             </p>
             {data.murid.length > 0 ? (
-              <Link href={`/dashboard/pengumuman/baru?dari=tunggakan${kelasId ? `&kelas=${kelasId}` : ""}`} className={buttonVariants({ variant: "outline" })}>
+              <Link href={`/mudarris/pengumuman/baru?dari=tunggakan${kelasId ? `&kelas=${kelasId}` : ""}`} className={buttonVariants({ variant: "outline" })}>
                 <Megaphone aria-hidden="true" />
                 Kirim Pengumuman
               </Link>
@@ -66,7 +66,7 @@ export function DaftarTunggakan() {
             <li key={murid.id} className="flex flex-col gap-3 rounded-xl border-l-4 border-destructive bg-card p-4 shadow-sm">
               <div className="flex flex-wrap items-start justify-between gap-2">
                 <div>
-                  <Link href={`/dashboard/murid/${murid.id}`} className="font-heading font-bold hover:underline">
+                  <Link href={`/mudarris/murid/${murid.id}`} className="font-heading font-bold hover:underline">
                     {murid.nama_lengkap}
                   </Link>
                   <p className="text-xs text-muted-foreground">
@@ -81,7 +81,7 @@ export function DaftarTunggakan() {
               <ul className="divide-y divide-border rounded-lg border border-border text-sm">
                 {murid.tagihan.map((tagihan) => (
                   <li key={tagihan.id}>
-                    <Link href={`/dashboard/tagihan/${tagihan.id}`} className="flex min-h-11 items-center justify-between gap-2 px-3 py-2 hover:bg-muted/60">
+                    <Link href={`/mudarris/tagihan/${tagihan.id}`} className="flex min-h-11 items-center justify-between gap-2 px-3 py-2 hover:bg-muted/60">
                       <span>
                         <span className="block font-bold">{tagihan.nama}</span>
                         <span className="block text-xs text-destructive">Jatuh tempo {formatTanggal(tagihan.jatuh_tempo)}</span>

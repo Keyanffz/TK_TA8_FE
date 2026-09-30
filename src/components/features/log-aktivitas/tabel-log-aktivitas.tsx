@@ -27,12 +27,12 @@ const LABEL_JENIS: Record<JenisLog, string> = {
 
 // Subjek log yang punya halaman detail di dashboard.
 const HALAMAN_SUBJEK: Record<string, { label: string; href: (id: number) => string }> = {
-  murid: { label: "Murid", href: (id) => `/dashboard/murid/${id}` },
-  guru: { label: "Guru", href: (id) => `/dashboard/guru/${id}` },
-  wali_murid: { label: "Wali murid", href: (id) => `/dashboard/wali-murid/${id}` },
-  tagihan: { label: "Tagihan", href: (id) => `/dashboard/tagihan/${id}` },
-  rapor: { label: "Rapor", href: (id) => `/dashboard/rapor/${id}` },
-  pendaftaran: { label: "Pendaftaran", href: (id) => `/dashboard/ppdb/${id}` },
+  murid: { label: "Murid", href: (id) => `/mudarris/murid/${id}` },
+  guru: { label: "Guru", href: (id) => `/mudarris/guru/${id}` },
+  wali_murid: { label: "Wali murid", href: (id) => `/mudarris/wali-murid/${id}` },
+  tagihan: { label: "Tagihan", href: (id) => `/mudarris/tagihan/${id}` },
+  rapor: { label: "Rapor", href: (id) => `/mudarris/rapor/${id}` },
+  pendaftaran: { label: "Pendaftaran", href: (id) => `/mudarris/ppdb/${id}` },
 };
 
 function Pelaku({ log }: { log: Log }) {

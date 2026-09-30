@@ -29,7 +29,7 @@ type ShellDashboardProps = {
  * menu di HP untuk Kepala Sekolah dan guru, bottom nav di HP untuk wali.
  */
 export function ShellDashboard({ namaSekolah, logoUrl, sidebarCiutAwal, anakAktifAwal, children }: ShellDashboardProps) {
-  const { isWali } = useSession();
+  const { isWali, beranda } = useSession();
   const [ciut, setCiut] = useState(sidebarCiutAwal);
 
   const ubahCiut = () => {
@@ -51,7 +51,7 @@ export function ShellDashboard({ namaSekolah, logoUrl, sidebarCiutAwal, anakAkti
           <header data-topbar-dashboard className="sticky top-0 z-30 bg-primary text-primary-foreground lg:border-b lg:border-border lg:bg-card lg:text-foreground">
             <div className="flex h-16 items-center gap-2 px-3 sm:px-4 lg:px-8">
               {isWali ? null : <MenuHp namaSekolah={namaSekolah} />}
-              <Link href="/dashboard" className="flex min-w-0 items-center gap-2 lg:hidden">
+              <Link href={beranda} className="flex min-w-0 items-center gap-2 lg:hidden">
                 {isWali ? (
                   <span className="rounded-full bg-card p-0.5">
                     <LogoSekolah logoUrl={logoUrl} namaSekolah={namaSekolah} ukuran={36} className="size-9" />

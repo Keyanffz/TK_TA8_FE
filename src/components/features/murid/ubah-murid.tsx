@@ -24,7 +24,7 @@ export function UbahMurid({ id }: { id: number }) {
       kirim={async (body) => {
         await ubah.mutateAsync(body);
         toast.success("Data murid tersimpan.");
-        router.push(`/dashboard/murid/${id}`);
+        router.push(`/mudarris/murid/${id}`);
       }}
     />
   );

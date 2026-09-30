@@ -6,7 +6,7 @@ import { wajibAkses } from "@/lib/auth/akses";
 
 export const metadata: Metadata = { title: "Tulis Pengumuman" };
 
-export default async function PengumumanBaruPage({ searchParams }: PageProps<"/dashboard/pengumuman/baru">) {
+export default async function PengumumanBaruPage({ searchParams }: PageProps<"/mudarris/pengumuman/baru">) {
   const user = await wajibAkses((sesi) => sesi.isSuperAdmin || sesi.isGuru);
   const { dari, kelas } = await searchParams;
   const dariTunggakan = dari === "tunggakan" && user.permissions.kelola_keuangan;

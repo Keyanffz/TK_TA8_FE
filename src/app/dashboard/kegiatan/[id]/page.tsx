@@ -2,13 +2,11 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { DetailKegiatan } from "@/components/features/kegiatan/detail-kegiatan";
-import { wajibSesi } from "@/lib/auth/akses";
 import { idDariParam } from "@/lib/halaman";
 
 export const metadata: Metadata = { title: "Kegiatan Kelas" };
 
 export default async function DetailKegiatanPage({ params }: PageProps<"/dashboard/kegiatan/[id]">) {
-  await wajibSesi();
   const id = idDariParam((await params).id);
 
   return (

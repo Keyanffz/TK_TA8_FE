@@ -47,7 +47,7 @@ export function AntreanReviewRapor() {
               </p>
               {rapor.diajukan_at ? <p className="text-xs text-muted-foreground">Diajukan {formatRelatif(rapor.diajukan_at)}</p> : null}
             </div>
-            <Link href={`/dashboard/rapor/${rapor.id}`} className={buttonVariants({ size: "sm", className: "self-start" })}>
+            <Link href={`/mudarris/rapor/${rapor.id}`} className={buttonVariants({ size: "sm", className: "self-start" })}>
               Review Rapor
             </Link>
           </li>
@@ -64,7 +64,7 @@ const KOLOM: ColumnDef<Rapor>[] = [
     header: "Murid",
     cell: ({ row }) => (
       <div>
-        <Link href={`/dashboard/rapor/${row.original.id}`} className="font-bold hover:underline">
+        <Link href={`/mudarris/rapor/${row.original.id}`} className="font-bold hover:underline">
           {row.original.murid.nama_lengkap}
         </Link>
         <p className="text-xs text-muted-foreground tabular-nums">{row.original.murid.nis}</p>
@@ -143,7 +143,7 @@ export function SemuaRapor() {
         onUbahHalaman={(nomor) => void setHalaman(nomor)}
         kosong={<EmptyState judul={cari ? `Tidak ada rapor yang cocok dengan "${cari}".` : "Belum ada rapor dengan saringan ini."} />}
         kartu={(rapor) => (
-          <Link href={`/dashboard/rapor/${rapor.id}`} className="flex flex-col gap-2 rounded-xl border border-border bg-card p-4 shadow-sm">
+          <Link href={`/mudarris/rapor/${rapor.id}`} className="flex flex-col gap-2 rounded-xl border border-border bg-card p-4 shadow-sm">
             <span className="flex items-start justify-between gap-2">
               <span className="font-bold">{rapor.murid.nama_lengkap}</span>
               <StatusBadge nada={NADA_STATUS_RAPOR[rapor.status]}>{LABEL_STATUS_RAPOR[rapor.status]}</StatusBadge>

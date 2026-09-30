@@ -19,7 +19,7 @@ export default async function MuridPage() {
         deskripsi={kepalaSekolah ? "Semua murid sekolah. Murid baru otomatis dibuatkan akun wali dengan username NIS." : "Murid di kelas yang Anda ampu."}
         aksi={
           kepalaSekolah ? (
-            <Link href="/dashboard/murid/baru" className={buttonVariants()}>
+            <Link href="/mudarris/murid/baru" className={buttonVariants()}>
               Tambah Murid
             </Link>
           ) : null

@@ -57,7 +57,7 @@ export function DetailMurid({ id, bisaKelola, tagihan }: DetailMuridProps) {
             </div>
             {bisaKelola ? (
               <div className="flex flex-wrap gap-2">
-                <Link href={`/dashboard/murid/${murid.id}/ubah`} className={buttonVariants({ variant: "outline" })}>
+                <Link href={`/mudarris/murid/${murid.id}/ubah`} className={buttonVariants({ variant: "outline" })}>
                   Ubah Data
                 </Link>
                 <DialogKonfirmasi
@@ -69,7 +69,7 @@ export function DetailMurid({ id, bisaKelola, tagihan }: DetailMuridProps) {
                   onKonfirmasi={async () => {
                     await hapus.mutateAsync(murid.id);
                     toast.success(`Data ${murid.nama_lengkap} dihapus.`);
-                    router.replace("/dashboard/murid");
+                    router.replace("/mudarris/murid");
                   }}
                 />
               </div>

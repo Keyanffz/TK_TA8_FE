@@ -2,13 +2,11 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { DetailRapor } from "@/components/features/rapor/detail-rapor";
-import { wajibSesi } from "@/lib/auth/akses";
 import { idDariParam } from "@/lib/halaman";
 
 export const metadata: Metadata = { title: "Rapor" };
 
 export default async function DetailRaporPage({ params }: PageProps<"/dashboard/rapor/[id]">) {
-  await wajibSesi();
   const id = idDariParam((await params).id);
 
   return (

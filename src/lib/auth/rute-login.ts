@@ -1,6 +1,16 @@
+import { isRoleStaff } from "@/lib/auth/role";
+
 export const RUTE_LOGIN = {
   wali: "/login",
-  staff: "/staff/login",
+  staff: "/mudarris/login",
+} as const;
+
+/** Halaman akun guru dan Kepala Sekolah yang bisa dibuka tanpa masuk. */
+export const RUTE_AKUN_STAFF = {
+  daftar: "/mudarris/daftar",
+  lupaPassword: "/mudarris/lupa-password",
+  resetPassword: "/mudarris/reset-password",
+  menungguPersetujuan: "/mudarris/menunggu-persetujuan",
 } as const;
 
 /**
@@ -8,7 +18,7 @@ export const RUTE_LOGIN = {
  * (belum pernah masuk di browser ini) ke login wali, pengguna terbanyak.
  */
 export function ruteLogin(role: string | null | undefined): string {
-  return role === "super_admin" || role === "guru" ? RUTE_LOGIN.staff : RUTE_LOGIN.wali;
+  return isRoleStaff(role) ? RUTE_LOGIN.staff : RUTE_LOGIN.wali;
 }
 
 /** URL halaman login dengan ?next= yang dibawa ke halaman tujuan setelah masuk. */

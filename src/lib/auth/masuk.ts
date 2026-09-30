@@ -3,6 +3,7 @@ import { z } from "zod";
 import { errorDariResponse } from "@/lib/api/errors";
 import { RUTE_GANTI_PASSWORD, RUTE_ONBOARDING } from "@/lib/auth/path";
 import { amankanTujuan } from "@/lib/auth/redirect";
+import { berandaUntuk } from "@/lib/auth/role";
 
 // Respons route handler /api/auth/staff/login dan /api/auth/wali/login. Hanya
 // bagian yang dibutuhkan untuk menentukan halaman tujuan yang dibaca.
@@ -49,5 +50,5 @@ export function tujuanSetelahMasuk(
 ): string {
   if (user.wajib_ganti_password) return RUTE_GANTI_PASSWORD;
   if (user.role === "wali_murid" && user.wali_murid?.profil_lengkap !== true) return RUTE_ONBOARDING;
-  return amankanTujuan(next);
+  return amankanTujuan(next, berandaUntuk(user.role));
 }

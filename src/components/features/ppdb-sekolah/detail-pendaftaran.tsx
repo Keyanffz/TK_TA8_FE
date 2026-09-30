@@ -163,7 +163,7 @@ export function DetailPendaftaran({ id, kepalaSekolah }: { id: number; kepalaSek
               {kepalaSekolah ? "Penempatan kelas dan kartu akun wali ada di halaman murid." : "Silakan datang ke sekolah untuk daftar ulang."}
             </p>
             {kepalaSekolah ? (
-              <Link href={`/dashboard/murid/${pendaftaran.murid.id}`} className={buttonVariants({ size: "sm", variant: "outline", className: "mt-3" })}>
+              <Link href={`/mudarris/murid/${pendaftaran.murid.id}`} className={buttonVariants({ size: "sm", variant: "outline", className: "mt-3" })}>
                 Buka Data Murid
               </Link>
             ) : null}

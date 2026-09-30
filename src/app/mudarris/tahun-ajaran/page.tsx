@@ -19,7 +19,7 @@ export default async function TahunAjaranPage() {
         deskripsi="Hanya satu tahun ajaran yang aktif. Kelas, tagihan bulanan, dan rapor memakai tahun ajaran aktif."
         aksi={
           <div className="flex flex-wrap gap-2">
-            <Link href="/dashboard/tahun-ajaran/kenaikan" className={buttonVariants({ variant: "outline" })}>
+            <Link href="/mudarris/tahun-ajaran/kenaikan" className={buttonVariants({ variant: "outline" })}>
               Kenaikan Kelas
             </Link>
             <FormTahunAjaran tahunAjaran={null} pemicu={<Button>Tambah Tahun Ajaran</Button>} />

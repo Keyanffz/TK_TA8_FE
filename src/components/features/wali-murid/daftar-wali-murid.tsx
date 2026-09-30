@@ -28,7 +28,7 @@ const KOLOM: ColumnDef<WaliMurid>[] = [
     id: "wali",
     header: "Wali murid",
     cell: ({ row }) => (
-      <Link href={`/dashboard/wali-murid/${row.original.id}`} className="font-bold hover:underline">
+      <Link href={`/mudarris/wali-murid/${row.original.id}`} className="font-bold hover:underline">
         {row.original.user.name}
       </Link>
     ),
@@ -69,7 +69,7 @@ export function DaftarWaliMurid() {
         kelasKolom={{ anak: "text-right" }}
         kosong={<EmptyState judul={cari ? `Tidak ada wali yang cocok dengan "${cari}".` : "Belum ada wali murid."} />}
         kartu={(wali) => (
-          <Link href={`/dashboard/wali-murid/${wali.id}`} className="flex flex-col gap-2 rounded-xl border border-border bg-card p-4 shadow-sm">
+          <Link href={`/mudarris/wali-murid/${wali.id}`} className="flex flex-col gap-2 rounded-xl border border-border bg-card p-4 shadow-sm">
             <span className="font-bold">{wali.user.name}</span>
             <span className="text-sm text-muted-foreground">
               <span className="tabular-nums">{wali.user.username ?? "-"}</span> · {wali.jumlah_anak} anak ·{" "}

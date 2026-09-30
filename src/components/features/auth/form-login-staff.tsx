@@ -11,6 +11,7 @@ import { KolomPassword, KolomTeks } from "@/components/shared/kolom-teks";
 import { KotakPesan } from "@/components/shared/kotak-pesan";
 import { FieldGroup } from "@/components/ui/field";
 import { masukStaff } from "@/lib/auth/masuk";
+import { RUTE_AKUN_STAFF } from "@/lib/auth/rute-login";
 import { skemaEmail } from "@/lib/auth/skema";
 
 const skemaLogin = z.object({
@@ -35,14 +36,14 @@ export function FormLoginStaff() {
         <KolomTeks label="Email" type="email" autoComplete="email" inputMode="email" error={errors.email?.message} {...form.register("email")} />
         <KolomPassword label="Password" autoComplete="current-password" error={errors.password?.message} {...form.register("password")} />
         <div className="-mt-2 text-right">
-          <Link href="/lupa-password" className="text-sm font-semibold text-primary-strong hover:underline">
+          <Link href={RUTE_AKUN_STAFF.lupaPassword} className="text-sm font-semibold text-primary-strong hover:underline">
             Lupa password?
           </Link>
         </div>
         <TombolMasuk sedangMemeriksa={sedangMemeriksa} sisaJeda={sisaJeda} />
         <p className="text-sm text-muted-foreground">
           Belum punya akun guru?{" "}
-          <Link href="/daftar-guru" className="font-semibold text-primary-strong hover:underline">
+          <Link href={RUTE_AKUN_STAFF.daftar} className="font-semibold text-primary-strong hover:underline">
             Daftar sebagai guru
           </Link>
         </p>

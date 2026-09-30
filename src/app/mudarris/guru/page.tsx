@@ -17,7 +17,7 @@ export default async function GuruPage() {
         judul="Guru"
         deskripsi="Setujui pendaftaran guru, atur izin keuangan, dan pilih guru yang tampil di halaman depan."
         aksi={
-          <Link href="/dashboard/guru/baru" className={buttonVariants()}>
+          <Link href="/mudarris/guru/baru" className={buttonVariants()}>
             Tambah Guru
           </Link>
         }

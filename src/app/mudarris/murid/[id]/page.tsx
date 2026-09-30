@@ -7,7 +7,7 @@ import { idDariParam } from "@/lib/halaman";
 
 export const metadata: Metadata = { title: "Data Murid" };
 
-export default async function DetailMuridPage({ params }: PageProps<"/dashboard/murid/[id]">) {
+export default async function DetailMuridPage({ params }: PageProps<"/mudarris/murid/[id]">) {
   const user = await wajibAkses((sesi) => sesi.isSuperAdmin || sesi.isGuru);
   const id = idDariParam((await params).id);
 

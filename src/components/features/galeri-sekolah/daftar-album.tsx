@@ -28,7 +28,7 @@ export function DaftarAlbum() {
       <ul className={cn("grid gap-5 sm:grid-cols-2 lg:grid-cols-3", isPlaceholderData && "opacity-60")}>
         {data.data.map((album) => (
           <li key={album.id}>
-            <Link href={`/dashboard/website/galeri/${album.id}`} className="angkat flex h-full flex-col overflow-hidden rounded-xl border border-border bg-card shadow-sm">
+            <Link href={`/mudarris/website/galeri/${album.id}`} className="angkat flex h-full flex-col overflow-hidden rounded-xl border border-border bg-card shadow-sm">
               <span className="relative block aspect-[4/3] bg-muted">
                 {album.cover_url ? (
                   <Image src={album.cover_url} alt="" fill sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw" className="object-cover" />

@@ -26,7 +26,7 @@ function KartuKelas({ kelas, bisaKelola }: { kelas: Kelas; bisaKelola: boolean }
     <div className="angkat flex h-full flex-col gap-3 rounded-xl border border-border bg-card p-5 shadow-sm">
       <div className="flex items-start justify-between gap-2">
         <div>
-          <Link href={`/dashboard/kelas/${kelas.id}`} className="font-heading text-lg font-extrabold hover:underline">
+          <Link href={`/mudarris/kelas/${kelas.id}`} className="font-heading text-lg font-extrabold hover:underline">
             {kelas.nama}
           </Link>
           <p className="text-sm text-muted-foreground">{LABEL_TINGKAT[kelas.tingkat]}</p>

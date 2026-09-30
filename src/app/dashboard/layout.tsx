@@ -8,8 +8,10 @@ import { queryKeys } from "@/lib/api/query-keys";
 import { pathSekarang, wajibSesi } from "@/lib/auth/akses";
 import { pilihAnakAktif } from "@/lib/auth/anak-aktif";
 import { ANAK_COOKIE, SIDEBAR_COOKIE } from "@/lib/auth/cookies";
-import { RUTE_GANTI_PASSWORD, RUTE_ONBOARDING } from "@/lib/auth/path";
+import { BERANDA_STAFF, RUTE_GANTI_PASSWORD, RUTE_ONBOARDING } from "@/lib/auth/path";
+import { isRoleStaff } from "@/lib/auth/role";
 
+/** Area wali murid. Guru dan Kepala Sekolah memakai /mudarris. */
 export default async function DashboardLayout({ children }: LayoutProps<"/dashboard">) {
   const [user, path, cookieStore, profil] = await Promise.all([
     wajibSesi(),
@@ -17,6 +19,10 @@ export default async function DashboardLayout({ children }: LayoutProps<"/dashbo
     cookies(),
     ambilProfilSekolah(),
   ]);
+  // proxy.ts sudah memetakan /dashboard/* ke /mudarris/* berdasarkan cookie tk_role;
+  // ini untuk cookie yang tidak cocok dengan sesi sebenarnya.
+  if (isRoleStaff(user.role)) redirect(BERANDA_STAFF);
+
   const rute = path.split("?")[0];
   const halamanGantiPassword = rute === RUTE_GANTI_PASSWORD;
   const halamanOnboarding = rute === RUTE_ONBOARDING;

@@ -55,7 +55,7 @@ export function DetailPengumuman({ id }: { id: number }) {
       <KontenHtml html={pengumuman.isi} />
       {bolehKelola ? (
         <footer className="flex flex-wrap gap-2 border-t border-border pt-4">
-          <Link href={`/dashboard/pengumuman/${pengumuman.id}/ubah`} className={buttonVariants({ variant: "outline" })}>
+          <Link href={`/mudarris/pengumuman/${pengumuman.id}/ubah`} className={buttonVariants({ variant: "outline" })}>
             <Pencil aria-hidden="true" />
             Ubah Pengumuman
           </Link>
@@ -73,7 +73,7 @@ export function DetailPengumuman({ id }: { id: number }) {
             onKonfirmasi={async () => {
               const { message } = await hapus.mutateAsync(pengumuman.id);
               toast.success(message);
-              router.replace("/dashboard/pengumuman");
+              router.replace("/mudarris/pengumuman");
             }}
           />
         </footer>

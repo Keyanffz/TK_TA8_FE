@@ -25,7 +25,7 @@ const KOLOM: ColumnDef<Pembayaran>[] = [
     id: "pembayaran",
     header: "Pembayaran",
     cell: ({ row }) => (
-      <Link href={`/dashboard/tagihan/${row.original.tagihan_id}`} className="block hover:underline">
+      <Link href={`/mudarris/tagihan/${row.original.tagihan_id}`} className="block hover:underline">
         <span className="block font-bold">{namaTagihan(row.original.tagihan)}</span>
         <span className="block text-xs text-muted-foreground tabular-nums">{row.original.kode}</span>
       </Link>
@@ -102,7 +102,7 @@ export function RiwayatPembayaranSekolah() {
         kosong={<EmptyState judul="Tidak ada pembayaran yang cocok." />}
         kartu={(bayar) => (
           <div className="flex flex-col gap-2 rounded-xl border border-border bg-card p-4 shadow-sm">
-            <Link href={`/dashboard/tagihan/${bayar.tagihan_id}`} className="font-bold hover:underline">
+            <Link href={`/mudarris/tagihan/${bayar.tagihan_id}`} className="font-bold hover:underline">
               {namaTagihan(bayar.tagihan)} · {bayar.tagihan.murid.nama_panggilan}
             </Link>
             <p className="text-sm text-muted-foreground">

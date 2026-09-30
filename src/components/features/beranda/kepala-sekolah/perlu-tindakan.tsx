@@ -10,10 +10,10 @@ import { cn } from "@/lib/utils";
 type Tertunda = DashboardKepalaSekolah["tertunda"];
 
 const TINDAKAN: readonly { kunci: keyof Tertunda; label: string; href: string; ikon: LucideIcon }[] = [
-  { kunci: "pembayaran_menunggu", label: "Pembayaran menunggu verifikasi", href: "/dashboard/pembayaran", ikon: Wallet },
-  { kunci: "rapor_diajukan", label: "Rapor menunggu review", href: "/dashboard/rapor", ikon: BookOpenText },
-  { kunci: "guru_pending", label: "Guru menunggu persetujuan", href: "/dashboard/guru?status=pending", ikon: GraduationCap },
-  { kunci: "pendaftaran_baru", label: "Pendaftar PPDB baru", href: "/dashboard/ppdb", ikon: UserPlus },
+  { kunci: "pembayaran_menunggu", label: "Pembayaran menunggu verifikasi", href: "/mudarris/pembayaran", ikon: Wallet },
+  { kunci: "rapor_diajukan", label: "Rapor menunggu review", href: "/mudarris/rapor", ikon: BookOpenText },
+  { kunci: "guru_pending", label: "Guru menunggu persetujuan", href: "/mudarris/guru?status=pending", ikon: GraduationCap },
+  { kunci: "pendaftaran_baru", label: "Pendaftar PPDB baru", href: "/mudarris/ppdb", ikon: UserPlus },
 ];
 
 /** Panel "Perlu Tindakan" (B5), hal paling penting di beranda Kepala Sekolah. */

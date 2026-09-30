@@ -9,14 +9,22 @@ import type { KegiatanKelas } from "@/types/domain";
 const KEMIRINGAN = ["-1deg", "0.8deg", "-0.4deg", "1.2deg"] as const;
 
 /** Satu kegiatan di feed: foto utama besar dan dua foto kecil seperti foto cetak yang ditempel. */
-export function KartuKegiatan({ kegiatan, indeks, tampilkanKelas }: { kegiatan: KegiatanKelas; indeks: number; tampilkanKelas: boolean }) {
+type KartuKegiatanProps = {
+  kegiatan: KegiatanKelas;
+  indeks: number;
+  tampilkanKelas: boolean;
+  /** /dashboard (wali) atau /mudarris (guru, Kepala Sekolah). */
+  beranda: string;
+};
+
+export function KartuKegiatan({ kegiatan, indeks, tampilkanKelas, beranda }: KartuKegiatanProps) {
   const [utama, ...lain] = kegiatan.foto;
   const kecil = lain.slice(0, 2);
   const sisa = kegiatan.foto.length - 1 - kecil.length;
 
   return (
     <Link
-      href={`/dashboard/kegiatan/${kegiatan.id}`}
+      href={`${beranda}/kegiatan/${kegiatan.id}`}
       className="angkat flex h-full flex-col rounded-lg border border-border bg-card p-3 shadow-sm rotate-(--miring) hover:rotate-0"
       style={{ "--miring": KEMIRINGAN[indeks % KEMIRINGAN.length], "--miring-hover": "0deg" } as CSSProperties}
     >
