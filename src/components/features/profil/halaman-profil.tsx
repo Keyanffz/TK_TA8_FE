@@ -5,7 +5,10 @@ import { KepalaHalaman } from "@/components/shared/kepala-halaman";
 import { LABEL_ROLE } from "@/lib/constants/label";
 import type { User } from "@/types/domain";
 
-/** Isi halaman Profil Saya untuk kedua area; bagian data wali hanya untuk akun wali murid. */
+/**
+ * Isi halaman Profil Saya untuk kedua area; bagian data wali hanya untuk akun wali murid. Guru tidak punya
+ * password (masuk dengan Google), jadi bagian ganti password diganti keterangan akun Google.
+ */
 export function HalamanProfil({ user }: { user: User }) {
   return (
     <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
@@ -27,12 +30,24 @@ export function HalamanProfil({ user }: { user: User }) {
             </section>
           ) : null}
         </div>
-        <section aria-labelledby="judul-password" className="rounded-xl border border-border bg-card p-5 shadow-sm">
-          <h2 id="judul-password" className="mb-5 text-lg font-extrabold">
-            Ganti password
-          </h2>
-          <FormGantiPassword />
-        </section>
+        {user.role === "guru" ? (
+          <section aria-labelledby="judul-masuk" className="rounded-xl border border-border bg-card p-5 shadow-sm">
+            <h2 id="judul-masuk" className="mb-3 text-lg font-extrabold">
+              Cara masuk
+            </h2>
+            <p className="text-muted-foreground">
+              Anda masuk dengan akun Google <span className="font-bold break-all text-foreground">{user.email}</span>. Akun guru tidak memakai
+              password. Untuk memakai akun Google lain, minta Kepala Sekolah mengganti email Anda di data guru.
+            </p>
+          </section>
+        ) : (
+          <section aria-labelledby="judul-password" className="rounded-xl border border-border bg-card p-5 shadow-sm">
+            <h2 id="judul-password" className="mb-5 text-lg font-extrabold">
+              Ganti password
+            </h2>
+            <FormGantiPassword />
+          </section>
+        )}
       </div>
     </div>
   );

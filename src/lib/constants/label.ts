@@ -25,9 +25,7 @@ export const LABEL_ROLE: Record<Role, string> = {
 };
 
 export const LABEL_STATUS_AKUN: Record<StatusAkun, string> = {
-  pending: "Menunggu persetujuan",
   aktif: "Aktif",
-  ditolak: "Ditolak",
   nonaktif: "Nonaktif",
 };
 

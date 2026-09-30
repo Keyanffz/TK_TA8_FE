@@ -8,27 +8,29 @@ import { KotakPesan } from "@/components/shared/kotak-pesan";
 import { TombolSalin } from "@/components/shared/tombol-salin";
 import { buttonVariants } from "@/components/ui/button";
 import { useTambahGuru } from "@/lib/api/guru";
+import { RUTE_LOGIN } from "@/lib/auth/rute-login";
 import type { Guru } from "@/types/domain";
 
-/** Akun guru dibuat langsung aktif; password awal hanya tampil sekali di sini (A7 `POST /guru`). */
+/** Akun guru dibuat langsung aktif tanpa password; guru masuk dengan Google (A7 `POST /guru`). */
 export function TambahGuru() {
   const tambah = useTambahGuru();
   const [baru, setBaru] = useState<Guru | null>(null);
 
   if (baru) {
+    const halamanMasuk = `${window.location.origin}${RUTE_LOGIN.staff}`;
     return (
       <KotakPesan nada="sukses" judul={`Akun ${baru.user.name} sudah dibuat`}>
-        <p>Sampaikan email dan password awal berikut ke guru. Password ini hanya tampil sekali dan tidak dikirim lewat email.</p>
+        <p>Sampaikan ke guru: buka halaman masuk guru, pilih Masuk dengan Google, lalu pakai akun Google dengan email berikut.</p>
         <dl className="mt-4 grid gap-3 text-foreground sm:grid-cols-2">
           <div>
-            <dt className="text-sm text-muted-foreground">Email</dt>
+            <dt className="text-sm text-muted-foreground">Email Google</dt>
             <dd className="font-bold break-all">{baru.user.email}</dd>
           </div>
           <div>
-            <dt className="text-sm text-muted-foreground">Password awal</dt>
+            <dt className="text-sm text-muted-foreground">Halaman masuk guru</dt>
             <dd className="flex flex-wrap items-center gap-2">
-              <span className="rounded-md bg-card px-3 py-1 font-heading text-lg font-extrabold tracking-wider">{baru.password_awal}</span>
-              {baru.password_awal ? <TombolSalin teks={baru.password_awal} label="Salin" /> : null}
+              <span className="font-bold break-all">{halamanMasuk}</span>
+              <TombolSalin teks={halamanMasuk} label="Salin" />
             </dd>
           </div>
         </dl>

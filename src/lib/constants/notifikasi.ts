@@ -9,7 +9,6 @@ import {
   Megaphone,
   ReceiptText,
   UserPlus,
-  UserRoundPlus,
   Wallet,
   type LucideIcon,
 } from "lucide-react";
@@ -25,7 +24,6 @@ export const TAMPILAN_NOTIFIKASI: Record<JenisNotifikasi, { ikon: LucideIcon; na
   pembayaran_masuk: { ikon: Wallet, nada: "proses" },
   pembayaran_diterima: { ikon: CircleCheck, nada: "sukses" },
   pembayaran_ditolak: { ikon: CircleX, nada: "bahaya" },
-  guru_baru: { ikon: UserRoundPlus, nada: "proses" },
   rapor_diajukan: { ikon: BookOpenText, nada: "proses" },
   rapor_revisi: { ikon: BookOpenText, nada: "menunggu" },
   rapor_terbit: { ikon: BookCheck, nada: "sukses" },

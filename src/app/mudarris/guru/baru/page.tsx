@@ -11,7 +11,7 @@ export default async function TambahGuruPage() {
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
-      <KepalaHalaman judul="Tambah Guru" deskripsi="Akun langsung aktif tanpa perlu persetujuan. Password awal dibuat otomatis." />
+      <KepalaHalaman judul="Tambah Guru" deskripsi="Akun langsung aktif. Guru masuk dengan akun Google beremail yang Anda isi, tanpa password." />
       <TambahGuru />
     </div>
   );

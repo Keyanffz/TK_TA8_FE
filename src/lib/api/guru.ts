@@ -70,23 +70,6 @@ export function useUbahGuru(id: number) {
   });
 }
 
-export function useSetujuiGuru() {
-  const segarkan = useSegarkanGuru();
-  return useMutation({
-    mutationFn: (id: number) => ambilData(api.POST("/guru/{id}/setujui", { params: { path: { id } } })),
-    onSuccess: segarkan,
-  });
-}
-
-export function useTolakGuru() {
-  const segarkan = useSegarkanGuru();
-  return useMutation({
-    mutationFn: ({ id, alasan }: { id: number; alasan: string }) =>
-      ambilData(api.POST("/guru/{id}/tolak", { params: { path: { id } }, body: { alasan } })),
-    onSuccess: segarkan,
-  });
-}
-
 export function useUbahStatusGuru() {
   const segarkan = useSegarkanGuru();
   return useMutation({

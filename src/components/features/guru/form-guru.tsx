@@ -96,7 +96,14 @@ export function FormGuru({ guru, kirim, labelSimpan }: FormGuruProps) {
         <div className="grid gap-4 sm:grid-cols-2">
           <KolomTeks label="Nama lengkap" autoComplete="off" error={errors.name?.message} {...form.register("name")} />
           <KolomTeks label="Jabatan" error={errors.jabatan?.message} {...form.register("jabatan")} />
-          <KolomTeks label="Email" type="email" autoComplete="off" deskripsi="Dipakai guru untuk masuk." error={errors.email?.message} {...form.register("email")} />
+          <KolomTeks
+            label="Email Google"
+            type="email"
+            autoComplete="off"
+            deskripsi={guru ? "Guru masuk dengan akun Google beremail ini. Mengganti email melepas akun Google yang lama." : "Guru masuk dengan akun Google beremail ini, tanpa password."}
+            error={errors.email?.message}
+            {...form.register("email")}
+          />
           <KolomTeks label="Nomor HP" type="tel" inputMode="numeric" placeholder="08xxxxxxxxxx" error={errors.no_hp?.message} {...form.register("no_hp")} />
         </div>
         <Controller

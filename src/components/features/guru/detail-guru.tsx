@@ -2,7 +2,6 @@
 
 import { toast } from "sonner";
 
-import { AksiPersetujuanGuru } from "@/components/features/guru/aksi-persetujuan-guru";
 import { FormGuru } from "@/components/features/guru/form-guru";
 import { DialogKonfirmasi } from "@/components/shared/dialog-konfirmasi";
 import { FotoProfil } from "@/components/shared/foto-profil";
@@ -21,8 +20,6 @@ function AksiStatus({ guru }: { guru: Guru }) {
   const ubahStatus = useUbahStatusGuru();
   const { status, name } = guru.user;
   if (guru.user.role === "super_admin") return null;
-  if (status === "pending") return <AksiPersetujuanGuru id={guru.id} nama={name} />;
-  if (status === "ditolak") return null;
   const nonaktifkan = status === "aktif";
   return (
     <DialogKonfirmasi
@@ -30,8 +27,8 @@ function AksiStatus({ guru }: { guru: Guru }) {
       judul={nonaktifkan ? `Nonaktifkan akun ${name}?` : `Aktifkan kembali akun ${name}?`}
       deskripsi={
         nonaktifkan
-          ? "Guru langsung dikeluarkan dari semua perangkat dan tidak bisa masuk sampai diaktifkan lagi. Data kelas dan kegiatan tetap ada."
-          : "Guru bisa masuk lagi dengan email dan password lamanya."
+          ? "Guru langsung dikeluarkan dari semua perangkat dan tidak bisa masuk sampai diaktifkan lagi. Akun tidak dihapus, jadi data kelas, kegiatan, dan rapor tetap ada."
+          : "Guru bisa masuk lagi dengan akun Google yang emailnya terdaftar di sini."
       }
       labelAksi={nonaktifkan ? "Nonaktifkan" : "Aktifkan"}
       berbahaya={nonaktifkan}
@@ -66,22 +63,11 @@ export function DetailGuru({ id }: { id: number }) {
         {guru.user.role === "super_admin" ? (
           <KotakPesan nada="proses">Profil guru milik Kepala Sekolah. Status akun dan izin keuangan tidak bisa diubah.</KotakPesan>
         ) : null}
-        {guru.user.status === "ditolak" && guru.alasan_penolakan ? (
-          <KotakPesan nada="bahaya" judul="Alasan penolakan">
-            {guru.alasan_penolakan}
-          </KotakPesan>
-        ) : null}
         <dl className="grid gap-2 text-sm">
           <div>
             <dt className="text-muted-foreground">Terdaftar</dt>
             <dd className="font-bold">{guru.created_at ? formatTanggal(guru.created_at) : "-"}</dd>
           </div>
-          {guru.disetujui_at ? (
-            <div>
-              <dt className="text-muted-foreground">Disetujui</dt>
-              <dd className="font-bold">{formatTanggal(guru.disetujui_at)}</dd>
-            </div>
-          ) : null}
           <div>
             <dt className="text-muted-foreground">Terakhir masuk</dt>
             <dd className="font-bold">{guru.user.last_login_at ? formatTanggalWaktu(guru.user.last_login_at) : "Belum pernah"}</dd>
