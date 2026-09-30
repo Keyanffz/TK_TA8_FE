@@ -21,12 +21,13 @@ const skemaLogin = z.object({
 
 type NilaiLogin = z.infer<typeof skemaLogin>;
 
+/** Login password, hanya untuk Kepala Sekolah. Guru ditolak backend dengan pesan yang sama seperti password salah. */
 export function FormLoginStaff() {
   const form = useForm<NilaiLogin>({ resolver: zodResolver(skemaLogin), defaultValues: { email: "", password: "" } });
   const { errors } = form.formState;
   const { masuk, sedangMemeriksa, pesan, sisaJeda } = useMasuk({
     kirim: masukStaff,
-    pesanGagal: "Email atau password salah. Periksa kembali, atau atur ulang lewat Lupa password.",
+    pesanGagal: () => "Email atau password salah. Periksa kembali, atau atur ulang lewat Lupa password. Guru masuk dengan Google.",
   });
 
   return (
@@ -41,12 +42,6 @@ export function FormLoginStaff() {
           </Link>
         </div>
         <TombolMasuk sedangMemeriksa={sedangMemeriksa} sisaJeda={sisaJeda} />
-        <p className="text-sm text-muted-foreground">
-          Belum punya akun guru?{" "}
-          <Link href={RUTE_AKUN_STAFF.daftar} className="font-semibold text-primary-strong hover:underline">
-            Daftar sebagai guru
-          </Link>
-        </p>
       </FieldGroup>
     </form>
   );

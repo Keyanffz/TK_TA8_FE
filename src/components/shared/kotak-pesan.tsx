@@ -10,7 +10,7 @@ type KotakPesanProps = {
   className?: string;
 };
 
-/** Pesan di dalam halaman/form, misalnya alasan akun ditolak atau konfirmasi terkirim. */
+/** Pesan di dalam halaman/form, misalnya akun nonaktif atau konfirmasi terkirim. */
 export function KotakPesan({ nada, judul, children, className }: KotakPesanProps) {
   return (
     <div

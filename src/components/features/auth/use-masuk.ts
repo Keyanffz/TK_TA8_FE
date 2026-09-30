@@ -7,11 +7,6 @@ import { toast } from "sonner";
 
 import { ApiError, pesanError } from "@/lib/api/errors";
 import { tujuanSetelahMasuk, type HasilMasuk } from "@/lib/auth/masuk";
-import { RUTE_AKUN_STAFF } from "@/lib/auth/rute-login";
-
-// Pesan backend untuk kode ini sudah menjelaskan penyebab dan langkahnya
-// (alasan penolakan, akun nonaktif).
-const KODE_PESAN_BACKEND = ["ACCOUNT_REJECTED", "ACCOUNT_INACTIVE"];
 
 // Hitungan detiknya ada di tombol, bukan di sini: kotak pesan adalah
 // role="alert", jadi teks yang berubah tiap detik akan dibacakan berulang.
@@ -45,10 +40,19 @@ function useHitungMundur() {
 }
 
 /**
- * Alur bersama form login wali dan staff: kirim, arahkan ke halaman tujuan,
- * dan terjemahkan penolakan backend menjadi pesan di atas form.
+ * Alur bersama login wali, login password Kepala Sekolah, dan login Google:
+ * kirim, arahkan ke halaman tujuan, dan terjemahkan penolakan backend menjadi
+ * pesan di atas form. `pesanGagal` menentukan teks untuk 401/422: login
+ * password memakai satu pesan yang tidak menyebut isian mana yang salah,
+ * login Google memakai pesan backend (token tidak sah, email tidak terdaftar).
  */
-export function useMasuk<TNilai>({ kirim, pesanGagal }: { kirim: (nilai: TNilai) => Promise<HasilMasuk>; pesanGagal: string }) {
+export function useMasuk<TNilai>({
+  kirim,
+  pesanGagal,
+}: {
+  kirim: (nilai: TNilai) => Promise<HasilMasuk>;
+  pesanGagal: (error: ApiError) => string;
+}) {
   const router = useRouter();
   const next = useSearchParams().get("next");
   const [pesan, setPesan] = useState<string | null>(null);
@@ -65,12 +69,12 @@ export function useMasuk<TNilai>({ kirim, pesanGagal }: { kirim: (nilai: TNilai)
       if (!(error instanceof ApiError)) {
         toast.error(pesanError(error));
       } else if (error.status === 401 || error.status === 422) {
-        setPesan(pesanGagal);
+        setPesan(pesanGagal(error));
       } else if (error.code === "TOO_MANY_REQUESTS" && error.tungguDetik) {
         jeda.mulai(error.tungguDetik);
-      } else if (error.code === "ACCOUNT_PENDING") {
-        router.push(RUTE_AKUN_STAFF.menungguPersetujuan);
-      } else if (error.code === "TOO_MANY_REQUESTS" || KODE_PESAN_BACKEND.includes(error.code)) {
+      } else if (error.code === "TOO_MANY_REQUESTS" || error.code === "ACCOUNT_INACTIVE" || error.status === 503) {
+        // Pesan backend untuk akun nonaktif dan layanan yang belum siap (login
+        // Google belum dikonfigurasi) sudah menjelaskan penyebab dan langkahnya.
         setPesan(error.message);
       } else {
         toast.error(pesanError(error));

@@ -91,14 +91,39 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Login Kepala Sekolah dan guru dengan email dan password
-         * @description Role dikirim di `user.role` (`super_admin` atau `guru`). Email yang tidak terdaftar, password salah, dan akun
-         *     wali murid mendapat balasan yang sama. Akun yang belum atau tidak lagi aktif ditolak 403 dengan kode
-         *     `ACCOUNT_PENDING`, `ACCOUNT_REJECTED` (alasan penolakan ada di `message`), atau `ACCOUNT_INACTIVE`.
-         *     Dibatasi 3 percobaan per menit per email dan IP, dan 10 percobaan per menit per IP; balasan 429 membawa
-         *     header `Retry-After`.
+         * Login Kepala Sekolah dengan email dan password
+         * @description Hanya untuk Kepala Sekolah (`user.role` = `super_admin`). Guru tidak punya password dan masuk lewat
+         *     `POST /auth/staff/google`. Email yang tidak terdaftar, password salah, akun guru, dan akun wali murid mendapat
+         *     balasan yang sama. Akun nonaktif ditolak 403 `ACCOUNT_INACTIVE`. Dibatasi 3 percobaan per menit per email dan
+         *     IP, dan 10 percobaan per menit per IP; balasan 429 membawa header `Retry-After`.
          */
         post: operations["auth.loginStaff"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/staff/google": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Login guru dan Kepala Sekolah dengan akun Google
+         * @description `credential` adalah ID token dari Google Identity Services. Server memverifikasi tanda tangan, `aud`
+         *     (GOOGLE_CLIENT_ID), `iss`, `exp`, dan `email_verified`, lalu mencocokkan email di token dengan akun guru atau
+         *     Kepala Sekolah. Akun Google yang dipakai pertama kali diikat ke akun itu; login berikutnya dari akun Google lain
+         *     dengan email yang sama ditolak. Endpoint ini tidak pernah membuat akun: email yang tidak terdaftar ditolak 422
+         *     di field `credential`. Akun nonaktif ditolak 403 `ACCOUNT_INACTIVE`. Kalau GOOGLE_CLIENT_ID belum diisi atau
+         *     kunci publik Google tidak bisa diunduh, balasannya 503 `SERVER_ERROR`. Dibatasi 10 percobaan per menit per IP;
+         *     balasan 429 membawa header `Retry-After`.
+         */
+        post: operations["auth.loginGoogle"];
         delete?: never;
         options?: never;
         head?: never;
@@ -307,14 +332,15 @@ export interface paths {
         };
         /**
          * Daftar guru (tanpa profil guru milik Kepala Sekolah)
-         * @description Filter `filter[status]` = `pending` | `aktif` | `ditolak` | `nonaktif`. Urutan `sort` = `nama` | `created_at`
+         * @description Filter `filter[status]` = `aktif` | `nonaktif`. Urutan `sort` = `nama` | `created_at`
          *     (awali `-` untuk menurun). `search` mencari nama, email, NIP, dan NUPTK.
          */
         get: operations["guru.index"];
         put?: never;
         /**
          * Membuat akun guru yang langsung aktif. Kirim sebagai `multipart/form-data` jika menyertakan foto
-         * @description `password_awal` hanya muncul di respons ini; sampaikan ke guru yang bersangkutan.
+         * @description `email` adalah alamat akun Google guru (disimpan huruf kecil, unik tanpa membedakan huruf besar). Guru tidak
+         *     punya password; guru masuk lewat `POST /auth/staff/google` dengan akun Google beremail itu.
          */
         post: operations["guru.store"];
         delete?: never;
@@ -332,43 +358,12 @@ export interface paths {
         };
         /** Detail guru, termasuk profil guru milik Kepala Sekolah */
         get: operations["guru.show"];
-        /** Mengubah data guru, termasuk izin kelola keuangan dan tampil di landing page */
+        /**
+         * Mengubah data guru, termasuk izin kelola keuangan dan tampil di landing page
+         * @description Mengganti `email` melepas akun Google yang sebelumnya terikat, jadi guru masuk dengan akun Google email baru.
+         */
         put: operations["guru.update"];
         post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/guru/{id}/setujui": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Menyetujui pendaftaran guru. Guru mendapat email pemberitahuan */
-        post: operations["guru.setujui"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/guru/{id}/tolak": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Menolak pendaftaran guru beserta alasannya. Guru mendapat email berisi alasan */
-        post: operations["guru.tolak"];
         delete?: never;
         options?: never;
         head?: never;
@@ -388,7 +383,11 @@ export interface paths {
         delete?: never;
         options?: never;
         head?: never;
-        /** Mengaktifkan atau menonaktifkan akun guru. Menonaktifkan mencabut semua sesi login guru */
+        /**
+         * Mengaktifkan atau menonaktifkan akun guru. Menonaktifkan mencabut semua sesi login guru dan menolak login
+         *     berikutnya (403 `ACCOUNT_INACTIVE`). Akun guru tidak pernah dihapus, supaya riwayat kelas, kegiatan, dan rapor
+         *     tetap utuh
+         */
         patch: operations["guru.ubahStatus"];
         trace?: never;
     };
@@ -1305,7 +1304,9 @@ export interface paths {
         get?: never;
         /**
          * Mengganti password. Sesi login di perangkat lain dicabut; sesi ini tetap berlaku
-         * @description Untuk wali murid, password baru tidak boleh sama dengan tanggal lahir anak (DDMMYYYY), dan
+         * @description Hanya untuk Kepala Sekolah dan wali murid; guru tidak punya password (login lewat Google) dan ditolak 403.
+         *
+         *     Untuk wali murid, password baru tidak boleh sama dengan tanggal lahir anak (DDMMYYYY), dan
          *     `wajib_ganti_password` menjadi `false` setelah berhasil.
          */
         put: operations["profil.gantiPassword"];
@@ -1655,23 +1656,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/auth/register-guru": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Pendaftaran akun guru. Akun berstatus `pending` sampai disetujui Kepala Sekolah */
-        post: operations["auth.registrasiGuru"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/auth/forgot-password": {
         parameters: {
             query?: never;
@@ -1682,7 +1666,7 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Mengirim tautan reset password ke email Kepala Sekolah atau guru
+         * Mengirim tautan reset password ke email Kepala Sekolah. Guru tidak punya password (login lewat Google)
          * @description Respons selalu sama, terdaftar atau tidak, supaya daftar email akun tidak bisa ditebak.
          */
         post: operations["resetPassword.kirimTautan"];
@@ -2171,14 +2155,8 @@ export interface components {
             foto_url: string | null;
             bisa_kelola_keuangan: boolean;
             tampil_di_landing: boolean;
-            disetujui_oleh: number | null;
-            /** Format: date-time */
-            disetujui_at: string | null;
-            alasan_penolakan: string | null;
             /** Format: date-time */
             created_at: string | null;
-            /** @description Hanya ada di respons `POST /guru`. */
-            password_awal?: string;
         };
         /**
          * Hubungan
@@ -2218,7 +2196,7 @@ export interface components {
          * @description Nilai `jenis` pada notifikasi (A7 "Bentuk notifikasi"). FE memakainya untuk ikon dan pengelompokan.
          * @enum {string}
          */
-        JenisNotifikasi: "tagihan_baru" | "tagihan_tertunda" | "pengingat_tagihan" | "tagihan_terlambat" | "pembayaran_masuk" | "pembayaran_diterima" | "pembayaran_ditolak" | "guru_baru" | "rapor_diajukan" | "rapor_revisi" | "rapor_terbit" | "pengumuman_baru" | "pendaftaran_baru" | "pendaftaran_diproses" | "anak_tertaut";
+        JenisNotifikasi: "tagihan_baru" | "tagihan_tertunda" | "pengingat_tagihan" | "tagihan_terlambat" | "pembayaran_masuk" | "pembayaran_diterima" | "pembayaran_ditolak" | "rapor_diajukan" | "rapor_revisi" | "rapor_terbit" | "pengumuman_baru" | "pendaftaran_baru" | "pendaftaran_diproses" | "anak_tertaut";
         /** JenisTagihanResource */
         JenisTagihanResource: {
             id: number;
@@ -2391,6 +2369,12 @@ export interface components {
             };
             /** Format: date-time */
             created_at: string | null;
+        };
+        /** LoginGoogleRequest */
+        LoginGoogleRequest: {
+            /** @description ID token (JWT) dari Google Identity Services, yaitu field `credential` di callback tombol Google. */
+            credential: string;
+            perangkat?: components["schemas"]["Perangkat"];
         };
         /** LoginStaffRequest */
         LoginStaffRequest: {
@@ -2854,16 +2838,6 @@ export interface components {
             /** Format: date-time */
             updated_at: string | null;
         };
-        /** RegistrasiGuruRequest */
-        RegistrasiGuruRequest: {
-            name: string;
-            /** Format: email */
-            email: string;
-            password: string;
-            no_hp: string;
-            jenis_kelamin: components["schemas"]["JenisKelamin"];
-            password_confirmation: string;
-        };
         /** ResetPasswordRequest */
         ResetPasswordRequest: {
             token: string;
@@ -2945,6 +2919,7 @@ export interface components {
         /**
          * SimpanGuruRequest
          * @description Dipakai `POST /guru` dan `PUT /guru/{id}`; saat memperbarui, email boleh sama dengan milik guru itu sendiri.
+         *     `email` adalah alamat akun Google yang dipakai guru untuk login.
          */
         SimpanGuruRequest: {
             name: string;
@@ -3096,7 +3071,7 @@ export interface components {
          * StatusAkun
          * @enum {string}
          */
-        StatusAkun: "pending" | "aktif" | "ditolak" | "nonaktif";
+        StatusAkun: "aktif" | "nonaktif";
         /**
          * StatusMurid
          * @enum {string}
@@ -3378,7 +3353,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description ACCOUNT_PENDING / ACCOUNT_REJECTED / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            /** @description ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -3388,7 +3363,7 @@ export interface operations {
                         success: boolean;
                         message: string;
                         /** @enum {string} */
-                        code: "ACCOUNT_PENDING" | "ACCOUNT_REJECTED" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        code: "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
                         errors: null;
                     };
                 };
@@ -3470,7 +3445,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description FORBIDDEN / ACCOUNT_PENDING / ACCOUNT_REJECTED / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            /** @description FORBIDDEN / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -3480,7 +3455,7 @@ export interface operations {
                         success: boolean;
                         message: string;
                         /** @enum {string} */
-                        code: "FORBIDDEN" | "ACCOUNT_PENDING" | "ACCOUNT_REJECTED" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        code: "FORBIDDEN" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
                         errors: null;
                     };
                 };
@@ -3565,7 +3540,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description FORBIDDEN / ACCOUNT_PENDING / ACCOUNT_REJECTED / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            /** @description FORBIDDEN / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -3575,7 +3550,7 @@ export interface operations {
                         success: boolean;
                         message: string;
                         /** @enum {string} */
-                        code: "FORBIDDEN" | "ACCOUNT_PENDING" | "ACCOUNT_REJECTED" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        code: "FORBIDDEN" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
                         errors: null;
                     };
                 };
@@ -3670,7 +3645,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description FORBIDDEN / ACCOUNT_PENDING / ACCOUNT_REJECTED / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            /** @description FORBIDDEN / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -3680,7 +3655,7 @@ export interface operations {
                         success: boolean;
                         message: string;
                         /** @enum {string} */
-                        code: "FORBIDDEN" | "ACCOUNT_PENDING" | "ACCOUNT_REJECTED" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        code: "FORBIDDEN" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
                         errors: null;
                     };
                 };
@@ -3760,7 +3735,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description FORBIDDEN / ACCOUNT_PENDING / ACCOUNT_REJECTED / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            /** @description FORBIDDEN / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -3770,7 +3745,7 @@ export interface operations {
                         success: boolean;
                         message: string;
                         /** @enum {string} */
-                        code: "FORBIDDEN" | "ACCOUNT_PENDING" | "ACCOUNT_REJECTED" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        code: "FORBIDDEN" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
                         errors: null;
                     };
                 };
@@ -3849,7 +3824,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description FORBIDDEN / ACCOUNT_PENDING / ACCOUNT_REJECTED / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            /** @description FORBIDDEN / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -3859,7 +3834,7 @@ export interface operations {
                         success: boolean;
                         message: string;
                         /** @enum {string} */
-                        code: "FORBIDDEN" | "ACCOUNT_PENDING" | "ACCOUNT_REJECTED" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        code: "FORBIDDEN" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
                         errors: null;
                     };
                 };
@@ -3913,7 +3888,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description ACCOUNT_PENDING / ACCOUNT_REJECTED / ACCOUNT_INACTIVE */
+            /** @description ACCOUNT_INACTIVE */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -3923,7 +3898,7 @@ export interface operations {
                         success: boolean;
                         message: string;
                         /** @enum {string} */
-                        code: "ACCOUNT_PENDING" | "ACCOUNT_REJECTED" | "ACCOUNT_INACTIVE";
+                        code: "ACCOUNT_INACTIVE";
                         errors: null;
                     };
                 };
@@ -3964,6 +3939,102 @@ export interface operations {
             };
         };
     };
+    "auth.loginGoogle": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LoginGoogleRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        /** @constant */
+                        message: "Berhasil masuk.";
+                        data: {
+                            token: string;
+                            user: components["schemas"]["UserResource"];
+                        };
+                        meta: null;
+                    };
+                };
+            };
+            /** @description ACCOUNT_INACTIVE */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "ACCOUNT_INACTIVE";
+                        errors: null;
+                    };
+                };
+            };
+            /** @description VALIDATION_ERROR */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "VALIDATION_ERROR";
+                        errors: {
+                            [key: string]: string[];
+                        };
+                    };
+                };
+            };
+            /** @description TOO_MANY_REQUESTS */
+            429: {
+                headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "TOO_MANY_REQUESTS";
+                        errors: null;
+                    };
+                };
+            };
+            /** @description SERVER_ERROR */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "SERVER_ERROR";
+                        errors: null;
+                    };
+                };
+            };
+        };
+    };
     "auth.loginWali": {
         parameters: {
             query?: never;
@@ -3994,7 +4065,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description ACCOUNT_PENDING / ACCOUNT_REJECTED / ACCOUNT_INACTIVE */
+            /** @description ACCOUNT_INACTIVE */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -4004,7 +4075,7 @@ export interface operations {
                         success: boolean;
                         message: string;
                         /** @enum {string} */
-                        code: "ACCOUNT_PENDING" | "ACCOUNT_REJECTED" | "ACCOUNT_INACTIVE";
+                        code: "ACCOUNT_INACTIVE";
                         errors: null;
                     };
                 };
@@ -4083,7 +4154,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description ACCOUNT_PENDING / ACCOUNT_REJECTED / ACCOUNT_INACTIVE */
+            /** @description ACCOUNT_INACTIVE */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -4093,7 +4164,7 @@ export interface operations {
                         success: boolean;
                         message: string;
                         /** @enum {string} */
-                        code: "ACCOUNT_PENDING" | "ACCOUNT_REJECTED" | "ACCOUNT_INACTIVE";
+                        code: "ACCOUNT_INACTIVE";
                         errors: null;
                     };
                 };
@@ -4155,7 +4226,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description ACCOUNT_PENDING / ACCOUNT_REJECTED / ACCOUNT_INACTIVE */
+            /** @description ACCOUNT_INACTIVE */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -4165,7 +4236,7 @@ export interface operations {
                         success: boolean;
                         message: string;
                         /** @enum {string} */
-                        code: "ACCOUNT_PENDING" | "ACCOUNT_REJECTED" | "ACCOUNT_INACTIVE";
+                        code: "ACCOUNT_INACTIVE";
                         errors: null;
                     };
                 };
@@ -4229,7 +4300,6 @@ export interface operations {
                                 total: number;
                             }[];
                             tertunda: {
-                                guru_pending: number;
                                 pembayaran_menunggu: number;
                                 rapor_diajukan: number;
                                 pendaftaran_baru: number;
@@ -4291,7 +4361,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description ACCOUNT_PENDING / ACCOUNT_REJECTED / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            /** @description ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -4301,7 +4371,7 @@ export interface operations {
                         success: boolean;
                         message: string;
                         /** @enum {string} */
-                        code: "ACCOUNT_PENDING" | "ACCOUNT_REJECTED" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        code: "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
                         errors: null;
                     };
                 };
@@ -4395,7 +4465,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description FORBIDDEN / ACCOUNT_PENDING / ACCOUNT_REJECTED / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            /** @description FORBIDDEN / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -4405,7 +4475,7 @@ export interface operations {
                         success: boolean;
                         message: string;
                         /** @enum {string} */
-                        code: "FORBIDDEN" | "ACCOUNT_PENDING" | "ACCOUNT_REJECTED" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        code: "FORBIDDEN" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
                         errors: null;
                     };
                 };
@@ -4470,7 +4540,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description FORBIDDEN / ACCOUNT_PENDING / ACCOUNT_REJECTED / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            /** @description FORBIDDEN / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -4480,7 +4550,7 @@ export interface operations {
                         success: boolean;
                         message: string;
                         /** @enum {string} */
-                        code: "FORBIDDEN" | "ACCOUNT_PENDING" | "ACCOUNT_REJECTED" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        code: "FORBIDDEN" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
                         errors: null;
                     };
                 };
@@ -4565,7 +4635,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description FORBIDDEN / ACCOUNT_PENDING / ACCOUNT_REJECTED / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            /** @description FORBIDDEN / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -4575,7 +4645,7 @@ export interface operations {
                         success: boolean;
                         message: string;
                         /** @enum {string} */
-                        code: "FORBIDDEN" | "ACCOUNT_PENDING" | "ACCOUNT_REJECTED" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        code: "FORBIDDEN" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
                         errors: null;
                     };
                 };
@@ -4670,7 +4740,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description FORBIDDEN / ACCOUNT_PENDING / ACCOUNT_REJECTED / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            /** @description FORBIDDEN / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -4680,7 +4750,7 @@ export interface operations {
                         success: boolean;
                         message: string;
                         /** @enum {string} */
-                        code: "FORBIDDEN" | "ACCOUNT_PENDING" | "ACCOUNT_REJECTED" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        code: "FORBIDDEN" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
                         errors: null;
                     };
                 };
@@ -4783,7 +4853,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description FORBIDDEN / ACCOUNT_PENDING / ACCOUNT_REJECTED / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            /** @description FORBIDDEN / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -4793,7 +4863,7 @@ export interface operations {
                         success: boolean;
                         message: string;
                         /** @enum {string} */
-                        code: "FORBIDDEN" | "ACCOUNT_PENDING" | "ACCOUNT_REJECTED" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        code: "FORBIDDEN" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
                         errors: null;
                     };
                 };
@@ -4875,7 +4945,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description FORBIDDEN / ACCOUNT_PENDING / ACCOUNT_REJECTED / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            /** @description FORBIDDEN / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -4885,7 +4955,7 @@ export interface operations {
                         success: boolean;
                         message: string;
                         /** @enum {string} */
-                        code: "FORBIDDEN" | "ACCOUNT_PENDING" | "ACCOUNT_REJECTED" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        code: "FORBIDDEN" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
                         errors: null;
                     };
                 };
@@ -4966,7 +5036,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description FORBIDDEN / ACCOUNT_PENDING / ACCOUNT_REJECTED / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            /** @description FORBIDDEN / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -4976,7 +5046,7 @@ export interface operations {
                         success: boolean;
                         message: string;
                         /** @enum {string} */
-                        code: "FORBIDDEN" | "ACCOUNT_PENDING" | "ACCOUNT_REJECTED" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        code: "FORBIDDEN" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
                         errors: null;
                     };
                 };
@@ -5059,7 +5129,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description FORBIDDEN / ACCOUNT_PENDING / ACCOUNT_REJECTED / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            /** @description FORBIDDEN / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -5069,7 +5139,7 @@ export interface operations {
                         success: boolean;
                         message: string;
                         /** @enum {string} */
-                        code: "FORBIDDEN" | "ACCOUNT_PENDING" | "ACCOUNT_REJECTED" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        code: "FORBIDDEN" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
                         errors: null;
                     };
                 };
@@ -5164,7 +5234,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description FORBIDDEN / ACCOUNT_PENDING / ACCOUNT_REJECTED / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            /** @description FORBIDDEN / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -5174,7 +5244,7 @@ export interface operations {
                         success: boolean;
                         message: string;
                         /** @enum {string} */
-                        code: "FORBIDDEN" | "ACCOUNT_PENDING" | "ACCOUNT_REJECTED" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        code: "FORBIDDEN" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
                         errors: null;
                     };
                 };
@@ -5256,7 +5326,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description FORBIDDEN / ACCOUNT_PENDING / ACCOUNT_REJECTED / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            /** @description FORBIDDEN / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -5266,7 +5336,7 @@ export interface operations {
                         success: boolean;
                         message: string;
                         /** @enum {string} */
-                        code: "FORBIDDEN" | "ACCOUNT_PENDING" | "ACCOUNT_REJECTED" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        code: "FORBIDDEN" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
                         errors: null;
                     };
                 };
@@ -5370,7 +5440,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description FORBIDDEN / ACCOUNT_PENDING / ACCOUNT_REJECTED / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            /** @description FORBIDDEN / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -5380,7 +5450,7 @@ export interface operations {
                         success: boolean;
                         message: string;
                         /** @enum {string} */
-                        code: "FORBIDDEN" | "ACCOUNT_PENDING" | "ACCOUNT_REJECTED" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        code: "FORBIDDEN" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
                         errors: null;
                     };
                 };
@@ -5476,7 +5546,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description FORBIDDEN / ACCOUNT_PENDING / ACCOUNT_REJECTED / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            /** @description FORBIDDEN / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -5486,7 +5556,7 @@ export interface operations {
                         success: boolean;
                         message: string;
                         /** @enum {string} */
-                        code: "FORBIDDEN" | "ACCOUNT_PENDING" | "ACCOUNT_REJECTED" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        code: "FORBIDDEN" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
                         errors: null;
                     };
                 };
@@ -5574,7 +5644,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description FORBIDDEN / ACCOUNT_PENDING / ACCOUNT_REJECTED / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            /** @description FORBIDDEN / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -5584,7 +5654,7 @@ export interface operations {
                         success: boolean;
                         message: string;
                         /** @enum {string} */
-                        code: "FORBIDDEN" | "ACCOUNT_PENDING" | "ACCOUNT_REJECTED" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        code: "FORBIDDEN" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
                         errors: null;
                     };
                 };
@@ -5645,8 +5715,7 @@ export interface operations {
                 content: {
                     "application/json": {
                         success: boolean;
-                        /** @constant */
-                        message: "Akun guru dibuat. Sampaikan password awal ke guru; password ini hanya ditampilkan sekali.";
+                        message: string;
                         data: components["schemas"]["GuruResource"];
                         meta: null;
                     };
@@ -5667,7 +5736,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description FORBIDDEN / ACCOUNT_PENDING / ACCOUNT_REJECTED / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            /** @description FORBIDDEN / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -5677,7 +5746,7 @@ export interface operations {
                         success: boolean;
                         message: string;
                         /** @enum {string} */
-                        code: "FORBIDDEN" | "ACCOUNT_PENDING" | "ACCOUNT_REJECTED" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        code: "FORBIDDEN" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
                         errors: null;
                     };
                 };
@@ -5758,7 +5827,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description FORBIDDEN / ACCOUNT_PENDING / ACCOUNT_REJECTED / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            /** @description FORBIDDEN / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -5768,7 +5837,7 @@ export interface operations {
                         success: boolean;
                         message: string;
                         /** @enum {string} */
-                        code: "FORBIDDEN" | "ACCOUNT_PENDING" | "ACCOUNT_REJECTED" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        code: "FORBIDDEN" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
                         errors: null;
                     };
                 };
@@ -5851,7 +5920,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description FORBIDDEN / ACCOUNT_PENDING / ACCOUNT_REJECTED / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            /** @description FORBIDDEN / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -5861,219 +5930,7 @@ export interface operations {
                         success: boolean;
                         message: string;
                         /** @enum {string} */
-                        code: "FORBIDDEN" | "ACCOUNT_PENDING" | "ACCOUNT_REJECTED" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
-                        errors: null;
-                    };
-                };
-            };
-            /** @description NOT_FOUND */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                        /** @enum {string} */
-                        code: "NOT_FOUND";
-                        errors: null;
-                    };
-                };
-            };
-            /** @description BUSINESS_RULE / VALIDATION_ERROR */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                        /** @enum {string} */
-                        code: "BUSINESS_RULE" | "VALIDATION_ERROR";
-                        errors: {
-                            [key: string]: string[];
-                        };
-                    };
-                };
-            };
-            /** @description TOO_MANY_REQUESTS */
-            429: {
-                headers: {
-                    /** @description Jumlah detik sampai boleh mencoba lagi. */
-                    "Retry-After": number;
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                        /** @enum {string} */
-                        code: "TOO_MANY_REQUESTS";
-                        errors: null;
-                    };
-                };
-            };
-        };
-    };
-    "guru.setujui": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                        data: components["schemas"]["GuruResource"];
-                        meta: null;
-                    };
-                };
-            };
-            /** @description UNAUTHENTICATED */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                        /** @enum {string} */
-                        code: "UNAUTHENTICATED";
-                        errors: null;
-                    };
-                };
-            };
-            /** @description FORBIDDEN / ACCOUNT_PENDING / ACCOUNT_REJECTED / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                        /** @enum {string} */
-                        code: "FORBIDDEN" | "ACCOUNT_PENDING" | "ACCOUNT_REJECTED" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
-                        errors: null;
-                    };
-                };
-            };
-            /** @description NOT_FOUND */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                        /** @enum {string} */
-                        code: "NOT_FOUND";
-                        errors: null;
-                    };
-                };
-            };
-            /** @description BUSINESS_RULE */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                        /** @enum {string} */
-                        code: "BUSINESS_RULE";
-                        errors: null;
-                    };
-                };
-            };
-            /** @description TOO_MANY_REQUESTS */
-            429: {
-                headers: {
-                    /** @description Jumlah detik sampai boleh mencoba lagi. */
-                    "Retry-After": number;
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                        /** @enum {string} */
-                        code: "TOO_MANY_REQUESTS";
-                        errors: null;
-                    };
-                };
-            };
-        };
-    };
-    "guru.tolak": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["AlasanRequest"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                        data: components["schemas"]["GuruResource"];
-                        meta: null;
-                    };
-                };
-            };
-            /** @description UNAUTHENTICATED */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                        /** @enum {string} */
-                        code: "UNAUTHENTICATED";
-                        errors: null;
-                    };
-                };
-            };
-            /** @description FORBIDDEN / ACCOUNT_PENDING / ACCOUNT_REJECTED / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                        /** @enum {string} */
-                        code: "FORBIDDEN" | "ACCOUNT_PENDING" | "ACCOUNT_REJECTED" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        code: "FORBIDDEN" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
                         errors: null;
                     };
                 };
@@ -6172,7 +6029,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description FORBIDDEN / ACCOUNT_PENDING / ACCOUNT_REJECTED / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            /** @description FORBIDDEN / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -6182,7 +6039,7 @@ export interface operations {
                         success: boolean;
                         message: string;
                         /** @enum {string} */
-                        code: "FORBIDDEN" | "ACCOUNT_PENDING" | "ACCOUNT_REJECTED" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        code: "FORBIDDEN" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
                         errors: null;
                     };
                 };
@@ -6318,7 +6175,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description FORBIDDEN / ACCOUNT_PENDING / ACCOUNT_REJECTED / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            /** @description FORBIDDEN / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -6328,7 +6185,7 @@ export interface operations {
                         success: boolean;
                         message: string;
                         /** @enum {string} */
-                        code: "FORBIDDEN" | "ACCOUNT_PENDING" | "ACCOUNT_REJECTED" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        code: "FORBIDDEN" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
                         errors: null;
                     };
                 };
@@ -6410,7 +6267,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description FORBIDDEN / ACCOUNT_PENDING / ACCOUNT_REJECTED / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            /** @description FORBIDDEN / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -6420,7 +6277,7 @@ export interface operations {
                         success: boolean;
                         message: string;
                         /** @enum {string} */
-                        code: "FORBIDDEN" | "ACCOUNT_PENDING" | "ACCOUNT_REJECTED" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        code: "FORBIDDEN" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
                         errors: null;
                     };
                 };
@@ -6505,7 +6362,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description FORBIDDEN / ACCOUNT_PENDING / ACCOUNT_REJECTED / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            /** @description FORBIDDEN / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -6515,7 +6372,7 @@ export interface operations {
                         success: boolean;
                         message: string;
                         /** @enum {string} */
-                        code: "FORBIDDEN" | "ACCOUNT_PENDING" | "ACCOUNT_REJECTED" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        code: "FORBIDDEN" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
                         errors: null;
                     };
                 };
@@ -6610,7 +6467,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description FORBIDDEN / ACCOUNT_PENDING / ACCOUNT_REJECTED / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            /** @description FORBIDDEN / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -6620,7 +6477,7 @@ export interface operations {
                         success: boolean;
                         message: string;
                         /** @enum {string} */
-                        code: "FORBIDDEN" | "ACCOUNT_PENDING" | "ACCOUNT_REJECTED" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        code: "FORBIDDEN" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
                         errors: null;
                     };
                 };
@@ -6723,7 +6580,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description ACCOUNT_PENDING / ACCOUNT_REJECTED / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            /** @description ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -6733,7 +6590,7 @@ export interface operations {
                         success: boolean;
                         message: string;
                         /** @enum {string} */
-                        code: "ACCOUNT_PENDING" | "ACCOUNT_REJECTED" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        code: "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
                         errors: null;
                     };
                 };
@@ -6815,7 +6672,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description FORBIDDEN / ACCOUNT_PENDING / ACCOUNT_REJECTED / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            /** @description FORBIDDEN / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -6825,7 +6682,7 @@ export interface operations {
                         success: boolean;
                         message: string;
                         /** @enum {string} */
-                        code: "FORBIDDEN" | "ACCOUNT_PENDING" | "ACCOUNT_REJECTED" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        code: "FORBIDDEN" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
                         errors: null;
                     };
                 };
@@ -6906,7 +6763,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description ACCOUNT_PENDING / ACCOUNT_REJECTED / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            /** @description ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -6916,7 +6773,7 @@ export interface operations {
                         success: boolean;
                         message: string;
                         /** @enum {string} */
-                        code: "ACCOUNT_PENDING" | "ACCOUNT_REJECTED" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        code: "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
                         errors: null;
                     };
                 };
@@ -6999,7 +6856,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description FORBIDDEN / ACCOUNT_PENDING / ACCOUNT_REJECTED / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            /** @description FORBIDDEN / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -7009,7 +6866,7 @@ export interface operations {
                         success: boolean;
                         message: string;
                         /** @enum {string} */
-                        code: "FORBIDDEN" | "ACCOUNT_PENDING" | "ACCOUNT_REJECTED" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        code: "FORBIDDEN" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
                         errors: null;
                     };
                 };
@@ -7104,7 +6961,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description FORBIDDEN / ACCOUNT_PENDING / ACCOUNT_REJECTED / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            /** @description FORBIDDEN / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -7114,7 +6971,7 @@ export interface operations {
                         success: boolean;
                         message: string;
                         /** @enum {string} */
-                        code: "FORBIDDEN" | "ACCOUNT_PENDING" | "ACCOUNT_REJECTED" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        code: "FORBIDDEN" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
                         errors: null;
                     };
                 };
@@ -7196,7 +7053,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description FORBIDDEN / ACCOUNT_PENDING / ACCOUNT_REJECTED / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            /** @description FORBIDDEN / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -7206,7 +7063,7 @@ export interface operations {
                         success: boolean;
                         message: string;
                         /** @enum {string} */
-                        code: "FORBIDDEN" | "ACCOUNT_PENDING" | "ACCOUNT_REJECTED" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        code: "FORBIDDEN" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
                         errors: null;
                     };
                 };
@@ -7310,7 +7167,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description FORBIDDEN / ACCOUNT_PENDING / ACCOUNT_REJECTED / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            /** @description FORBIDDEN / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -7320,7 +7177,7 @@ export interface operations {
                         success: boolean;
                         message: string;
                         /** @enum {string} */
-                        code: "FORBIDDEN" | "ACCOUNT_PENDING" | "ACCOUNT_REJECTED" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        code: "FORBIDDEN" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
                         errors: null;
                     };
                 };
@@ -7416,7 +7273,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description FORBIDDEN / ACCOUNT_PENDING / ACCOUNT_REJECTED / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            /** @description FORBIDDEN / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -7426,7 +7283,7 @@ export interface operations {
                         success: boolean;
                         message: string;
                         /** @enum {string} */
-                        code: "FORBIDDEN" | "ACCOUNT_PENDING" | "ACCOUNT_REJECTED" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        code: "FORBIDDEN" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
                         errors: null;
                     };
                 };
@@ -7514,7 +7371,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description FORBIDDEN / ACCOUNT_PENDING / ACCOUNT_REJECTED / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            /** @description FORBIDDEN / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -7524,7 +7381,7 @@ export interface operations {
                         success: boolean;
                         message: string;
                         /** @enum {string} */
-                        code: "FORBIDDEN" | "ACCOUNT_PENDING" | "ACCOUNT_REJECTED" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        code: "FORBIDDEN" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
                         errors: null;
                     };
                 };
@@ -7606,7 +7463,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description FORBIDDEN / ACCOUNT_PENDING / ACCOUNT_REJECTED / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            /** @description FORBIDDEN / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -7616,7 +7473,7 @@ export interface operations {
                         success: boolean;
                         message: string;
                         /** @enum {string} */
-                        code: "FORBIDDEN" | "ACCOUNT_PENDING" | "ACCOUNT_REJECTED" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        code: "FORBIDDEN" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
                         errors: null;
                     };
                 };
@@ -7697,7 +7554,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description FORBIDDEN / ACCOUNT_PENDING / ACCOUNT_REJECTED / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            /** @description FORBIDDEN / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -7707,7 +7564,7 @@ export interface operations {
                         success: boolean;
                         message: string;
                         /** @enum {string} */
-                        code: "FORBIDDEN" | "ACCOUNT_PENDING" | "ACCOUNT_REJECTED" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        code: "FORBIDDEN" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
                         errors: null;
                     };
                 };
@@ -7790,7 +7647,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description FORBIDDEN / ACCOUNT_PENDING / ACCOUNT_REJECTED / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            /** @description FORBIDDEN / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -7800,7 +7657,7 @@ export interface operations {
                         success: boolean;
                         message: string;
                         /** @enum {string} */
-                        code: "FORBIDDEN" | "ACCOUNT_PENDING" | "ACCOUNT_REJECTED" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        code: "FORBIDDEN" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
                         errors: null;
                     };
                 };
@@ -7895,7 +7752,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description FORBIDDEN / ACCOUNT_PENDING / ACCOUNT_REJECTED / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            /** @description FORBIDDEN / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -7905,7 +7762,7 @@ export interface operations {
                         success: boolean;
                         message: string;
                         /** @enum {string} */
-                        code: "FORBIDDEN" | "ACCOUNT_PENDING" | "ACCOUNT_REJECTED" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        code: "FORBIDDEN" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
                         errors: null;
                     };
                 };
@@ -8009,7 +7866,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description FORBIDDEN / ACCOUNT_PENDING / ACCOUNT_REJECTED / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            /** @description FORBIDDEN / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -8019,7 +7876,7 @@ export interface operations {
                         success: boolean;
                         message: string;
                         /** @enum {string} */
-                        code: "FORBIDDEN" | "ACCOUNT_PENDING" | "ACCOUNT_REJECTED" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        code: "FORBIDDEN" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
                         errors: null;
                     };
                 };
@@ -8102,7 +7959,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description FORBIDDEN / ACCOUNT_PENDING / ACCOUNT_REJECTED / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            /** @description FORBIDDEN / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -8112,7 +7969,7 @@ export interface operations {
                         success: boolean;
                         message: string;
                         /** @enum {string} */
-                        code: "FORBIDDEN" | "ACCOUNT_PENDING" | "ACCOUNT_REJECTED" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        code: "FORBIDDEN" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
                         errors: null;
                     };
                 };
@@ -8197,7 +8054,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description FORBIDDEN / ACCOUNT_PENDING / ACCOUNT_REJECTED / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            /** @description FORBIDDEN / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -8207,7 +8064,7 @@ export interface operations {
                         success: boolean;
                         message: string;
                         /** @enum {string} */
-                        code: "FORBIDDEN" | "ACCOUNT_PENDING" | "ACCOUNT_REJECTED" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        code: "FORBIDDEN" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
                         errors: null;
                     };
                 };
@@ -8303,7 +8160,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description FORBIDDEN / ACCOUNT_PENDING / ACCOUNT_REJECTED / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            /** @description FORBIDDEN / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -8313,7 +8170,7 @@ export interface operations {
                         success: boolean;
                         message: string;
                         /** @enum {string} */
-                        code: "FORBIDDEN" | "ACCOUNT_PENDING" | "ACCOUNT_REJECTED" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        code: "FORBIDDEN" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
                         errors: null;
                     };
                 };
@@ -8424,7 +8281,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description FORBIDDEN / ACCOUNT_PENDING / ACCOUNT_REJECTED / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            /** @description FORBIDDEN / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -8434,7 +8291,7 @@ export interface operations {
                         success: boolean;
                         message: string;
                         /** @enum {string} */
-                        code: "FORBIDDEN" | "ACCOUNT_PENDING" | "ACCOUNT_REJECTED" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        code: "FORBIDDEN" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
                         errors: null;
                     };
                 };
@@ -8512,7 +8369,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description FORBIDDEN / ACCOUNT_PENDING / ACCOUNT_REJECTED / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            /** @description FORBIDDEN / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -8522,7 +8379,7 @@ export interface operations {
                         success: boolean;
                         message: string;
                         /** @enum {string} */
-                        code: "FORBIDDEN" | "ACCOUNT_PENDING" | "ACCOUNT_REJECTED" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        code: "FORBIDDEN" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
                         errors: null;
                     };
                 };
@@ -8627,7 +8484,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description FORBIDDEN / ACCOUNT_PENDING / ACCOUNT_REJECTED / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            /** @description FORBIDDEN / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -8637,7 +8494,7 @@ export interface operations {
                         success: boolean;
                         message: string;
                         /** @enum {string} */
-                        code: "FORBIDDEN" | "ACCOUNT_PENDING" | "ACCOUNT_REJECTED" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        code: "FORBIDDEN" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
                         errors: null;
                     };
                 };
@@ -8727,7 +8584,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description FORBIDDEN / ACCOUNT_PENDING / ACCOUNT_REJECTED / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            /** @description FORBIDDEN / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -8737,7 +8594,7 @@ export interface operations {
                         success: boolean;
                         message: string;
                         /** @enum {string} */
-                        code: "FORBIDDEN" | "ACCOUNT_PENDING" | "ACCOUNT_REJECTED" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        code: "FORBIDDEN" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
                         errors: null;
                     };
                 };
@@ -8881,7 +8738,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description ACCOUNT_PENDING / ACCOUNT_REJECTED / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            /** @description ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -8891,7 +8748,7 @@ export interface operations {
                         success: boolean;
                         message: string;
                         /** @enum {string} */
-                        code: "ACCOUNT_PENDING" | "ACCOUNT_REJECTED" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        code: "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
                         errors: null;
                     };
                 };
@@ -8973,7 +8830,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description FORBIDDEN / ACCOUNT_PENDING / ACCOUNT_REJECTED / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            /** @description FORBIDDEN / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -8983,7 +8840,7 @@ export interface operations {
                         success: boolean;
                         message: string;
                         /** @enum {string} */
-                        code: "FORBIDDEN" | "ACCOUNT_PENDING" | "ACCOUNT_REJECTED" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        code: "FORBIDDEN" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
                         errors: null;
                     };
                 };
@@ -9064,7 +8921,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description ACCOUNT_PENDING / ACCOUNT_REJECTED / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            /** @description ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -9074,7 +8931,7 @@ export interface operations {
                         success: boolean;
                         message: string;
                         /** @enum {string} */
-                        code: "ACCOUNT_PENDING" | "ACCOUNT_REJECTED" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        code: "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
                         errors: null;
                     };
                 };
@@ -9157,7 +9014,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description FORBIDDEN / ACCOUNT_PENDING / ACCOUNT_REJECTED / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            /** @description FORBIDDEN / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -9167,7 +9024,7 @@ export interface operations {
                         success: boolean;
                         message: string;
                         /** @enum {string} */
-                        code: "FORBIDDEN" | "ACCOUNT_PENDING" | "ACCOUNT_REJECTED" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        code: "FORBIDDEN" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
                         errors: null;
                     };
                 };
@@ -9262,7 +9119,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description FORBIDDEN / ACCOUNT_PENDING / ACCOUNT_REJECTED / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            /** @description FORBIDDEN / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -9272,7 +9129,7 @@ export interface operations {
                         success: boolean;
                         message: string;
                         /** @enum {string} */
-                        code: "FORBIDDEN" | "ACCOUNT_PENDING" | "ACCOUNT_REJECTED" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        code: "FORBIDDEN" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
                         errors: null;
                     };
                 };
@@ -9361,7 +9218,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description FORBIDDEN / ACCOUNT_PENDING / ACCOUNT_REJECTED / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            /** @description FORBIDDEN / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -9371,7 +9228,7 @@ export interface operations {
                         success: boolean;
                         message: string;
                         /** @enum {string} */
-                        code: "FORBIDDEN" | "ACCOUNT_PENDING" | "ACCOUNT_REJECTED" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        code: "FORBIDDEN" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
                         errors: null;
                     };
                 };
@@ -9465,7 +9322,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description FORBIDDEN / ACCOUNT_PENDING / ACCOUNT_REJECTED / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            /** @description FORBIDDEN / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -9475,7 +9332,7 @@ export interface operations {
                         success: boolean;
                         message: string;
                         /** @enum {string} */
-                        code: "FORBIDDEN" | "ACCOUNT_PENDING" | "ACCOUNT_REJECTED" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        code: "FORBIDDEN" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
                         errors: null;
                     };
                 };
@@ -9558,7 +9415,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description FORBIDDEN / ACCOUNT_PENDING / ACCOUNT_REJECTED / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            /** @description FORBIDDEN / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -9568,7 +9425,7 @@ export interface operations {
                         success: boolean;
                         message: string;
                         /** @enum {string} */
-                        code: "FORBIDDEN" | "ACCOUNT_PENDING" | "ACCOUNT_REJECTED" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        code: "FORBIDDEN" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
                         errors: null;
                     };
                 };
@@ -9671,7 +9528,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description ACCOUNT_PENDING / ACCOUNT_REJECTED / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            /** @description ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -9681,7 +9538,7 @@ export interface operations {
                         success: boolean;
                         message: string;
                         /** @enum {string} */
-                        code: "ACCOUNT_PENDING" | "ACCOUNT_REJECTED" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        code: "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
                         errors: null;
                     };
                 };
@@ -9762,7 +9619,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description ACCOUNT_PENDING / ACCOUNT_REJECTED / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            /** @description ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -9772,7 +9629,7 @@ export interface operations {
                         success: boolean;
                         message: string;
                         /** @enum {string} */
-                        code: "ACCOUNT_PENDING" | "ACCOUNT_REJECTED" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        code: "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
                         errors: null;
                     };
                 };
@@ -9835,7 +9692,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description ACCOUNT_PENDING / ACCOUNT_REJECTED / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            /** @description ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -9845,7 +9702,7 @@ export interface operations {
                         success: boolean;
                         message: string;
                         /** @enum {string} */
-                        code: "ACCOUNT_PENDING" | "ACCOUNT_REJECTED" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        code: "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
                         errors: null;
                     };
                 };
@@ -9909,7 +9766,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description ACCOUNT_PENDING / ACCOUNT_REJECTED / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            /** @description ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -9919,7 +9776,7 @@ export interface operations {
                         success: boolean;
                         message: string;
                         /** @enum {string} */
-                        code: "ACCOUNT_PENDING" | "ACCOUNT_REJECTED" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        code: "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
                         errors: null;
                     };
                 };
@@ -9997,7 +9854,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description FORBIDDEN / ACCOUNT_PENDING / ACCOUNT_REJECTED / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            /** @description FORBIDDEN / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -10007,7 +9864,7 @@ export interface operations {
                         success: boolean;
                         message: string;
                         /** @enum {string} */
-                        code: "FORBIDDEN" | "ACCOUNT_PENDING" | "ACCOUNT_REJECTED" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        code: "FORBIDDEN" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
                         errors: null;
                     };
                 };
@@ -10104,7 +9961,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description FORBIDDEN / ACCOUNT_PENDING / ACCOUNT_REJECTED / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            /** @description FORBIDDEN / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -10114,7 +9971,7 @@ export interface operations {
                         success: boolean;
                         message: string;
                         /** @enum {string} */
-                        code: "FORBIDDEN" | "ACCOUNT_PENDING" | "ACCOUNT_REJECTED" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        code: "FORBIDDEN" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
                         errors: null;
                     };
                 };
@@ -10213,7 +10070,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description FORBIDDEN / ACCOUNT_PENDING / ACCOUNT_REJECTED / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            /** @description FORBIDDEN / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -10223,7 +10080,7 @@ export interface operations {
                         success: boolean;
                         message: string;
                         /** @enum {string} */
-                        code: "FORBIDDEN" | "ACCOUNT_PENDING" | "ACCOUNT_REJECTED" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        code: "FORBIDDEN" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
                         errors: null;
                     };
                 };
@@ -10330,7 +10187,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description FORBIDDEN / ACCOUNT_PENDING / ACCOUNT_REJECTED / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            /** @description FORBIDDEN / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -10340,7 +10197,7 @@ export interface operations {
                         success: boolean;
                         message: string;
                         /** @enum {string} */
-                        code: "FORBIDDEN" | "ACCOUNT_PENDING" | "ACCOUNT_REJECTED" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        code: "FORBIDDEN" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
                         errors: null;
                     };
                 };
@@ -10421,7 +10278,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description FORBIDDEN / ACCOUNT_PENDING / ACCOUNT_REJECTED / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            /** @description FORBIDDEN / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -10431,7 +10288,7 @@ export interface operations {
                         success: boolean;
                         message: string;
                         /** @enum {string} */
-                        code: "FORBIDDEN" | "ACCOUNT_PENDING" | "ACCOUNT_REJECTED" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        code: "FORBIDDEN" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
                         errors: null;
                     };
                 };
@@ -10505,7 +10362,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description FORBIDDEN / ACCOUNT_PENDING / ACCOUNT_REJECTED / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            /** @description FORBIDDEN / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -10515,7 +10372,7 @@ export interface operations {
                         success: boolean;
                         message: string;
                         /** @enum {string} */
-                        code: "FORBIDDEN" | "ACCOUNT_PENDING" | "ACCOUNT_REJECTED" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        code: "FORBIDDEN" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
                         errors: null;
                     };
                 };
@@ -10589,7 +10446,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description FORBIDDEN / ACCOUNT_PENDING / ACCOUNT_REJECTED / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            /** @description FORBIDDEN / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -10599,7 +10456,7 @@ export interface operations {
                         success: boolean;
                         message: string;
                         /** @enum {string} */
-                        code: "FORBIDDEN" | "ACCOUNT_PENDING" | "ACCOUNT_REJECTED" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        code: "FORBIDDEN" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
                         errors: null;
                     };
                 };
@@ -10692,7 +10549,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description FORBIDDEN / ACCOUNT_PENDING / ACCOUNT_REJECTED / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            /** @description FORBIDDEN / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -10702,7 +10559,7 @@ export interface operations {
                         success: boolean;
                         message: string;
                         /** @enum {string} */
-                        code: "FORBIDDEN" | "ACCOUNT_PENDING" | "ACCOUNT_REJECTED" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        code: "FORBIDDEN" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
                         errors: null;
                     };
                 };
@@ -10799,7 +10656,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description FORBIDDEN / ACCOUNT_PENDING / ACCOUNT_REJECTED / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            /** @description FORBIDDEN / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -10809,7 +10666,7 @@ export interface operations {
                         success: boolean;
                         message: string;
                         /** @enum {string} */
-                        code: "FORBIDDEN" | "ACCOUNT_PENDING" | "ACCOUNT_REJECTED" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        code: "FORBIDDEN" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
                         errors: null;
                     };
                 };
@@ -10908,7 +10765,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description FORBIDDEN / ACCOUNT_PENDING / ACCOUNT_REJECTED / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            /** @description FORBIDDEN / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -10918,7 +10775,7 @@ export interface operations {
                         success: boolean;
                         message: string;
                         /** @enum {string} */
-                        code: "FORBIDDEN" | "ACCOUNT_PENDING" | "ACCOUNT_REJECTED" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        code: "FORBIDDEN" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
                         errors: null;
                     };
                 };
@@ -11025,7 +10882,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description FORBIDDEN / ACCOUNT_PENDING / ACCOUNT_REJECTED / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            /** @description FORBIDDEN / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -11035,7 +10892,7 @@ export interface operations {
                         success: boolean;
                         message: string;
                         /** @enum {string} */
-                        code: "FORBIDDEN" | "ACCOUNT_PENDING" | "ACCOUNT_REJECTED" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        code: "FORBIDDEN" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
                         errors: null;
                     };
                 };
@@ -11117,7 +10974,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description FORBIDDEN / ACCOUNT_PENDING / ACCOUNT_REJECTED / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            /** @description FORBIDDEN / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -11127,7 +10984,7 @@ export interface operations {
                         success: boolean;
                         message: string;
                         /** @enum {string} */
-                        code: "FORBIDDEN" | "ACCOUNT_PENDING" | "ACCOUNT_REJECTED" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        code: "FORBIDDEN" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
                         errors: null;
                     };
                 };
@@ -11208,7 +11065,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description FORBIDDEN / ACCOUNT_PENDING / ACCOUNT_REJECTED / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            /** @description FORBIDDEN / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -11218,7 +11075,7 @@ export interface operations {
                         success: boolean;
                         message: string;
                         /** @enum {string} */
-                        code: "FORBIDDEN" | "ACCOUNT_PENDING" | "ACCOUNT_REJECTED" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        code: "FORBIDDEN" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
                         errors: null;
                     };
                 };
@@ -11439,7 +11296,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description FORBIDDEN / ACCOUNT_PENDING / ACCOUNT_REJECTED / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            /** @description FORBIDDEN / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -11449,7 +11306,7 @@ export interface operations {
                         success: boolean;
                         message: string;
                         /** @enum {string} */
-                        code: "FORBIDDEN" | "ACCOUNT_PENDING" | "ACCOUNT_REJECTED" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        code: "FORBIDDEN" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
                         errors: null;
                     };
                 };
@@ -11545,7 +11402,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description FORBIDDEN / ACCOUNT_PENDING / ACCOUNT_REJECTED / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            /** @description FORBIDDEN / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -11555,7 +11412,7 @@ export interface operations {
                         success: boolean;
                         message: string;
                         /** @enum {string} */
-                        code: "FORBIDDEN" | "ACCOUNT_PENDING" | "ACCOUNT_REJECTED" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        code: "FORBIDDEN" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
                         errors: null;
                     };
                 };
@@ -11654,7 +11511,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description FORBIDDEN / ACCOUNT_PENDING / ACCOUNT_REJECTED / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            /** @description FORBIDDEN / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -11664,7 +11521,7 @@ export interface operations {
                         success: boolean;
                         message: string;
                         /** @enum {string} */
-                        code: "FORBIDDEN" | "ACCOUNT_PENDING" | "ACCOUNT_REJECTED" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        code: "FORBIDDEN" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
                         errors: null;
                     };
                 };
@@ -11762,7 +11619,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description FORBIDDEN / ACCOUNT_PENDING / ACCOUNT_REJECTED / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            /** @description FORBIDDEN / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -11772,7 +11629,7 @@ export interface operations {
                         success: boolean;
                         message: string;
                         /** @enum {string} */
-                        code: "FORBIDDEN" | "ACCOUNT_PENDING" | "ACCOUNT_REJECTED" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        code: "FORBIDDEN" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
                         errors: null;
                     };
                 };
@@ -11857,7 +11714,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description FORBIDDEN / ACCOUNT_PENDING / ACCOUNT_REJECTED / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            /** @description FORBIDDEN / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -11867,7 +11724,7 @@ export interface operations {
                         success: boolean;
                         message: string;
                         /** @enum {string} */
-                        code: "FORBIDDEN" | "ACCOUNT_PENDING" | "ACCOUNT_REJECTED" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        code: "FORBIDDEN" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
                         errors: null;
                     };
                 };
@@ -11953,7 +11810,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description FORBIDDEN / ACCOUNT_PENDING / ACCOUNT_REJECTED / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            /** @description FORBIDDEN / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -11963,7 +11820,7 @@ export interface operations {
                         success: boolean;
                         message: string;
                         /** @enum {string} */
-                        code: "FORBIDDEN" | "ACCOUNT_PENDING" | "ACCOUNT_REJECTED" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        code: "FORBIDDEN" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
                         errors: null;
                     };
                 };
@@ -12053,7 +11910,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description ACCOUNT_PENDING / ACCOUNT_REJECTED / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            /** @description ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -12063,7 +11920,7 @@ export interface operations {
                         success: boolean;
                         message: string;
                         /** @enum {string} */
-                        code: "ACCOUNT_PENDING" | "ACCOUNT_REJECTED" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        code: "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
                         errors: null;
                     };
                 };
@@ -12146,7 +12003,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description FORBIDDEN / ACCOUNT_PENDING / ACCOUNT_REJECTED / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            /** @description FORBIDDEN / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -12156,7 +12013,7 @@ export interface operations {
                         success: boolean;
                         message: string;
                         /** @enum {string} */
-                        code: "FORBIDDEN" | "ACCOUNT_PENDING" | "ACCOUNT_REJECTED" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        code: "FORBIDDEN" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
                         errors: null;
                     };
                 };
@@ -12237,7 +12094,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description ACCOUNT_PENDING / ACCOUNT_REJECTED / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            /** @description ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -12247,7 +12104,7 @@ export interface operations {
                         success: boolean;
                         message: string;
                         /** @enum {string} */
-                        code: "ACCOUNT_PENDING" | "ACCOUNT_REJECTED" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        code: "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
                         errors: null;
                     };
                 };
@@ -12330,7 +12187,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description FORBIDDEN / ACCOUNT_PENDING / ACCOUNT_REJECTED / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            /** @description FORBIDDEN / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -12340,7 +12197,7 @@ export interface operations {
                         success: boolean;
                         message: string;
                         /** @enum {string} */
-                        code: "FORBIDDEN" | "ACCOUNT_PENDING" | "ACCOUNT_REJECTED" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        code: "FORBIDDEN" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
                         errors: null;
                     };
                 };
@@ -12436,7 +12293,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description FORBIDDEN / ACCOUNT_PENDING / ACCOUNT_REJECTED / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            /** @description FORBIDDEN / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -12446,7 +12303,7 @@ export interface operations {
                         success: boolean;
                         message: string;
                         /** @enum {string} */
-                        code: "FORBIDDEN" | "ACCOUNT_PENDING" | "ACCOUNT_REJECTED" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        code: "FORBIDDEN" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
                         errors: null;
                     };
                 };
@@ -12527,7 +12384,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description ACCOUNT_PENDING / ACCOUNT_REJECTED / ACCOUNT_INACTIVE */
+            /** @description FORBIDDEN / ACCOUNT_INACTIVE */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -12537,7 +12394,7 @@ export interface operations {
                         success: boolean;
                         message: string;
                         /** @enum {string} */
-                        code: "ACCOUNT_PENDING" | "ACCOUNT_REJECTED" | "ACCOUNT_INACTIVE";
+                        code: "FORBIDDEN" | "ACCOUNT_INACTIVE";
                         errors: null;
                     };
                 };
@@ -12620,7 +12477,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description ACCOUNT_PENDING / ACCOUNT_REJECTED / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            /** @description ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -12630,7 +12487,7 @@ export interface operations {
                         success: boolean;
                         message: string;
                         /** @enum {string} */
-                        code: "ACCOUNT_PENDING" | "ACCOUNT_REJECTED" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        code: "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
                         errors: null;
                     };
                 };
@@ -12713,7 +12570,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description FORBIDDEN / ACCOUNT_PENDING / ACCOUNT_REJECTED / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            /** @description FORBIDDEN / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -12723,7 +12580,7 @@ export interface operations {
                         success: boolean;
                         message: string;
                         /** @enum {string} */
-                        code: "FORBIDDEN" | "ACCOUNT_PENDING" | "ACCOUNT_REJECTED" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        code: "FORBIDDEN" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
                         errors: null;
                     };
                 };
@@ -13288,7 +13145,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description FORBIDDEN / ACCOUNT_PENDING / ACCOUNT_REJECTED / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            /** @description FORBIDDEN / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -13298,7 +13155,7 @@ export interface operations {
                         success: boolean;
                         message: string;
                         /** @enum {string} */
-                        code: "FORBIDDEN" | "ACCOUNT_PENDING" | "ACCOUNT_REJECTED" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        code: "FORBIDDEN" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
                         errors: null;
                     };
                 };
@@ -13396,7 +13253,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description FORBIDDEN / ACCOUNT_PENDING / ACCOUNT_REJECTED / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            /** @description FORBIDDEN / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -13406,7 +13263,7 @@ export interface operations {
                         success: boolean;
                         message: string;
                         /** @enum {string} */
-                        code: "FORBIDDEN" | "ACCOUNT_PENDING" | "ACCOUNT_REJECTED" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        code: "FORBIDDEN" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
                         errors: null;
                     };
                 };
@@ -13505,7 +13362,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description FORBIDDEN / ACCOUNT_PENDING / ACCOUNT_REJECTED / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            /** @description FORBIDDEN / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -13515,7 +13372,7 @@ export interface operations {
                         success: boolean;
                         message: string;
                         /** @enum {string} */
-                        code: "FORBIDDEN" | "ACCOUNT_PENDING" | "ACCOUNT_REJECTED" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        code: "FORBIDDEN" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
                         errors: null;
                     };
                 };
@@ -13624,7 +13481,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description ACCOUNT_PENDING / ACCOUNT_REJECTED / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            /** @description ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -13634,7 +13491,7 @@ export interface operations {
                         success: boolean;
                         message: string;
                         /** @enum {string} */
-                        code: "ACCOUNT_PENDING" | "ACCOUNT_REJECTED" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        code: "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
                         errors: null;
                     };
                 };
@@ -13716,7 +13573,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description FORBIDDEN / ACCOUNT_PENDING / ACCOUNT_REJECTED / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            /** @description FORBIDDEN / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -13726,7 +13583,7 @@ export interface operations {
                         success: boolean;
                         message: string;
                         /** @enum {string} */
-                        code: "FORBIDDEN" | "ACCOUNT_PENDING" | "ACCOUNT_REJECTED" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        code: "FORBIDDEN" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
                         errors: null;
                     };
                 };
@@ -13807,7 +13664,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description ACCOUNT_PENDING / ACCOUNT_REJECTED / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            /** @description ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -13817,7 +13674,7 @@ export interface operations {
                         success: boolean;
                         message: string;
                         /** @enum {string} */
-                        code: "ACCOUNT_PENDING" | "ACCOUNT_REJECTED" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        code: "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
                         errors: null;
                     };
                 };
@@ -13900,7 +13757,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description FORBIDDEN / ACCOUNT_PENDING / ACCOUNT_REJECTED / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            /** @description FORBIDDEN / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -13910,7 +13767,7 @@ export interface operations {
                         success: boolean;
                         message: string;
                         /** @enum {string} */
-                        code: "FORBIDDEN" | "ACCOUNT_PENDING" | "ACCOUNT_REJECTED" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        code: "FORBIDDEN" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
                         errors: null;
                     };
                 };
@@ -14011,7 +13868,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description FORBIDDEN / ACCOUNT_PENDING / ACCOUNT_REJECTED / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            /** @description FORBIDDEN / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -14021,7 +13878,7 @@ export interface operations {
                         success: boolean;
                         message: string;
                         /** @enum {string} */
-                        code: "FORBIDDEN" | "ACCOUNT_PENDING" | "ACCOUNT_REJECTED" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        code: "FORBIDDEN" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
                         errors: null;
                     };
                 };
@@ -14117,7 +13974,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description FORBIDDEN / ACCOUNT_PENDING / ACCOUNT_REJECTED / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            /** @description FORBIDDEN / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -14127,7 +13984,7 @@ export interface operations {
                         success: boolean;
                         message: string;
                         /** @enum {string} */
-                        code: "FORBIDDEN" | "ACCOUNT_PENDING" | "ACCOUNT_REJECTED" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        code: "FORBIDDEN" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
                         errors: null;
                     };
                 };
@@ -14216,7 +14073,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description ACCOUNT_PENDING / ACCOUNT_REJECTED / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            /** @description ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -14226,7 +14083,7 @@ export interface operations {
                         success: boolean;
                         message: string;
                         /** @enum {string} */
-                        code: "ACCOUNT_PENDING" | "ACCOUNT_REJECTED" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        code: "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
                         errors: null;
                     };
                 };
@@ -14243,69 +14100,6 @@ export interface operations {
                         /** @enum {string} */
                         code: "NOT_FOUND";
                         errors: null;
-                    };
-                };
-            };
-            /** @description TOO_MANY_REQUESTS */
-            429: {
-                headers: {
-                    /** @description Jumlah detik sampai boleh mencoba lagi. */
-                    "Retry-After": number;
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                        /** @enum {string} */
-                        code: "TOO_MANY_REQUESTS";
-                        errors: null;
-                    };
-                };
-            };
-        };
-    };
-    "auth.registrasiGuru": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["RegistrasiGuruRequest"];
-            };
-        };
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                        /** @constant */
-                        message: "Pendaftaran terkirim. Akun Anda menunggu persetujuan Kepala Sekolah; kami kirim email setelah disetujui.";
-                        data: null;
-                        meta: null;
-                    };
-                };
-            };
-            /** @description VALIDATION_ERROR */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                        /** @enum {string} */
-                        code: "VALIDATION_ERROR";
-                        errors: {
-                            [key: string]: string[];
-                        };
                     };
                 };
             };
@@ -14349,7 +14143,7 @@ export interface operations {
                     "application/json": {
                         success: boolean;
                         /** @constant */
-                        message: "Jika email ini terdaftar sebagai akun guru atau Kepala Sekolah, tautan untuk mengatur ulang password sudah dikirim. Periksa kotak masuk atau folder spam.";
+                        message: "Jika email ini terdaftar sebagai akun Kepala Sekolah, tautan untuk mengatur ulang password sudah dikirim. Periksa kotak masuk atau folder spam.";
                         data: null;
                         meta: null;
                     };
@@ -14498,7 +14292,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description FORBIDDEN / ACCOUNT_PENDING / ACCOUNT_REJECTED / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            /** @description FORBIDDEN / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -14508,7 +14302,7 @@ export interface operations {
                         success: boolean;
                         message: string;
                         /** @enum {string} */
-                        code: "FORBIDDEN" | "ACCOUNT_PENDING" | "ACCOUNT_REJECTED" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        code: "FORBIDDEN" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
                         errors: null;
                     };
                 };
@@ -14592,7 +14386,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description FORBIDDEN / ACCOUNT_PENDING / ACCOUNT_REJECTED / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            /** @description FORBIDDEN / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -14602,7 +14396,7 @@ export interface operations {
                         success: boolean;
                         message: string;
                         /** @enum {string} */
-                        code: "FORBIDDEN" | "ACCOUNT_PENDING" | "ACCOUNT_REJECTED" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        code: "FORBIDDEN" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
                         errors: null;
                     };
                 };
@@ -14697,7 +14491,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description FORBIDDEN / ACCOUNT_PENDING / ACCOUNT_REJECTED / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            /** @description FORBIDDEN / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -14707,7 +14501,7 @@ export interface operations {
                         success: boolean;
                         message: string;
                         /** @enum {string} */
-                        code: "FORBIDDEN" | "ACCOUNT_PENDING" | "ACCOUNT_REJECTED" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        code: "FORBIDDEN" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
                         errors: null;
                     };
                 };
@@ -14814,7 +14608,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description ACCOUNT_PENDING / ACCOUNT_REJECTED / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            /** @description ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -14824,7 +14618,7 @@ export interface operations {
                         success: boolean;
                         message: string;
                         /** @enum {string} */
-                        code: "ACCOUNT_PENDING" | "ACCOUNT_REJECTED" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        code: "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
                         errors: null;
                     };
                 };
@@ -14909,7 +14703,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description FORBIDDEN / ACCOUNT_PENDING / ACCOUNT_REJECTED / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            /** @description FORBIDDEN / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -14919,7 +14713,7 @@ export interface operations {
                         success: boolean;
                         message: string;
                         /** @enum {string} */
-                        code: "FORBIDDEN" | "ACCOUNT_PENDING" | "ACCOUNT_REJECTED" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        code: "FORBIDDEN" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
                         errors: null;
                     };
                 };
@@ -15015,7 +14809,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description ACCOUNT_PENDING / ACCOUNT_REJECTED / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            /** @description ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -15025,7 +14819,7 @@ export interface operations {
                         success: boolean;
                         message: string;
                         /** @enum {string} */
-                        code: "ACCOUNT_PENDING" | "ACCOUNT_REJECTED" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        code: "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
                         errors: null;
                     };
                 };
@@ -15107,7 +14901,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description FORBIDDEN / ACCOUNT_PENDING / ACCOUNT_REJECTED / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            /** @description FORBIDDEN / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -15117,7 +14911,7 @@ export interface operations {
                         success: boolean;
                         message: string;
                         /** @enum {string} */
-                        code: "FORBIDDEN" | "ACCOUNT_PENDING" | "ACCOUNT_REJECTED" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        code: "FORBIDDEN" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
                         errors: null;
                     };
                 };
@@ -15221,7 +15015,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description FORBIDDEN / ACCOUNT_PENDING / ACCOUNT_REJECTED / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            /** @description FORBIDDEN / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -15231,7 +15025,7 @@ export interface operations {
                         success: boolean;
                         message: string;
                         /** @enum {string} */
-                        code: "FORBIDDEN" | "ACCOUNT_PENDING" | "ACCOUNT_REJECTED" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        code: "FORBIDDEN" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
                         errors: null;
                     };
                 };
@@ -15313,7 +15107,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description FORBIDDEN / ACCOUNT_PENDING / ACCOUNT_REJECTED / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            /** @description FORBIDDEN / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -15323,7 +15117,7 @@ export interface operations {
                         success: boolean;
                         message: string;
                         /** @enum {string} */
-                        code: "FORBIDDEN" | "ACCOUNT_PENDING" | "ACCOUNT_REJECTED" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        code: "FORBIDDEN" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
                         errors: null;
                     };
                 };
@@ -15408,7 +15202,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description FORBIDDEN / ACCOUNT_PENDING / ACCOUNT_REJECTED / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            /** @description FORBIDDEN / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -15418,7 +15212,7 @@ export interface operations {
                         success: boolean;
                         message: string;
                         /** @enum {string} */
-                        code: "FORBIDDEN" | "ACCOUNT_PENDING" | "ACCOUNT_REJECTED" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        code: "FORBIDDEN" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
                         errors: null;
                     };
                 };
@@ -15513,7 +15307,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description FORBIDDEN / ACCOUNT_PENDING / ACCOUNT_REJECTED / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            /** @description FORBIDDEN / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -15523,7 +15317,7 @@ export interface operations {
                         success: boolean;
                         message: string;
                         /** @enum {string} */
-                        code: "FORBIDDEN" | "ACCOUNT_PENDING" | "ACCOUNT_REJECTED" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        code: "FORBIDDEN" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
                         errors: null;
                     };
                 };
@@ -15616,7 +15410,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description FORBIDDEN / ACCOUNT_PENDING / ACCOUNT_REJECTED / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            /** @description FORBIDDEN / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -15626,7 +15420,7 @@ export interface operations {
                         success: boolean;
                         message: string;
                         /** @enum {string} */
-                        code: "FORBIDDEN" | "ACCOUNT_PENDING" | "ACCOUNT_REJECTED" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        code: "FORBIDDEN" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
                         errors: null;
                     };
                 };
@@ -15713,7 +15507,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description FORBIDDEN / ACCOUNT_PENDING / ACCOUNT_REJECTED / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            /** @description FORBIDDEN / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -15723,7 +15517,7 @@ export interface operations {
                         success: boolean;
                         message: string;
                         /** @enum {string} */
-                        code: "FORBIDDEN" | "ACCOUNT_PENDING" | "ACCOUNT_REJECTED" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        code: "FORBIDDEN" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
                         errors: null;
                     };
                 };
@@ -15804,7 +15598,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description FORBIDDEN / ACCOUNT_PENDING / ACCOUNT_REJECTED / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            /** @description FORBIDDEN / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -15814,7 +15608,7 @@ export interface operations {
                         success: boolean;
                         message: string;
                         /** @enum {string} */
-                        code: "FORBIDDEN" | "ACCOUNT_PENDING" | "ACCOUNT_REJECTED" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        code: "FORBIDDEN" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
                         errors: null;
                     };
                 };
@@ -15896,7 +15690,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description FORBIDDEN / ACCOUNT_PENDING / ACCOUNT_REJECTED / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            /** @description FORBIDDEN / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -15906,7 +15700,7 @@ export interface operations {
                         success: boolean;
                         message: string;
                         /** @enum {string} */
-                        code: "FORBIDDEN" | "ACCOUNT_PENDING" | "ACCOUNT_REJECTED" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        code: "FORBIDDEN" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
                         errors: null;
                     };
                 };
@@ -16005,7 +15799,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description FORBIDDEN / ACCOUNT_PENDING / ACCOUNT_REJECTED / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            /** @description FORBIDDEN / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -16015,7 +15809,7 @@ export interface operations {
                         success: boolean;
                         message: string;
                         /** @enum {string} */
-                        code: "FORBIDDEN" | "ACCOUNT_PENDING" | "ACCOUNT_REJECTED" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        code: "FORBIDDEN" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
                         errors: null;
                     };
                 };
@@ -16110,7 +15904,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description FORBIDDEN / ACCOUNT_PENDING / ACCOUNT_REJECTED / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            /** @description FORBIDDEN / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -16120,7 +15914,7 @@ export interface operations {
                         success: boolean;
                         message: string;
                         /** @enum {string} */
-                        code: "FORBIDDEN" | "ACCOUNT_PENDING" | "ACCOUNT_REJECTED" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        code: "FORBIDDEN" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
                         errors: null;
                     };
                 };

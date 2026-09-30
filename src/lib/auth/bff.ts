@@ -22,7 +22,8 @@ type AturanLogin = {
 // Role dicek ulang supaya cookie sesi tidak pernah dipasang untuk role yang
 // bukan milik halaman login itu, walaupun backend sudah menolaknya.
 const LOGIN = {
-  staff: { bePath: "/auth/staff/login", field: ["email", "password"], role: ["super_admin", "guru"] },
+  staff: { bePath: "/auth/staff/login", field: ["email", "password"], role: ["super_admin"] },
+  google: { bePath: "/auth/staff/google", field: ["credential"], role: ["super_admin", "guru"] },
   wali: { bePath: "/auth/wali/login", field: ["username", "password"], role: ["wali_murid"] },
 } as const satisfies Record<string, AturanLogin>;
 

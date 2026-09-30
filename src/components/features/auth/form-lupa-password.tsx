@@ -36,8 +36,8 @@ export function FormLupaPassword() {
         {mutation.isSuccess ? (
           // Backend tidak memberi tahu apakah email terdaftar, jadi pesannya dibuat netral.
           <KotakPesan nada="sukses" judul="Periksa email Anda">
-            Kalau {mutation.variables.email} terdaftar sebagai akun guru atau Kepala Sekolah, tautan untuk membuat
-            password baru sudah dikirim. Tautan berlaku 60 menit.
+            Kalau {mutation.variables.email} terdaftar sebagai akun Kepala Sekolah, tautan untuk membuat password baru
+            sudah dikirim. Tautan berlaku 60 menit.
           </KotakPesan>
         ) : null}
         <KolomTeks

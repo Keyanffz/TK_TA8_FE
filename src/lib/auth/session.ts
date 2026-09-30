@@ -8,7 +8,7 @@ import { apiServer } from "@/lib/api/server";
 import { TOKEN_COOKIE } from "@/lib/auth/cookies";
 import type { User } from "@/types/domain";
 
-const KODE_SESI_TIDAK_BERLAKU = ["ACCOUNT_PENDING", "ACCOUNT_REJECTED", "ACCOUNT_INACTIVE"];
+const KODE_SESI_TIDAK_BERLAKU = ["ACCOUNT_INACTIVE"];
 
 /**
  * User yang sedang masuk, atau null kalau tidak ada token atau token ditolak
