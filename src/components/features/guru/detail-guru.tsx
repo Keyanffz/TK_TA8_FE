@@ -49,7 +49,7 @@ function ResetTautanGoogle({ guru }: { guru: Guru }) {
     <DialogKonfirmasi
       pemicu={<Button variant="outline">Reset tautan Google</Button>}
       judul={`Reset tautan Google ${name}?`}
-      deskripsi={`Akun Google yang sekarang terikat dilepas. Login Google berikutnya dengan ${email ?? "email ini"} akan mengikat akun Google yang dipakai saat itu. Pakai ini kalau guru membuat ulang akun Google dengan email yang sama. Sesi yang sedang berjalan tidak dikeluarkan.`}
+      deskripsi={`Akun Google yang sekarang terikat dilepas. Login Google berikutnya dengan ${email ?? "email ini"} akan mengikat akun Google yang dipakai saat itu. Pakai ini kalau guru membuat ulang akun Google dengan email yang sama. Guru juga dikeluarkan dari semua perangkat dan harus masuk lagi dengan Google.`}
       labelAksi="Reset Tautan"
       onKonfirmasi={async () => {
         await reset.mutateAsync(guru.id);

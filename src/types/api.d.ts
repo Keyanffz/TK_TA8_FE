@@ -402,8 +402,8 @@ export interface paths {
         put?: never;
         /**
          * Melepas akun Google yang terikat ke guru, supaya guru bisa masuk dengan akun Google baru beremail sama
-         * @description Ditolak 422 `BUSINESS_RULE` kalau guru belum pernah masuk dengan Google (`terhubung_google` false). Sesi yang
-         *     sedang berjalan tidak dicabut. Dicatat di log aktivitas `akun` (event `google_direset`).
+         * @description Semua sesi login guru itu dicabut, jadi guru harus masuk lagi dengan Google. Ditolak 422 `BUSINESS_RULE` kalau
+         *     guru belum pernah masuk dengan Google (`terhubung_google` false). Dicatat di log aktivitas `akun` (event `google_direset`).
          */
         post: operations["guru.resetGoogle"];
         delete?: never;

@@ -305,7 +305,7 @@ Diminta pemilik repo: guru dan Kepala Sekolah masuk dengan Google, password hany
 - **`useMasuk()`**: `pesanGagal` sekarang fungsi dari `ApiError`. Login password tetap satu pesan umum untuk 401/422; login Google memakai `errors.credential[0]` dari backend (token tidak sah, email tidak terdaftar, akun Google lain). 503 (Google belum dikonfigurasi di backend) ditampilkan di atas form. Penanganan `ACCOUNT_PENDING` dan `ACCOUNT_REJECTED` dihapus bersama kodenya.
 - **Guru**: tab Aktif/Nonaktif saja; tambah guru meminta "Email Google" dan menampilkan alamat halaman masuk guru (bisa disalin), bukan password awal; tidak ada tombol hapus. Profil guru menampilkan "Cara masuk" (akun Google) sebagai ganti form ganti password. Panel Perlu Tindakan Kepala Sekolah tinggal tiga kartu.
 - `ACCOUNT_INACTIVE` tetap satu-satunya kode sesi tidak berlaku selain 401 (`ambilSesi()`).
-- **Reset tautan Google** (tambahan setelah review): detail guru menampilkan "Akun Google: Terhubung / Belum pernah masuk dengan Google" dari `terhubung_google`, dan tombol "Reset tautan Google" (dialog konfirmasi, `POST /guru/{id}/reset-google`) hanya untuk guru yang terhubung. Setelah reset, data guru dimuat ulang sehingga tombolnya hilang.
+- **Reset tautan Google** (tambahan setelah review): detail guru menampilkan "Akun Google: Terhubung / Belum pernah masuk dengan Google" dari `terhubung_google`, dan tombol "Reset tautan Google" (dialog konfirmasi, `POST /guru/{id}/reset-google`) hanya untuk guru yang terhubung. Backend juga mencabut semua sesi guru itu, dan dialog menyebutkannya. Setelah reset, data guru dimuat ulang sehingga tombolnya hilang.
 
 ## Temuan kontrak Fase 6
 
