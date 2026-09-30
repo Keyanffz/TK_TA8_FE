@@ -5,8 +5,9 @@ import { RUTE_GANTI_PASSWORD, RUTE_ONBOARDING } from "@/lib/auth/path";
 import { amankanTujuan } from "@/lib/auth/redirect";
 import { berandaUntuk } from "@/lib/auth/role";
 
-// Respons route handler /api/auth/staff/login dan /api/auth/wali/login. Hanya
-// bagian yang dibutuhkan untuk menentukan halaman tujuan yang dibaca.
+// Respons route handler /api/auth/staff/login, /api/auth/staff/google, dan
+// /api/auth/wali/login. Hanya bagian yang dibutuhkan untuk menentukan halaman
+// tujuan yang dibaca.
 const skemaResponsMasuk = z.object({
   data: z.object({
     user: z.object({
@@ -19,7 +20,9 @@ const skemaResponsMasuk = z.object({
 
 export type HasilMasuk = z.output<typeof skemaResponsMasuk>["data"]["user"];
 
-async function kirim(path: "/api/auth/staff/login" | "/api/auth/wali/login", body: Record<string, string>): Promise<HasilMasuk> {
+type PathMasuk = "/api/auth/staff/login" | "/api/auth/staff/google" | "/api/auth/wali/login";
+
+async function kirim(path: PathMasuk, body: Record<string, string>): Promise<HasilMasuk> {
   const response = await fetch(path, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -30,9 +33,14 @@ async function kirim(path: "/api/auth/staff/login" | "/api/auth/wali/login", bod
   return skemaResponsMasuk.parse(json).data.user;
 }
 
-/** Kepala Sekolah dan guru. */
+/** Kepala Sekolah dengan password. Guru tidak punya password. */
 export function masukStaff(nilai: { email: string; password: string }): Promise<HasilMasuk> {
   return kirim("/api/auth/staff/login", nilai);
+}
+
+/** Guru dan Kepala Sekolah: ID token dari Google Identity Services, diverifikasi backend. */
+export function masukGoogle(credential: string): Promise<HasilMasuk> {
+  return kirim("/api/auth/staff/google", { credential });
 }
 
 /** Wali murid: username = NIS anak (A2.1). */

@@ -5,8 +5,6 @@ import type { KodeError, ResponsError } from "@/types/domain";
 const KODE_ERROR: readonly KodeError[] = [
   "UNAUTHENTICATED",
   "FORBIDDEN",
-  "ACCOUNT_PENDING",
-  "ACCOUNT_REJECTED",
   "ACCOUNT_INACTIVE",
   "PASSWORD_WAJIB_DIGANTI",
   "NOT_FOUND",

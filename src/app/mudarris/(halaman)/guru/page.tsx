@@ -15,7 +15,7 @@ export default async function GuruPage() {
     <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
       <KepalaHalaman
         judul="Guru"
-        deskripsi="Setujui pendaftaran guru, atur izin keuangan, dan pilih guru yang tampil di halaman depan."
+        deskripsi="Tambah guru dengan email Google-nya, atur izin keuangan, nonaktifkan guru yang tidak lagi mengajar, dan pilih guru yang tampil di halaman depan."
         aksi={
           <Link href="/mudarris/guru/baru" className={buttonVariants()}>
             Tambah Guru

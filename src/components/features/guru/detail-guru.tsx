@@ -2,7 +2,6 @@
 
 import { toast } from "sonner";
 
-import { AksiPersetujuanGuru } from "@/components/features/guru/aksi-persetujuan-guru";
 import { FormGuru } from "@/components/features/guru/form-guru";
 import { DialogKonfirmasi } from "@/components/shared/dialog-konfirmasi";
 import { FotoProfil } from "@/components/shared/foto-profil";
@@ -11,7 +10,7 @@ import { KotakPesan } from "@/components/shared/kotak-pesan";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useDetailGuru, useUbahGuru, useUbahStatusGuru } from "@/lib/api/guru";
+import { useDetailGuru, useResetGoogleGuru, useUbahGuru, useUbahStatusGuru } from "@/lib/api/guru";
 import { LABEL_STATUS_AKUN } from "@/lib/constants/label";
 import { NADA_STATUS_AKUN } from "@/lib/constants/status";
 import { formatTanggal, formatTanggalWaktu } from "@/lib/format";
@@ -21,8 +20,6 @@ function AksiStatus({ guru }: { guru: Guru }) {
   const ubahStatus = useUbahStatusGuru();
   const { status, name } = guru.user;
   if (guru.user.role === "super_admin") return null;
-  if (status === "pending") return <AksiPersetujuanGuru id={guru.id} nama={name} />;
-  if (status === "ditolak") return null;
   const nonaktifkan = status === "aktif";
   return (
     <DialogKonfirmasi
@@ -30,14 +27,33 @@ function AksiStatus({ guru }: { guru: Guru }) {
       judul={nonaktifkan ? `Nonaktifkan akun ${name}?` : `Aktifkan kembali akun ${name}?`}
       deskripsi={
         nonaktifkan
-          ? "Guru langsung dikeluarkan dari semua perangkat dan tidak bisa masuk sampai diaktifkan lagi. Data kelas dan kegiatan tetap ada."
-          : "Guru bisa masuk lagi dengan email dan password lamanya."
+          ? "Guru langsung dikeluarkan dari semua perangkat dan tidak bisa masuk sampai diaktifkan lagi. Akun tidak dihapus, jadi data kelas, kegiatan, dan rapor tetap ada."
+          : "Guru bisa masuk lagi dengan akun Google yang emailnya terdaftar di sini."
       }
       labelAksi={nonaktifkan ? "Nonaktifkan" : "Aktifkan"}
       berbahaya={nonaktifkan}
       onKonfirmasi={async () => {
         await ubahStatus.mutateAsync({ id: guru.id, status: nonaktifkan ? "nonaktif" : "aktif" });
         toast.success(nonaktifkan ? `Akun ${name} dinonaktifkan.` : `Akun ${name} aktif kembali.`);
+      }}
+    />
+  );
+}
+
+/** Hanya untuk guru yang sudah pernah masuk dengan Google (`terhubung_google`). */
+function ResetTautanGoogle({ guru }: { guru: Guru }) {
+  const reset = useResetGoogleGuru();
+  if (!guru.terhubung_google) return null;
+  const { name, email } = guru.user;
+  return (
+    <DialogKonfirmasi
+      pemicu={<Button variant="outline">Reset tautan Google</Button>}
+      judul={`Reset tautan Google ${name}?`}
+      deskripsi={`Akun Google yang sekarang terikat dilepas. Login Google berikutnya dengan ${email ?? "email ini"} akan mengikat akun Google yang dipakai saat itu. Pakai ini kalau guru membuat ulang akun Google dengan email yang sama. Guru juga dikeluarkan dari semua perangkat dan harus masuk lagi dengan Google.`}
+      labelAksi="Reset Tautan"
+      onKonfirmasi={async () => {
+        await reset.mutateAsync(guru.id);
+        toast.success(`Tautan Google ${name} direset.`);
       }}
     />
   );
@@ -66,28 +82,22 @@ export function DetailGuru({ id }: { id: number }) {
         {guru.user.role === "super_admin" ? (
           <KotakPesan nada="proses">Profil guru milik Kepala Sekolah. Status akun dan izin keuangan tidak bisa diubah.</KotakPesan>
         ) : null}
-        {guru.user.status === "ditolak" && guru.alasan_penolakan ? (
-          <KotakPesan nada="bahaya" judul="Alasan penolakan">
-            {guru.alasan_penolakan}
-          </KotakPesan>
-        ) : null}
         <dl className="grid gap-2 text-sm">
           <div>
             <dt className="text-muted-foreground">Terdaftar</dt>
             <dd className="font-bold">{guru.created_at ? formatTanggal(guru.created_at) : "-"}</dd>
           </div>
-          {guru.disetujui_at ? (
-            <div>
-              <dt className="text-muted-foreground">Disetujui</dt>
-              <dd className="font-bold">{formatTanggal(guru.disetujui_at)}</dd>
-            </div>
-          ) : null}
+          <div>
+            <dt className="text-muted-foreground">Akun Google</dt>
+            <dd className="font-bold">{guru.terhubung_google ? "Terhubung" : "Belum pernah masuk dengan Google"}</dd>
+          </div>
           <div>
             <dt className="text-muted-foreground">Terakhir masuk</dt>
             <dd className="font-bold">{guru.user.last_login_at ? formatTanggalWaktu(guru.user.last_login_at) : "Belum pernah"}</dd>
           </div>
         </dl>
         <AksiStatus guru={guru} />
+        <ResetTautanGoogle guru={guru} />
       </aside>
       <section aria-labelledby="judul-data-guru" className="rounded-xl border border-border bg-card p-5 shadow-sm">
         <h2 id="judul-data-guru" className="mb-5 text-lg font-extrabold">

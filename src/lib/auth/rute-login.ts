@@ -5,12 +5,10 @@ export const RUTE_LOGIN = {
   staff: "/mudarris/login",
 } as const;
 
-/** Halaman akun guru dan Kepala Sekolah yang bisa dibuka tanpa masuk. */
+/** Halaman akun Kepala Sekolah (password) yang bisa dibuka tanpa masuk. */
 export const RUTE_AKUN_STAFF = {
-  daftar: "/mudarris/daftar",
   lupaPassword: "/mudarris/lupa-password",
   resetPassword: "/mudarris/reset-password",
-  menungguPersetujuan: "/mudarris/menunggu-persetujuan",
 } as const;
 
 /**

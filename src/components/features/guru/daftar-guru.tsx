@@ -4,7 +4,6 @@ import type { ColumnDef } from "@tanstack/react-table";
 import Link from "next/link";
 import { parseAsInteger, parseAsString, parseAsStringLiteral, useQueryState } from "nuqs";
 
-import { AksiPersetujuanGuru } from "@/components/features/guru/aksi-persetujuan-guru";
 import { EmptyState } from "@/components/shared/empty-state";
 import { FotoProfil } from "@/components/shared/foto-profil";
 import { KolomCari } from "@/components/shared/kolom-cari";
@@ -16,8 +15,8 @@ import { useDaftarGuru } from "@/lib/api/guru";
 import { formatTanggal } from "@/lib/format";
 import type { Guru } from "@/types/domain";
 
-const STATUS = ["aktif", "pending", "nonaktif", "ditolak"] as const;
-const LABEL_TAB = { aktif: "Aktif", pending: "Menunggu Persetujuan", nonaktif: "Nonaktif", ditolak: "Ditolak" } as const;
+const STATUS = ["aktif", "nonaktif"] as const;
+const LABEL_TAB = { aktif: "Aktif", nonaktif: "Nonaktif" } as const;
 
 function Identitas({ guru }: { guru: Guru }) {
   return (
@@ -34,9 +33,6 @@ function Identitas({ guru }: { guru: Guru }) {
 }
 
 function Peran({ guru }: { guru: Guru }) {
-  if (guru.user.status === "ditolak") {
-    return <p className="line-clamp-2 max-w-xs text-sm text-muted-foreground">{guru.alasan_penolakan ?? "Tanpa alasan tercatat."}</p>;
-  }
   return (
     <div className="flex flex-wrap gap-1">
       {guru.bisa_kelola_keuangan ? <StatusBadge nada="proses">Petugas keuangan</StatusBadge> : null}
@@ -46,7 +42,6 @@ function Peran({ guru }: { guru: Guru }) {
 }
 
 function Aksi({ guru }: { guru: Guru }) {
-  if (guru.user.status === "pending") return <AksiPersetujuanGuru id={guru.id} nama={guru.user.name} />;
   return (
     <Link href={`/mudarris/guru/${guru.id}`} className={buttonVariants({ size: "sm", variant: "outline" })}>
       Buka
@@ -72,18 +67,13 @@ export function DaftarGuru() {
   const [cari, setCari] = useQueryState("cari", parseAsString.withDefault(""));
   const [halaman, setHalaman] = useQueryState("page", parseAsInteger.withDefault(1));
   const daftar = useDaftarGuru({ status, search: cari, halaman });
-  const menunggu = useDaftarGuru({ status: "pending", search: "", halaman: 1 });
 
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <SaringSegmen
           label="Status guru"
-          opsi={STATUS.map((nilai) => ({
-            nilai,
-            label: LABEL_TAB[nilai],
-            jumlah: nilai === "pending" ? menunggu.data?.meta.total : undefined,
-          }))}
+          opsi={STATUS.map((nilai) => ({ nilai, label: LABEL_TAB[nilai] }))}
           nilai={status}
           onUbah={(nilai) => {
             void setStatus(nilai === "aktif" ? null : nilai);
@@ -115,7 +105,7 @@ export function DaftarGuru() {
         kosong={
           <EmptyState
             judul={cari ? `Tidak ada guru yang cocok dengan "${cari}".` : `Belum ada guru berstatus ${LABEL_TAB[status].toLowerCase()}.`}
-            deskripsi={status === "pending" ? "Pendaftaran guru baru dari halaman Daftar Guru akan muncul di sini." : undefined}
+            deskripsi={status === "aktif" && !cari ? "Tambahkan guru dengan nama dan email Google-nya lewat tombol Tambah Guru." : undefined}
           />
         }
         kartu={(guru) => (

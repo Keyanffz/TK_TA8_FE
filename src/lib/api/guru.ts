@@ -70,19 +70,11 @@ export function useUbahGuru(id: number) {
   });
 }
 
-export function useSetujuiGuru() {
+/** Kepala Sekolah melepas akun Google yang terikat; guru lalu bisa masuk dengan akun Google baru beremail sama. */
+export function useResetGoogleGuru() {
   const segarkan = useSegarkanGuru();
   return useMutation({
-    mutationFn: (id: number) => ambilData(api.POST("/guru/{id}/setujui", { params: { path: { id } } })),
-    onSuccess: segarkan,
-  });
-}
-
-export function useTolakGuru() {
-  const segarkan = useSegarkanGuru();
-  return useMutation({
-    mutationFn: ({ id, alasan }: { id: number; alasan: string }) =>
-      ambilData(api.POST("/guru/{id}/tolak", { params: { path: { id } }, body: { alasan } })),
+    mutationFn: (id: number) => ambilData(api.POST("/guru/{id}/reset-google", { params: { path: { id } } })),
     onSuccess: segarkan,
   });
 }

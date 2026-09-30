@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 
-import { FormLoginStaff } from "@/components/features/auth/form-login-staff";
 import { IlustrasiGuru } from "@/components/features/auth/ilustrasi-login";
+import { PilihanMasukStaff } from "@/components/features/auth/pilihan-masuk-staff";
 import { RUTE_LOGIN } from "@/lib/auth/rute-login";
 
 export const metadata: Metadata = { title: "Masuk Guru dan Kepala Sekolah" };
@@ -21,7 +21,7 @@ export default function LoginStaffPage() {
       </div>
       <div className="mt-8">
         <Suspense>
-          <FormLoginStaff />
+          <PilihanMasukStaff />
         </Suspense>
       </div>
       <p className="mt-8 text-sm text-muted-foreground">

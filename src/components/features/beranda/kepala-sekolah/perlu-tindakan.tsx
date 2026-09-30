@@ -1,4 +1,4 @@
-import { ArrowRight, BookOpenText, GraduationCap, UserPlus, Wallet, type LucideIcon } from "lucide-react";
+import { ArrowRight, BookOpenText, UserPlus, Wallet, type LucideIcon } from "lucide-react";
 import Link from "next/link";
 import type { CSSProperties } from "react";
 
@@ -12,7 +12,6 @@ type Tertunda = DashboardKepalaSekolah["tertunda"];
 const TINDAKAN: readonly { kunci: keyof Tertunda; label: string; href: string; ikon: LucideIcon }[] = [
   { kunci: "pembayaran_menunggu", label: "Pembayaran menunggu verifikasi", href: "/mudarris/pembayaran", ikon: Wallet },
   { kunci: "rapor_diajukan", label: "Rapor menunggu review", href: "/mudarris/rapor", ikon: BookOpenText },
-  { kunci: "guru_pending", label: "Guru menunggu persetujuan", href: "/mudarris/guru?status=pending", ikon: GraduationCap },
   { kunci: "pendaftaran_baru", label: "Pendaftar PPDB baru", href: "/mudarris/ppdb", ikon: UserPlus },
 ];
 
@@ -32,7 +31,7 @@ export function PerluTindakan({ tertunda }: { tertunda: Tertunda }) {
   return (
     <div>
       <h2 className="mb-3 font-heading text-lg font-extrabold">Perlu Tindakan</h2>
-      <ul className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <ul className="grid grid-cols-2 gap-3 lg:grid-cols-3">
         {TINDAKAN.map(({ kunci, label, href, ikon: Ikon }, indeks) => {
           const jumlah = tertunda[kunci];
           const ada = jumlah > 0;

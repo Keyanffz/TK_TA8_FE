@@ -48,9 +48,7 @@ export const NADA_STATUS_PENDAFTARAN: Record<StatusPendaftaran, NadaStatus> = {
 };
 
 export const NADA_STATUS_AKUN: Record<StatusAkun, NadaStatus> = {
-  pending: "menunggu",
   aktif: "sukses",
-  ditolak: "bahaya",
   nonaktif: "netral",
 };
 

@@ -6,7 +6,7 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 
-/** Salin teks pendek (kode pendaftaran, password awal) ke clipboard. */
+/** Salin teks pendek (kode pendaftaran, alamat halaman masuk) ke clipboard. */
 export function TombolSalin({ teks, label }: { teks: string; label: string }) {
   const [tersalin, setTersalin] = useState(false);
 

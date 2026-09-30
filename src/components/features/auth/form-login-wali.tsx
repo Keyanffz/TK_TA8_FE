@@ -32,7 +32,7 @@ export function FormLoginWali() {
   const { errors } = form.formState;
   const { masuk, sedangMemeriksa, pesan, sisaJeda } = useMasuk({
     kirim: masukWali,
-    pesanGagal: "NIS anak atau password salah. Periksa kembali NIS di kartu akun dari sekolah.",
+    pesanGagal: () => "NIS anak atau password salah. Periksa kembali NIS di kartu akun dari sekolah.",
   });
 
   return (

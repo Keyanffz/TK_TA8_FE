@@ -69,8 +69,6 @@ export type LaporanTunggakan = DataRespons<"laporan.tunggakan">;
 export type KodeError =
   | "UNAUTHENTICATED"
   | "FORBIDDEN"
-  | "ACCOUNT_PENDING"
-  | "ACCOUNT_REJECTED"
   | "ACCOUNT_INACTIVE"
   | "PASSWORD_WAJIB_DIGANTI"
   | "NOT_FOUND"
