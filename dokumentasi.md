@@ -440,8 +440,6 @@ Menu sidebar untuk semua route B4 sudah ada sejak Fase 3 (`src/lib/navigation.ts
 
 ## Rencana perbaikan berikutnya
 
-- **Email persetujuan guru (backend)**: `GuruDisetujuiNotification` membuat tombol "Masuk ke Dashboard" ke `FRONTEND_URL/login`, yang sekarang halaman login wali. Perlu diganti ke `/staff/login` di repo backend. Kartu akun wali (`KartuAkunService`, `/login`) sudah benar.
-
 - **File gambar pengaturan yang tidak jadi disimpan (F7-3)**: `POST /pengaturan/upload` langsung menyimpan file ke disk `public` folder `pengaturan/` (`PengaturanService::FOLDER_GAMBAR`), sedangkan path-nya baru tercatat saat tab CMS disimpan. Kalau Kepala Sekolah memilih gambar lalu membatalkan atau meninggalkan halaman, file itu tidak pernah dipakai dan tidak pernah dihapus. Gambar yang diganti saat menyimpan sudah dihapus backend (`PengaturanService`, perbandingan `semuaGambar()` sebelum dan sesudah simpan), jadi yang tertinggal hanya unggahan yang tidak pernah disimpan.
   Usulan untuk repo backend (belum dikerjakan): perintah artisan `pengaturan:bersihkan-gambar` yang menghapus file di `pengaturan/` pada disk `public` yang tidak ada di `semuaGambar()` pengaturan saat ini dan berumur lebih dari 1 hari (dari waktu ubah file). Batas 1 hari menjaga file yang baru diunggah dan masih menunggu disimpan di form yang sedang terbuka. Dijadwalkan harian di `routes/console.php` pada jam sepi, misalnya `Schedule::command('pengaturan:bersihkan-gambar')->dailyAt('02:00');`, dengan jumlah file yang dihapus dicatat di log. FE tidak perlu berubah.
 
