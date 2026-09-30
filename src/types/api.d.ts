@@ -2492,7 +2492,7 @@ export interface components {
             jenis: components["schemas"]["JenisNotifikasi"];
             judul: string;
             pesan: string;
-            /** @description Path halaman FE tujuan, misalnya `/dashboard/tagihan/12`. */
+            /** @description Path halaman FE tujuan di area penerima, misalnya `/dashboard/tagihan/12` (wali) atau `/mudarris/tagihan/12` (staff). */
             url: string;
             /** Format: date-time */
             dibaca_at: string | null;
