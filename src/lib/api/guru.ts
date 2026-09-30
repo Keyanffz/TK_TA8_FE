@@ -70,6 +70,15 @@ export function useUbahGuru(id: number) {
   });
 }
 
+/** Kepala Sekolah melepas akun Google yang terikat; guru lalu bisa masuk dengan akun Google baru beremail sama. */
+export function useResetGoogleGuru() {
+  const segarkan = useSegarkanGuru();
+  return useMutation({
+    mutationFn: (id: number) => ambilData(api.POST("/guru/{id}/reset-google", { params: { path: { id } } })),
+    onSuccess: segarkan,
+  });
+}
+
 export function useUbahStatusGuru() {
   const segarkan = useSegarkanGuru();
   return useMutation({

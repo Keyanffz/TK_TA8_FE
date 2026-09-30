@@ -391,6 +391,27 @@ export interface paths {
         patch: operations["guru.ubahStatus"];
         trace?: never;
     };
+    "/guru/{id}/reset-google": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Melepas akun Google yang terikat ke guru, supaya guru bisa masuk dengan akun Google baru beremail sama
+         * @description Ditolak 422 `BUSINESS_RULE` kalau guru belum pernah masuk dengan Google (`terhubung_google` false). Sesi yang
+         *     sedang berjalan tidak dicabut. Dicatat di log aktivitas `akun` (event `google_direset`).
+         */
+        post: operations["guru.resetGoogle"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/health": {
         parameters: {
             query?: never;
@@ -2155,6 +2176,8 @@ export interface components {
             foto_url: string | null;
             bisa_kelola_keuangan: boolean;
             tampil_di_landing: boolean;
+            /** @description Sudah pernah masuk dengan Google (akun Google terikat). Nilai `sub` Google tidak dikirim. */
+            terhubung_google: boolean;
             /** Format: date-time */
             created_at: string | null;
         };
@@ -6073,6 +6096,109 @@ export interface operations {
                         errors: {
                             [key: string]: string[];
                         };
+                    };
+                };
+            };
+            /** @description TOO_MANY_REQUESTS */
+            429: {
+                headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "TOO_MANY_REQUESTS";
+                        errors: null;
+                    };
+                };
+            };
+        };
+    };
+    "guru.resetGoogle": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        data: components["schemas"]["GuruResource"];
+                        meta: null;
+                    };
+                };
+            };
+            /** @description UNAUTHENTICATED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "UNAUTHENTICATED";
+                        errors: null;
+                    };
+                };
+            };
+            /** @description FORBIDDEN / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "FORBIDDEN" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        errors: null;
+                    };
+                };
+            };
+            /** @description NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "NOT_FOUND";
+                        errors: null;
+                    };
+                };
+            };
+            /** @description BUSINESS_RULE */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "BUSINESS_RULE";
+                        errors: null;
                     };
                 };
             };

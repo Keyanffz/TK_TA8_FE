@@ -106,7 +106,7 @@ Request dari Server Component ke endpoint publik (landing, ISR) tidak membawa `X
 - `src/proxy.ts` (matcher `/dashboard/:path*`, `/mudarris/:path*`, `/login`): wali murid di `/dashboard/*`, guru dan Kepala Sekolah di `/mudarris/*`. Tanpa cookie `tk_token`: `/dashboard/*` → `/login?next=...`, `/mudarris/*` → `/mudarris/login?next=...`; halaman akun (`/mudarris/login`, `/lupa-password`, `/reset-password`) tetap terbuka. Sudah punya cookie buka `/login` atau `/mudarris/login` → beranda sesuai `tk_role`. `tk_role` staff membuka `/dashboard/x` → `/mudarris/x` (tautan notifikasi yang tersimpan sebelum area dipisah, bookmark); `tk_role` wali membuka `/mudarris/*` → `/dashboard?akses=ditolak`. Kedua halaman login `force-dynamic` supaya tidak diambil dari cache browser tanpa melewati proxy. `/api` sengaja tidak dicocokkan karena proxy Next.js membatasi body 10 MB (`proxyClientMaxBodySize`), sedangkan unggahan kegiatan bisa lebih besar.
 - `src/app/dashboard/layout.tsx` (wali) dan `src/app/mudarris/layout.tsx` (guru, Kepala Sekolah) memanggil `ambilSesi()` (`GET /auth/me`, di-cache per request) dan memeriksa role sebenarnya: staff di `/dashboard` → `/mudarris`, wali di `/mudarris` → `/dashboard?akses=ditolak`. Token ditolak (401 atau `ACCOUNT_*`) → `/api/auth/sesi-habis`. Di dalam `/mudarris`, halaman khusus Kepala Sekolah atau petugas keuangan memakai `wajibAkses()` (→ `/mudarris?akses=ditolak`). Urutan wajib wali: `wajib_ganti_password` → semua path selain `/dashboard/ganti-password` diarahkan ke sana; lalu `profil_lengkap = false` → `/dashboard/onboarding`. Kedua halaman itu tampil tanpa menu (`KerangkaTanpaMenu`).
 - Layout tidak dirender ulang saat navigasi di browser, jadi `Providers` juga menangani `PASSWORD_WAJIB_DIGANTI` dari query/mutation mana pun dengan mengarahkan ke `/dashboard/ganti-password`.
-- Halaman `/mudarris` ada di route group `(halaman)` bersama `loading.tsx`; `[...lainnya]` ada di luarnya. Alamat yang tidak dikenal (termasuk `/mudarris/daftar` dan `/mudarris/menunggu-persetujuan` yang sudah dihapus) membalas 404 sungguhan di dalam kerangka untuk pengguna yang sudah masuk, karena respons di bawah loading boundary sudah di-stream sebagai 200 sebelum `notFound()` dipanggil. `/dashboard` belum diubah (alamat tak dikenal masih 200 dengan isi halaman 404).
+- Halaman `/dashboard` dan `/mudarris` ada di route group `(halaman)` bersama `loading.tsx`; `[...lainnya]`, `layout.tsx`, `not-found.tsx`, dan `error.tsx` ada di luarnya. Alamat yang tidak dikenal (termasuk `/mudarris/daftar` dan `/mudarris/menunggu-persetujuan` yang sudah dihapus) membalas 404 sungguhan di dalam kerangka untuk pengguna yang sudah masuk, karena respons di bawah loading boundary sudah di-stream sebagai 200 sebelum `notFound()` dipanggil. Tanpa sesi, proxy tetap mengarahkan ke halaman login.
 - Otorisasi sebenarnya tetap di backend.
 
 ### Data fetching
@@ -305,6 +305,7 @@ Diminta pemilik repo: guru dan Kepala Sekolah masuk dengan Google, password hany
 - **`useMasuk()`**: `pesanGagal` sekarang fungsi dari `ApiError`. Login password tetap satu pesan umum untuk 401/422; login Google memakai `errors.credential[0]` dari backend (token tidak sah, email tidak terdaftar, akun Google lain). 503 (Google belum dikonfigurasi di backend) ditampilkan di atas form. Penanganan `ACCOUNT_PENDING` dan `ACCOUNT_REJECTED` dihapus bersama kodenya.
 - **Guru**: tab Aktif/Nonaktif saja; tambah guru meminta "Email Google" dan menampilkan alamat halaman masuk guru (bisa disalin), bukan password awal; tidak ada tombol hapus. Profil guru menampilkan "Cara masuk" (akun Google) sebagai ganti form ganti password. Panel Perlu Tindakan Kepala Sekolah tinggal tiga kartu.
 - `ACCOUNT_INACTIVE` tetap satu-satunya kode sesi tidak berlaku selain 401 (`ambilSesi()`).
+- **Reset tautan Google** (tambahan setelah review): detail guru menampilkan "Akun Google: Terhubung / Belum pernah masuk dengan Google" dari `terhubung_google`, dan tombol "Reset tautan Google" (dialog konfirmasi, `POST /guru/{id}/reset-google`) hanya untuk guru yang terhubung. Setelah reset, data guru dimuat ulang sehingga tombolnya hilang.
 
 ## Temuan kontrak Fase 6
 
@@ -436,7 +437,7 @@ Andika hanya punya bobot 400 dan 700, jadi `font-semibold` tampil sebagai 700.
 | `/mudarris/log-aktivitas` | SA | Tabel log + saringan jenis dan tanggal |
 | `/dashboard/notifikasi` (W); `/mudarris/notifikasi` (SA, G) | SA, G, W | Semua notifikasi berpaginasi (`?page=`), saring belum dibaca (`?belum=true`), tandai semua dibaca |
 | `/dashboard/profil` (W); `/mudarris/profil` (SA, G) | SA, G, W | Nama, nomor HP, foto profil, ganti password (SA, W; guru melihat keterangan akun Google); wali juga alamat, pekerjaan, NIK (username NIS ditampilkan, tidak bisa diubah) |
-| `/mudarris/guru`, `/mudarris/guru/baru`, `/mudarris/guru/[id]` | SA | Daftar Aktif/Nonaktif; tambah guru dengan email Google (tanpa password); ubah data, foto, izin keuangan, tampil di landing, aktif/nonaktif (tanpa hapus) |
+| `/mudarris/guru`, `/mudarris/guru/baru`, `/mudarris/guru/[id]` | SA | Daftar Aktif/Nonaktif; tambah guru dengan email Google (tanpa password); ubah data, foto, izin keuangan, tampil di landing, aktif/nonaktif (tanpa hapus); status akun Google dan Reset tautan Google |
 | `/mudarris/tahun-ajaran`, `/mudarris/tahun-ajaran/kenaikan` | SA | Tambah/ubah/aktifkan/hapus; wizard kenaikan kelas |
 | `/mudarris/kelas`, `/mudarris/kelas/[id]` | SA, G (kelas diampu, tanpa aksi) | Kartu kelas per tahun ajaran; detail + murid; SA tambah/ubah/hapus kelas, tempatkan dan keluarkan murid |
 | `/mudarris/murid`, `/mudarris/murid/baru`, `/mudarris/murid/[id]`, `/mudarris/murid/[id]/ubah` | SA, G (murid kelasnya, lihat saja) | Tabel + saringan; detail, kartu akun, wali tertaut (ubah hubungan, kontak utama, lepas); tambah/ubah/hapus (SA) |
@@ -458,7 +459,7 @@ Andika hanya punya bobot 400 dan 700, jadi `font-semibold` tampil sebagai 700.
 | `/mudarris/pengumuman/baru` | SA, G | Form Tiptap + sasaran; `?dari=tunggakan&kelas=` terisi murid penunggak (K) |
 | `/dashboard/pengumuman/[id]` (W); `/mudarris/pengumuman/[id]`, `/[id]/ubah` (SA, G) | SA, G, W / penulis, SA | Detail; ubah dan hapus untuk penulis dan SA |
 | `/dashboard/agenda` (W); `/mudarris/agenda` (SA, G) | SA (kelola), G, W | Kalender bulanan + daftar (`?bulan=`, `?hari=`); SA tambah/ubah/hapus |
-| `/dashboard/*`, `/mudarris/*` lain | | 404 di dalam kerangka area masing-masing (`[...lainnya]`); di `/mudarris` dengan status HTTP 404 |
+| `/dashboard/*`, `/mudarris/*` lain | | 404 di dalam kerangka area masing-masing (`[...lainnya]`), status HTTP 404 |
 | `/api/auth/staff/google`, `/api/auth/staff/login`, `/api/auth/wali/login`, `/api/auth/logout`, `/api/auth/sesi-habis` | route handler | BFF sesi |
 | `/api/proxy/[...path]` | route handler | Proxy ke backend |
 | `/api/revalidate` | route handler (SA) | Buang cache data publik per tag setelah konten website disimpan |
@@ -508,6 +509,12 @@ File yang diubah:
 - `src/types/api.d.ts` (`npm run gen:api`), `.env.example` (`NEXT_PUBLIC_GOOGLE_CLIENT_ID`), `PROMPT_FE_TK.md` (Bagian A disalin dari backend, identik; B2–B5).
 
 File yang dihapus: `src/app/(auth)/mudarris/daftar/page.tsx`, `src/app/(auth)/mudarris/menunggu-persetujuan/page.tsx`, `src/components/features/auth/form-daftar-guru.tsx`, `src/components/features/guru/aksi-persetujuan-guru.tsx`.
+
+Tambahan setelah review:
+
+- Reset tautan Google: `useResetGoogleGuru()` (`src/lib/api/guru.ts`), `ResetTautanGoogle` dan baris "Akun Google" di `src/components/features/guru/detail-guru.tsx`; `api.d.ts` digenerate ulang; Bagian A disalin ulang (identik).
+- `src/app/dashboard/*` → `src/app/dashboard/(halaman)/*` (kecuali `layout.tsx`, `not-found.tsx`, `error.tsx`, `[...lainnya]`), re-export `loading` dan `notifikasi` di `/mudarris` disesuaikan.
+- Pengujian: `lint`, `typecheck`, `build`, `check:slop` bersih. curl: wali dengan sesi `/dashboard/tidak-ada` dan `/dashboard/daftar/lama` 404, `/dashboard`, `/tagihan`, `/profil`, `/anak` 200; tanpa sesi 307 ke `/login?next=`; Kepala Sekolah ke `/mudarris/...` lalu 404. Firefox 390 px (6 skenario lulus): guru terhubung lewat Google, tombol Reset tautan Google tampil dan status "Terhubung", dialog → reset berhasil → tombol hilang, guru belum terhubung tanpa tombol, guru masuk dengan akun Google baru beremail sama, wali `/dashboard/tidak-ada` 404 di dalam kerangka (screenshot 13–15). Cache kunci uji dan `google_sub` uji dihapus setelahnya.
 
 Pengujian (build produksi `next start` port 3001 dengan `NEXT_PUBLIC_GOOGLE_CLIENT_ID` uji, backend branch `be/login-google-staff` di port 8001 dengan MariaDB lokal berisi `DemoSeeder`, Firefox headless 390 × 844 lewat puppeteer-core di luar repo):
 

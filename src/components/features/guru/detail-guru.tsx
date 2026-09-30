@@ -10,7 +10,7 @@ import { KotakPesan } from "@/components/shared/kotak-pesan";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useDetailGuru, useUbahGuru, useUbahStatusGuru } from "@/lib/api/guru";
+import { useDetailGuru, useResetGoogleGuru, useUbahGuru, useUbahStatusGuru } from "@/lib/api/guru";
 import { LABEL_STATUS_AKUN } from "@/lib/constants/label";
 import { NADA_STATUS_AKUN } from "@/lib/constants/status";
 import { formatTanggal, formatTanggalWaktu } from "@/lib/format";
@@ -35,6 +35,25 @@ function AksiStatus({ guru }: { guru: Guru }) {
       onKonfirmasi={async () => {
         await ubahStatus.mutateAsync({ id: guru.id, status: nonaktifkan ? "nonaktif" : "aktif" });
         toast.success(nonaktifkan ? `Akun ${name} dinonaktifkan.` : `Akun ${name} aktif kembali.`);
+      }}
+    />
+  );
+}
+
+/** Hanya untuk guru yang sudah pernah masuk dengan Google (`terhubung_google`). */
+function ResetTautanGoogle({ guru }: { guru: Guru }) {
+  const reset = useResetGoogleGuru();
+  if (!guru.terhubung_google) return null;
+  const { name, email } = guru.user;
+  return (
+    <DialogKonfirmasi
+      pemicu={<Button variant="outline">Reset tautan Google</Button>}
+      judul={`Reset tautan Google ${name}?`}
+      deskripsi={`Akun Google yang sekarang terikat dilepas. Login Google berikutnya dengan ${email ?? "email ini"} akan mengikat akun Google yang dipakai saat itu. Pakai ini kalau guru membuat ulang akun Google dengan email yang sama. Sesi yang sedang berjalan tidak dikeluarkan.`}
+      labelAksi="Reset Tautan"
+      onKonfirmasi={async () => {
+        await reset.mutateAsync(guru.id);
+        toast.success(`Tautan Google ${name} direset.`);
       }}
     />
   );
@@ -69,11 +88,16 @@ export function DetailGuru({ id }: { id: number }) {
             <dd className="font-bold">{guru.created_at ? formatTanggal(guru.created_at) : "-"}</dd>
           </div>
           <div>
+            <dt className="text-muted-foreground">Akun Google</dt>
+            <dd className="font-bold">{guru.terhubung_google ? "Terhubung" : "Belum pernah masuk dengan Google"}</dd>
+          </div>
+          <div>
             <dt className="text-muted-foreground">Terakhir masuk</dt>
             <dd className="font-bold">{guru.user.last_login_at ? formatTanggalWaktu(guru.user.last_login_at) : "Belum pernah"}</dd>
           </div>
         </dl>
         <AksiStatus guru={guru} />
+        <ResetTautanGoogle guru={guru} />
       </aside>
       <section aria-labelledby="judul-data-guru" className="rounded-xl border border-border bg-card p-5 shadow-sm">
         <h2 id="judul-data-guru" className="mb-5 text-lg font-extrabold">

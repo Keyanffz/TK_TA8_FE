@@ -464,10 +464,11 @@ Untuk W: `"email": null`, `"username": "TA20260001"` (NIS anak), `wajib_ganti_pa
 
 ### Guru (manajemen)
 - `GET /guru` — SA — filter status (`aktif` | `nonaktif`), search. Tidak termasuk profil guru milik Kepala Sekolah
-- `GET /guru/{id}` — SA — termasuk profil guru milik Kepala Sekolah
+- `GET /guru/{id}` — SA — termasuk profil guru milik Kepala Sekolah. Data guru memuat `terhubung_google` (bool: sudah pernah masuk dengan Google); nilai `sub` Google tidak pernah dikirim
 - `POST /guru` — SA — `{ name, email, no_hp, jenis_kelamin, nip?, nuptk?, tempat_lahir?, tanggal_lahir?, alamat?, pendidikan_terakhir?, jabatan?, bisa_kelola_keuangan?, tampil_di_landing?, foto? }` → 201, data guru. Akun langsung aktif tanpa password. `email` = email akun Google guru, disimpan huruf kecil dan unik tanpa membedakan huruf besar; guru login lewat `POST /auth/staff/google`
 - `PUT /guru/{id}` — SA — termasuk `bisa_kelola_keuangan`, `tampil_di_landing`. Mengganti `email` melepas akun Google yang sudah terikat. Untuk profil guru milik Kepala Sekolah, mengubah `bisa_kelola_keuangan` ditolak (422 `BUSINESS_RULE`)
 - `PATCH /guru/{id}/status` — SA — `{ status: aktif|nonaktif }` (nonaktif = cabut semua token dan login ditolak `ACCOUNT_INACTIVE`). Guru tidak bisa dihapus; tidak ada `DELETE /guru/{id}`. Ditolak untuk profil guru milik Kepala Sekolah (422 `BUSINESS_RULE`)
+- `POST /guru/{id}/reset-google` — SA — mengosongkan akun Google yang terikat (`google_sub`) supaya guru bisa masuk dengan akun Google baru beremail sama → data guru. Ditolak (422 `BUSINESS_RULE`) kalau guru belum pernah masuk dengan Google. Sesi yang berjalan tidak dicabut
 
 ### Tahun ajaran & kelas
 - `GET|POST /tahun-ajaran`, `PUT|DELETE /tahun-ajaran/{id}` — SA (GET: SA, G)
@@ -635,7 +636,7 @@ src/
 
 `SA` = super admin, `G` = guru, `K` = petugas keuangan (SA atau guru `bisa_kelola_keuangan`), `W` = wali murid.
 
-**Publik:** `/`, `/pengumuman`, `/pengumuman/[slug]`, `/galeri`, `/galeri/[slug]`, `/ppdb` (info), `/ppdb/daftar` (form pendaftaran multi-step tanpa login, hasilnya kode pendaftaran), `/ppdb/status` (cek status dengan kode + tanggal lahir anak), `/login` (khusus wali murid: NIS anak + password tanpa pilihan role; keterangan "Username adalah NIS anak. Password awal adalah tanggal lahir anak (DDMMYYYY)."), `/mudarris/login` (guru dan Kepala Sekolah: tombol Masuk dengan Google sebagai cara utama, tautan kecil "Masuk dengan password (Kepala Sekolah)" yang membuka form email + password dan lupa password; tidak ditautkan mencolok dari landing atau `/login`, hanya tautan kecil di footer), `/mudarris/lupa-password` (hanya Kepala Sekolah), `/mudarris/reset-password` (tautan dari email). Alamat yang tidak dikenal di `/mudarris` membalas status 404 di dalam kerangka dashboard untuk pengguna yang sudah masuk.
+**Publik:** `/`, `/pengumuman`, `/pengumuman/[slug]`, `/galeri`, `/galeri/[slug]`, `/ppdb` (info), `/ppdb/daftar` (form pendaftaran multi-step tanpa login, hasilnya kode pendaftaran), `/ppdb/status` (cek status dengan kode + tanggal lahir anak), `/login` (khusus wali murid: NIS anak + password tanpa pilihan role; keterangan "Username adalah NIS anak. Password awal adalah tanggal lahir anak (DDMMYYYY)."), `/mudarris/login` (guru dan Kepala Sekolah: tombol Masuk dengan Google sebagai cara utama, tautan kecil "Masuk dengan password (Kepala Sekolah)" yang membuka form email + password dan lupa password; tidak ditautkan mencolok dari landing atau `/login`, hanya tautan kecil di footer), `/mudarris/lupa-password` (hanya Kepala Sekolah), `/mudarris/reset-password` (tautan dari email). Alamat yang tidak dikenal di `/dashboard` dan `/mudarris` membalas status HTTP 404 di dalam kerangka area masing-masing untuk pengguna yang sudah masuk.
 
 **Dashboard:** dua area. Wali murid di `/dashboard/...`, guru dan Kepala Sekolah di `/mudarris/...`. Halaman yang dipakai kedua kelompok ada di kedua area dengan isi sesuai role.
 
@@ -647,7 +648,7 @@ src/
 | `/dashboard/anak` | | | ✓ | Kartu anak + form Tambah Anak (NIS + tanggal lahir + hubungan) |
 | `/mudarris/kelas`, `/[id]` | ✓ | ✓ scoped | | Daftar kelas, detail + murid + penempatan (SA) |
 | `/mudarris/murid`, `/[id]` | ✓ | ✓ scoped | | Tabel murid, detail (profil, kelas, wali, tagihan, rapor). SA: CRUD, unduh/cetak kartu akun wali (PDF; pesan backend kalau ditolak), ubah hubungan & kontak utama wali, lepas tautan |
-| `/mudarris/guru`, `/baru`, `/[id]` | ✓ | | | Tab "Aktif" / "Nonaktif"; tambah guru dengan nama + email Google (tanpa password); ubah data, aktif/nonaktifkan (tanpa hapus), izin keuangan, tampil di landing |
+| `/mudarris/guru`, `/baru`, `/[id]` | ✓ | | | Tab "Aktif" / "Nonaktif"; tambah guru dengan nama + email Google (tanpa password); ubah data, aktif/nonaktifkan (tanpa hapus), izin keuangan, tampil di landing; tombol "Reset tautan Google" dengan dialog konfirmasi, hanya untuk guru dengan `terhubung_google` |
 | `/mudarris/wali-murid`, `/[id]` | ✓ | | | Daftar wali (cari nama/NIS/no HP) + anak tertaut; detail: ubah data wali, aktif/nonaktif, reset password ke password awal |
 | `/mudarris/tahun-ajaran` | ✓ | | | CRUD + aktifkan + wizard kenaikan kelas |
 | `/dashboard/tagihan`, `/[id]` (W); `/mudarris/tagihan`, `/[id]` (SA, G) | ✓ | ✓ read-only | ✓ | K: tabel semua tagihan + filter + buat tagihan sekali + generate manual + ubah jatuh tempo/potongan/catatan; SA: batalkan dan aktifkan kembali. G: status kelasnya. W: kartu tagihan anak aktif, detail + rekening sekolah + form upload bukti |
