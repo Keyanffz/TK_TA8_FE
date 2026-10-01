@@ -42,7 +42,7 @@ Sistem Informasi Sekolah **TK Tarbiyathul Athfal 8** berbasis web (dan nanti mob
   | `guru` | Guru | Admin |
   | `wali_murid` | Orang tua / wali | User |
 - **Murid TIDAK punya akun login.** Murid hanya data. Semua akses anak lewat akun wali murid (1 wali bisa punya beberapa anak, 1 anak bisa punya beberapa wali, misal ayah & ibu).
-- **Tidak ada modul absensi.**
+- **Absensi hanya untuk guru aktif dan Kepala Sekolah** (berbasis lokasi dan foto, lihat A2.12). Tidak ada absensi murid.
 - **Dua area dashboard terpisah**: wali murid di `/dashboard/...`, guru dan Kepala Sekolah di `/mudarris/...` (termasuk halaman akun: `/mudarris/login`, serta `/mudarris/lupa-password` dan `/mudarris/reset-password` khusus Kepala Sekolah). Di dalam `/mudarris`, menu, isi beranda, dan aksi menyesuaikan role (Kepala Sekolah, guru, petugas keuangan).
 - **Hanya super admin** yang bisa mengubah konten website publik (landing page, profil sekolah, galeri) dan pengaturan sistem.
 
@@ -64,6 +64,7 @@ Sistem Informasi Sekolah **TK Tarbiyathul Athfal 8** berbasis web (dan nanti mob
 9. **Privasi foto anak:** foto kegiatan kelas, bukti bayar, dokumen PPDB, dan foto rapor disimpan di disk **private**, diakses via endpoint terotorisasi / signed URL. Hanya galeri publik & aset landing yang di disk public.
 10. **Uang** disimpan sebagai integer rupiah (tanpa desimal). **Zona waktu** `Asia/Jakarta`, bahasa `id`.
 11. **Notifikasi** memakai Laravel database notifications (channel mail opsional). Push notification (FCM) nanti saat Flutter.
+12. **Absensi guru dan Kepala Sekolah:** peserta absensi adalah guru yang akunnya `aktif` dan Kepala Sekolah. Guru nonaktif tidak ikut absensi dan tidak ditandai tidak hadir. Absen masuk dan absen pulang dilakukan dari HP di `/mudarris/absensi` dengan lokasi perangkat dan swafoto. Semua keputusan diambil backend dengan jam server (`Asia/Jakarta`): hari kerja dan bukan tanggal libur, di dalam jam jenis absen itu, jarak ke titik sekolah (Haversine) tidak melebihi radius, akurasi lokasi tidak melebihi batas, belum absen jenis itu hari ini, dan absen pulang hanya setelah absen masuk. Jarak yang ditampilkan FE hanya informasi. Status absen masuk `hadir` atau `terlambat` menurut batas terlambat; absen pulang tidak punya status. Setelah jam masuk tutup di hari kerja, scheduler menandai peserta yang belum absen masuk sebagai `tidak_hadir`. Kepala Sekolah bisa mengoreksi status absen masuk dengan catatan wajib; pengoreksi dan waktunya dicatat. Foto absensi disimpan di disk private, hanya bisa dibuka pemiliknya dan Kepala Sekolah, dan file-nya dihapus setelah masa simpan (data absensinya tetap). Aturan absensi (titik sekolah, radius, batas akurasi, jam, hari kerja, tanggal libur, masa simpan foto) diatur Kepala Sekolah di pengaturan grup `absensi`.
 
 ## A3. Use Case per Aktor
 
@@ -95,6 +96,7 @@ Sistem Informasi Sekolah **TK Tarbiyathul Athfal 8** berbasis web (dan nanti mob
 - Lihat status tagihan murid kelasnya (read-only)
 - Lihat agenda
 - **Jika `bisa_kelola_keuangan`**: akses menu keuangan seperti super admin (kecuali pengaturan rekening & jenis tagihan)
+- Absen masuk dan absen pulang dengan lokasi dan foto, lihat status hari ini dan riwayat absensinya sendiri
 - Notifikasi, edit profil
 
 **Kepala Sekolah (Super Admin)**
@@ -109,6 +111,7 @@ Sistem Informasi Sekolah **TK Tarbiyathul Athfal 8** berbasis web (dan nanti mob
 - PPDB: buka/tutup, verifikasi, terima (pilih kelas), tolak
 - **CMS website:** profil sekolah, konten landing, galeri
 - Pengaturan: rekening sekolah, tanggal jatuh tempo, hari pengingat, info PPDB, banner info di beranda wali murid
+- Absensi: ikut absen seperti guru; atur titik sekolah, radius, batas akurasi, jam masuk dan pulang, hari kerja, tanggal libur, dan masa simpan foto; koreksi status absensi dengan catatan; rekap per bulan per peserta, detail per hari dengan foto, dan ekspor CSV
 - Log aktivitas
 
 ## A4. ERD
@@ -150,6 +153,7 @@ erDiagram
     pendaftaran ||--o{ pendaftaran_dokumen : ""
     pendaftaran |o--o| murid : "jadi murid"
     galeri_album ||--o{ galeri_foto : ""
+    users ||--o{ absensi : "absen / mengoreksi"
 
     users {
         bigint id PK
@@ -201,6 +205,13 @@ erDiagram
         bigint id PK
         tinyint semester
         string status }
+    absensi {
+        bigint id PK
+        bigint user_id FK
+        date tanggal
+        string jenis
+        string status
+        bigint dikoreksi_oleh FK }
 ```
 
 ### Detail tabel
@@ -229,7 +240,8 @@ Semua tabel punya `id` (bigint PK) dan `created_at/updated_at` kecuali pivot yan
 - **pendaftaran**: kode (unique, `PPDB-YYYY-XXXX`), wali_murid_id (nullable; kosong untuk pendaftaran tanpa login, diisi akun wali otomatis saat diterima), hubungan (enum Hubungan; hubungan wali pendaftar dengan anak, dipakai saat menautkan ketika diterima), tahun_ajaran_id (diisi dari `ppdb.tahun_ajaran_id` saat mendaftar), tingkat_tujuan, nama_lengkap, nama_panggilan, jenis_kelamin, tempat_lahir, tanggal_lahir, nik, agama, alamat, nama_ayah, pekerjaan_ayah, nama_ibu, pekerjaan_ibu, no_hp, status (enum StatusPendaftaran), catatan (nullable), diproses_oleh (nullable), diproses_at, murid_id (nullable, terisi saat diterima)
 - **pendaftaran_dokumen**: pendaftaran_id, jenis (enum JenisDokumen), path (private)
 - **galeri_album**: judul, slug, deskripsi, cover_path, tanggal, is_publik. **galeri_foto**: galeri_album_id, path (public), caption, urutan
-- **pengaturan**: kunci (unique), nilai (json), grup (string: profil | landing | keuangan | ppdb | beranda)
+- **absensi**: user_id (FK users; guru atau Kepala Sekolah), tanggal (date), jenis (enum JenisAbsensi), status (nullable enum StatusAbsensi; hanya untuk jenis `masuk`), waktu (timestamp nullable, jam server saat absen; null untuk `tidak_hadir` dari scheduler), latitude dan longitude (decimal 10,7 nullable), akurasi_meter (int nullable), jarak_meter (int nullable, jarak ke titik sekolah saat absen), foto_path (nullable, private; dikosongkan saat file dihapus setelah masa simpan), catatan_koreksi (nullable), dikoreksi_oleh (FK users nullable), dikoreksi_at (nullable). **Unique (user_id, tanggal, jenis)**
+- **pengaturan**: kunci (unique), nilai (json), grup (string: profil | landing | keuangan | ppdb | beranda | absensi)
 - Tabel bawaan: personal_access_tokens, notifications, password_reset_tokens, jobs, failed_jobs, activity_log (spatie)
 
 ### Kunci pengaturan (seed default)
@@ -255,6 +267,14 @@ Semua tabel punya `id` (bigint PK) dan `created_at/updated_at` kecuali pivot yan
 | `ppdb.kuota` | int |
 | `ppdb.info` | string (HTML: syarat, biaya, alur) |
 | `beranda.info_wali` | { aktif: bool, judul: string (maks 100), isi: string (teks biasa, maks 1000), nada: NadaInfo, berlaku_sampai: date \| null }; judul dan isi wajib kalau `aktif`. Default nonaktif |
+| `absensi.lokasi` | { latitude, longitude } \| null (default null; selama null semua absen ditolak) |
+| `absensi.radius_meter` | int 10–5000 (default 100) |
+| `absensi.batas_akurasi_meter` | int 5–1000 (default 100) |
+| `absensi.jam_masuk` | { buka, batas_terlambat, tutup } format `HH:MM`, berurutan (default 06:30, 07:15, 09:00) |
+| `absensi.jam_pulang` | { buka, tutup } format `HH:MM` (default 11:00, 15:00) |
+| `absensi.hari_kerja` | int[] nomor hari ISO, 1 = Senin sampai 7 = Minggu (default 1–6) |
+| `absensi.tanggal_libur` | date[] (default kosong) |
+| `absensi.masa_simpan_foto_bulan` | int 1–60 (default 6) |
 
 ## A5. Enum (nilai string, dipakai sama di BE & FE)
 
@@ -275,6 +295,8 @@ Semua tabel punya `id` (bigint PK) dan `created_at/updated_at` kecuali pivot yan
 - **StatusPendaftaran**: `diajukan`, `diverifikasi`, `diterima`, `ditolak`
 - **JenisDokumen**: `akta_kelahiran`, `kartu_keluarga`, `pas_foto`, `lainnya`
 - **NadaInfo**: `info`, `penting`, `peringatan`
+- **JenisAbsensi**: `masuk`, `pulang`
+- **StatusAbsensi**: `hadir`, `terlambat`, `tidak_hadir`
 
 ## A6. Flowchart
 
@@ -387,6 +409,27 @@ flowchart TD
     K2 --> L[Status diterima + notifikasi ke akun wali]
     K3 --> L
     J -->|Tolak| I
+```
+
+### Absensi guru dan Kepala Sekolah
+
+```mermaid
+flowchart TD
+    A([Guru / Kepsek buka /mudarris/absensi]) --> B[Status hari ini: hari kerja, jam, absensi tercatat]
+    B --> C{Hari kerja, bukan tanggal libur, dan jam absen terbuka?}
+    C -->|Tidak| D[Tombol absen tidak aktif + keterangan]
+    C -->|Ya| E[Ambil lokasi perangkat + swafoto]
+    E --> F[Kirim jenis, koordinat, akurasi, foto]
+    F --> G{Backend dengan jam server: jam, belum absen jenis ini, pulang setelah masuk, akurasi, jarak dalam radius?}
+    G -->|Tidak| H[Ditolak dengan pesan sebabnya]
+    H --> E
+    G -->|Ya, masuk| I[Simpan: hadir, atau terlambat kalau lewat batas terlambat]
+    G -->|Ya, pulang| J[Simpan absen pulang]
+    K([Scheduler tiap 10 menit]) --> L{Hari kerja dan jam masuk sudah tutup?}
+    L -->|Ya| M[Peserta aktif tanpa absen masuk hari ini: tidak_hadir]
+    M --> N[Kepsek koreksi status + catatan wajib bila perlu]
+    I --> N
+    O([Scheduler harian 01:00 WIB]) --> P[Hapus file foto yang melewati masa simpan, data absensi tetap]
 ```
 
 ## A7. Kontrak API
@@ -547,6 +590,19 @@ Untuk W: `"email": null`, `"username": "TA20260001"` (NIS anak), `wajib_ganti_pa
 
 **Bentuk notifikasi:** `{ id, jenis, judul, pesan, url, dibaca_at, created_at }`. `url` adalah path halaman FE di area penerima: `/dashboard/...` untuk wali murid, `/mudarris/...` untuk guru dan Kepala Sekolah (misal `/dashboard/tagihan/12` dan `/mudarris/tagihan/12`). Jenis: `tagihan_baru`, `tagihan_tertunda` (ke Kepsek: generate terjadwal dilewati karena bulan di luar tahun ajaran aktif), `pengingat_tagihan`, `tagihan_terlambat`, `pembayaran_masuk`, `pembayaran_diterima`, `pembayaran_ditolak`, `rapor_diajukan`, `rapor_revisi` (juga saat rapor terbit ditarik), `rapor_terbit`, `pengumuman_baru`, `pendaftaran_baru`, `pendaftaran_diproses`, `anak_tertaut`.
 
+### Absensi
+- Peserta absensi = G (akun aktif) dan SA. W ditolak 403 `FORBIDDEN` di semua endpoint absensi.
+- `GET /absensi/hari-ini` — SA, G — `{ tanggal, waktu_server, hari_kerja, tanggal_libur, lokasi: { latitude, longitude } | null, radius_meter, batas_akurasi_meter, masuk: { buka, batas_terlambat, tutup, terbuka, absensi }, pulang: { buka, tutup, terbuka, absensi } }`. `hari_kerja` false kalau hari itu di luar `absensi.hari_kerja` atau termasuk tanggal libur (`tanggal_libur` true). `terbuka` = jam server sedang di dalam jam jenis itu pada hari kerja. `absensi` = absensi milik pengguna untuk jenis itu hari ini, atau `null`
+- `POST /absensi` — SA, G — multipart `{ jenis: masuk|pulang, latitude, longitude, akurasi (meter), foto }` → 201, data absensi. Foto jpeg/png/webp maks 2 MB. Waktu dan tanggal selalu dari jam server. Ditolak 422 `BUSINESS_RULE` dengan pesan sebabnya kalau: lokasi sekolah belum diatur, bukan hari kerja, tanggal libur, di luar jam jenis itu, sudah absen jenis itu hari ini, absen pulang tanpa absen masuk (absen masuk `tidak_hadir` dianggap belum absen), akurasi melebihi `absensi.batas_akurasi_meter`, atau jarak melebihi `absensi.radius_meter`. Status masuk `terlambat` kalau jam server melewati `batas_terlambat` (dibandingkan per menit), selain itu `hadir`. Rate limit 10/menit per user
+- `GET /absensi?bulan=YYYY-MM&user_id=` — SA, G — riwayat satu peserta dalam satu bulan (default bulan berjalan), terbaru dulu, tanpa paginasi. G hanya miliknya (`user_id` peserta lain → 403 `FORBIDDEN`); SA boleh mengirim `user_id` peserta mana pun, default dirinya
+- `GET /absensi/{id}/foto` — pemilik, SA — file foto (stream, JPEG). Guru lain → 404 `NOT_FOUND`. Absensi tanpa foto (tidak hadir, atau foto sudah dihapus setelah masa simpan) → 404
+- `PATCH /absensi/{id}/koreksi` — SA — `{ status: hadir|terlambat|tidak_hadir, catatan }` (catatan wajib) → data absensi dengan `catatan_koreksi`, `dikoreksi_oleh`, `dikoreksi_at`. Hanya untuk absen masuk; absen pulang atau status yang sama → 422 `BUSINESS_RULE`
+- `GET /absensi/rekap?bulan=YYYY-MM` — SA — `[{ user: { id, nama, jabatan }, hadir, terlambat, tidak_hadir, tidak_absen_pulang }]` untuk guru dan Kepala Sekolah yang aktif, ditambah akun nonaktif yang punya absensi di bulan itu. `tidak_absen_pulang` = hari dengan absen masuk `hadir`/`terlambat` tanpa absen pulang, dihitung setelah jam pulang hari itu tutup
+- `GET /absensi/rekap/export?bulan=YYYY-MM` — SA — file .csv dengan isi yang sama
+- Pengaturan absensi dibaca dan diubah SA lewat `GET /pengaturan?grup=absensi` dan `PUT /pengaturan`
+
+**Bentuk absensi:** `{ id, user_id, tanggal, jenis, status, waktu, latitude, longitude, akurasi_meter, jarak_meter, ada_foto, catatan_koreksi, dikoreksi_oleh: { id, nama } | null, dikoreksi_at }`. `status` null untuk absen pulang; `waktu`, koordinat, akurasi, dan jarak null untuk `tidak_hadir` dari scheduler. Foto diambil lewat `GET /absensi/{id}/foto` kalau `ada_foto`.
+
 ### PPDB
 - `POST /pendaftaran` — W — multipart (data + `hubungan` + dokumen), untuk kakak/adik dari wali yang sudah punya akun. Tahun ajaran diambil dari `ppdb.tahun_ajaran_id`. Tolak jika PPDB tutup / kuota penuh / NIK anak sudah punya pendaftaran selain `ditolak` atau sudah menjadi murid (pendaftar yang pernah ditolak boleh daftar ulang)
 - `GET /pendaftaran` — SA (semua), W (miliknya)
@@ -557,8 +613,8 @@ Untuk W: `"email": null`, `"username": "TA20260001"` (NIS anak), `wajib_ganti_pa
 - `POST /pendaftaran/{id}/tolak` — SA — `{ alasan }`
 
 ### CMS & pengaturan
-- `GET /pengaturan?grup=` — SA (K boleh baca grup keuangan). `grup`: `profil` | `landing` | `keuangan` | `ppdb` | `beranda`
-- `PUT /pengaturan` — SA — `{ items: { "profil.visi": "…", "landing.program": [ … ] } }` (validasi per kunci, termasuk `beranda.info_wali`). `ppdb.dibuka = true` ditolak kalau `ppdb.tahun_ajaran_id` kosong atau tahun ajarannya tidak ada
+- `GET /pengaturan?grup=` — SA (K boleh baca grup keuangan). `grup`: `profil` | `landing` | `keuangan` | `ppdb` | `beranda` | `absensi`
+- `PUT /pengaturan` — SA — `{ items: { "profil.visi": "…", "landing.program": [ … ] } }` (validasi per kunci, termasuk `beranda.info_wali` dan grup `absensi`: jam masuk harus berurutan buka, batas terlambat, tutup, dan jam pulang tutup setelah buka). `ppdb.dibuka = true` ditolak kalau `ppdb.tahun_ajaran_id` kosong atau tahun ajarannya tidak ada
 - `POST /pengaturan/upload` — SA — gambar → `{ path, url }`
 - Field gambar di pengaturan disimpan sebagai path. Di respons `GET /pengaturan` dan `GET /public/profil`, setiap field gambar mendapat pasangan `*_url`: kunci `profil.logo` disertai kunci `profil.logo_url`; `landing.hero` → `{ judul, subjudul, gambar, gambar_url, cta_teks }`; `landing.fasilitas[]` → `{ nama, deskripsi, gambar, gambar_url }`. Saat `PUT /pengaturan`, field `*_url` diabaikan. Di respons, `landing.hero` dan item `landing.program`/`landing.fasilitas`/`landing.keunggulan` selalu memuat semua field-nya; field opsional yang belum diisi bernilai `null`.
 - `GET|POST /galeri-album`, `PUT|DELETE /galeri-album/{id}` — SA. `GET /galeri-album` berisi `cover_url` dan `jumlah_foto` tanpa daftar foto
@@ -589,6 +645,7 @@ Pakai **versi stabil terbaru** saat pengerjaan, cek kompatibilitas di Fase 0.
 | Rich text | Tiptap (StarterKit + Link + Underline) untuk pengumuman & konten CMS |
 | Tanggal | `date-fns` + locale `id` |
 | Toast | `sonner` |
+| Peta (pengaturan absensi) | `leaflet` + tile OpenStreetMap dengan atribusi OSM, dimuat hanya di browser (`next/dynamic`, `ssr: false`) |
 | Upload | komponen dropzone sendiri (drag & drop + preview + kompres gambar di browser via `browser-image-compression`) |
 
 ## B2. Struktur folder
@@ -666,6 +723,10 @@ src/
 | `/mudarris/website/galeri` | ✓ | | | Album & foto |
 | `/mudarris/pengaturan` | ✓ | | | Tab: Rekening, Tagihan (jatuh tempo, pengingat), PPDB, Beranda Wali (banner `beranda.info_wali`), Elemen Penilaian |
 | `/mudarris/log-aktivitas` | ✓ | | | Tabel log + filter |
+| `/mudarris/absensi` | ✓ | ✓ | | Kartu status hari ini, tombol Absen Masuk / Absen Pulang sesuai jam, alur lokasi + swafoto (B9) |
+| `/mudarris/absensi/riwayat` | ✓ | ✓ | | Riwayat absensi pribadi per bulan dengan foto |
+| `/mudarris/absensi/rekap` | ✓ | | | Rekap per bulan per peserta, detail per hari dengan foto, koreksi status dengan catatan, unduh CSV |
+| `/mudarris/pengaturan/absensi` | ✓ | | | Peta lokasi sekolah + radius, input lat/lng, batas akurasi, jam masuk dan pulang, hari kerja, tanggal libur, masa simpan foto |
 | `/dashboard/notifikasi` (W); `/mudarris/notifikasi` (SA, G) | ✓ | ✓ | ✓ | Semua notifikasi, tandai dibaca |
 | `/dashboard/profil` (W); `/mudarris/profil` (SA, G) | ✓ | ✓ | ✓ | Edit profil, avatar, ganti password (SA dan W; G melihat keterangan akun Google karena tidak punya password); W juga alamat, pekerjaan, NIK |
 
@@ -713,6 +774,17 @@ Landing page berisi: navbar, hero, sambutan kepala sekolah, visi-misi, program, 
 - Aksesibilitas: kontras cukup, label form, fokus terlihat, navigasi keyboard, `alt` gambar.
 - Format: rupiah `Rp 150.000`, tanggal `26 September 2026`, relatif untuk notifikasi ("3 jam lalu").
 - Light mode saja untuk sekarang.
+
+## B9. Absensi guru dan Kepala Sekolah
+
+- Mobile-first: absen dilakukan dari HP. Tombol utama besar, satu kolom, target sentuh minimal 44 px.
+- `/mudarris/absensi` membaca `GET /absensi/hari-ini` (diambil ulang tiap 60 detik). Tombol Absen Masuk atau Absen Pulang hanya muncul kalau backend menyatakan jamnya `terbuka` dan absensi jenis itu belum ada; selain itu tampil keterangan sebabnya (hari libur, bukan hari kerja, belum jam buka, jam sudah tutup, lokasi sekolah belum diatur, tercatat tidak hadir).
+- Lokasi: `navigator.geolocation.getCurrentPosition` dengan `enableHighAccuracy: true`. Jarak ke sekolah (Haversine di browser) dan akurasi ditampilkan sebagai info beserta peringatan di luar radius atau akurasi buruk; tombol kirim tetap aktif karena keputusan akhir dari backend, dan pesan penolakan backend ditampilkan apa adanya.
+- Foto: kamera depan lewat `getUserMedia` (`facingMode: "user"`) dengan pratinjau dan tombol Ambil Ulang. Kalau kamera tidak bisa dibuka (izin ditolak, tidak ada kamera, browser tidak mendukung), pakai `<input type="file" accept="image/*" capture="user">`. Foto dijadikan JPEG dengan sisi terpanjang maksimal 1280 px sebelum diunggah.
+- Pesan khusus untuk izin lokasi ditolak, lokasi tidak terbaca, izin kamera ditolak, dan kamera tidak ada, masing-masing dengan langkah yang bisa dilakukan.
+- Foto absensi ditampilkan dari `/api/proxy/absensi/{id}/foto` (bukan signed URL), hanya kalau `ada_foto`.
+- Pengaturan absensi: peta Leaflet + OpenStreetMap dengan atribusi OSM; ketuk peta atau geser penanda untuk memindahkan titik, lingkaran radius mengikuti isian; input latitude dan longitude manual tersinkron dua arah dengan penanda; tombol Pakai Lokasi Saya. Disimpan lewat `PUT /pengaturan` (kunci grup `absensi`).
+- Menu: "Absensi" (SA, G) di grup Utama, "Rekap Absensi" (SA) di grup Sekolah, "Pengaturan Absensi" (SA) di grup Website & Pengaturan.
 
 ---
 
