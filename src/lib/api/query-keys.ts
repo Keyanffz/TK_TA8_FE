@@ -80,6 +80,12 @@ export const queryKeys = {
     detail: (id: number) => ["galeri", "detail", id] as const,
   },
   logAktivitas: (filter: object) => ["log-aktivitas", filter] as const,
+  absensi: {
+    semua: ["absensi"] as const,
+    hariIni: ["absensi", "hari-ini"] as const,
+    riwayat: (bulan: string, userId: number | null) => ["absensi", "riwayat", bulan, userId] as const,
+    rekap: (bulan: string) => ["absensi", "rekap", bulan] as const,
+  },
   laporan: {
     keuangan: (filter: object) => ["laporan", "keuangan", filter] as const,
     tunggakan: (kelasId: number | null) => ["laporan", "tunggakan", kelasId] as const,

@@ -20,6 +20,7 @@ Website publik dan dashboard sistem informasi TK Tarbiyathul Athfal 8 (TK Muslim
 | Area `/mudarris` untuk guru dan Kepala Sekolah | Selesai, menunggu review (lihat "Keputusan area /mudarris") |
 | Login Google staff, guru tanpa pendaftaran mandiri (branch `fe/login-google-staff`) | Selesai, menunggu review (lihat "Keputusan login Google staff"); butuh backend branch `be/login-google-staff` |
 | `/mudarris/login` satu form (branch `fe/login-staff-satu-form`) | Selesai, menunggu review (lihat "Keputusan login Google staff") |
+| Absensi guru dan Kepala Sekolah (branch `fe/absensi`) | Selesai, menunggu review (lihat "Keputusan absensi"); butuh backend branch `be/absensi` |
 
 Mode mock tidak dipakai: `api.json` final dari backend sudah tersedia sejak Fase 1, jadi semua request memakai backend asli dan tipe hasil generate. Tidak ada endpoint mock.
 
@@ -46,6 +47,7 @@ Mode mock tidak dipakai: `api.json` final dari backend sudah tersedia sejak Fase
 | sonner | 2.0.8 | |
 | browser-image-compression | 2.0.2 | |
 | lucide-react | 1.48.0 | |
+| leaflet, @types/leaflet | 1.9.4, 1.9.22 | Peta lokasi sekolah di pengaturan absensi; tile dari `tile.openstreetmap.org` |
 | eslint, eslint-config-next | 9.39.5, 16.3.6 | |
 | server-only | 0.0.1 | penanda modul yang hanya boleh diimpor di server |
 
@@ -309,6 +311,26 @@ Diminta pemilik repo: guru dan Kepala Sekolah masuk dengan Google, password hany
 - `ACCOUNT_INACTIVE` tetap satu-satunya kode sesi tidak berlaku selain 401 (`ambilSesi()`).
 - **Reset tautan Google** (tambahan setelah review): detail guru menampilkan "Akun Google: Terhubung / Belum pernah masuk dengan Google" dari `terhubung_google`, dan tombol "Reset tautan Google" (dialog konfirmasi, `POST /guru/{id}/reset-google`) hanya untuk guru yang terhubung. Backend juga mencabut semua sesi guru itu, dan dialog menyebutkannya. Setelah reset, data guru dimuat ulang sehingga tombolnya hilang.
 
+## Keputusan absensi
+
+Fitur diminta pemilik repo (branch `fe/absensi`, backend `be/absensi`). Kontraknya di Bagian A (A2.12, A7 "Absensi") dan B9; yang di bawah ini diputuskan saat pengerjaan:
+
+1. Alur absen tampil di halaman yang sama (bukan dialog): 1. Lokasi, 2. Foto wajah, lalu tombol Kirim. Lokasi langsung dicari saat alur dibuka supaya sudah terbaca ketika foto selesai diambil. Tombol Kirim aktif setelah lokasi dan foto ada, juga ketika browser menghitung posisi di luar radius atau akurasinya buruk: saat itu hanya tampil peringatan, dan penolakan sebenarnya datang dari backend dengan pesannya sendiri.
+2. Keterangan kenapa tombol absen tidak muncul disusun `langkahAbsen()` (`src/lib/absensi.ts`) dari `GET /absensi/hari-ini`: `terbuka` dan `hari_kerja` dari backend, sedangkan "belum buka" atau "sudah tutup" dibedakan dengan membandingkan jam di `waktu_server` dengan jam buka. Jam perangkat tidak dipakai.
+3. Lokasi dibaca sekali (`getCurrentPosition`, batas tunggu 20 detik, tanpa cache) dan bisa diulang lewat Perbarui Lokasi; tidak memakai `watchPosition`.
+4. Pratinjau kamera dicerminkan seperti kamera depan pada umumnya; foto yang dikirim tidak dicerminkan. Tombol Ambil Foto baru aktif setelah video punya gambar (`onLoadedData`), karena aliran yang baru dibuka belum punya ukuran. Aliran kamera dihentikan saat foto diambil, alur ditutup, atau halaman ditinggalkan.
+5. Foto dari kamera diambil lewat kanvas (JPEG kualitas 0,85, sisi terpanjang 1280 px). Foto dari input file cadangan dikecilkan `browser-image-compression` ke ukuran dan format yang sama (`kompresFotoAbsensi`).
+6. Lokasi dan kamera butuh secure context. Di alamat `http://` selain `localhost` (misalnya membuka dari HP lewat IP laptop) keduanya tidak tersedia: lokasi menampilkan pesan untuk membuka lewat https, kamera jatuh ke input file.
+7. Foto absensi ditampilkan lewat `/api/proxy/absensi/{id}/foto` dengan komponen pratinjau yang sudah ada (`BuktiTransfer`), bukan signed URL, karena backend hanya melayani pemilik dan Kepala Sekolah. Tidak ada `Permissions-Policy` yang perlu diubah; `next.config.ts` tidak disentuh.
+8. `GET /absensi` mengirim baris masuk dan pulang terpisah; `kelompokkanPerHari()` menggabungkannya per tanggal. Riwayat pribadi dan detail peserta di rekap memakai komponen yang sama (`DaftarAbsensiHarian`).
+9. Rekap berupa kartu per peserta (belasan orang), bukan tabel, supaya sama di HP dan desktop. Detail per hari dibuka di halaman yang sama (`?peserta=`). Koreksi hanya untuk absen masuk; pilihan status tidak memuat status saat ini.
+10. Pengaturan absensi dibuat halaman sendiri `/mudarris/pengaturan/absensi` (bukan tab di `/mudarris/pengaturan`) sesuai permintaan, dengan satu tombol simpan untuk semua kunci. Peta dimuat `next/dynamic` tanpa SSR. Penanda memakai ikon SVG sendiri (`L.divIcon`) berwarna token `--primary`, karena ikon PNG bawaan Leaflet tidak ikut ter-bundle. Sebelum titik diisi, peta menampilkan Kota Semarang.
+11. Mengosongkan latitude dan longitude menyimpan `absensi.lokasi = null` (absen dimatikan). Batas angka di form sama dengan validasi backend; urutan jam diperiksa di browser dan lagi di backend.
+12. Tambahan setelah review (backend menambah `absensi.tanggal_mulai`): input "Tanggal mulai absensi" di bagian Hari kerja dan libur, wajib diisi. Sebelum tanggal itu halaman Absensi menampilkan "Absensi baru berlaku mulai ..." dari `tanggal_mulai` di `GET /absensi/hari-ini`, tanpa tombol absen. Keterangan tanggal libur menyebut bahwa tanggal yang sudah lewat menghapus tanda tidak hadir otomatis pada hari itu (dikerjakan backend saat disimpan; FE tidak meminta konfirmasi).
+13. Menu: "Absensi" (SA, G) di grup Utama, "Rekap Absensi" (SA) di grup Sekolah, "Pengaturan Absensi" (SA) di grup Website & Pengaturan. Riwayat dibuka dari halaman Absensi, tidak punya menu sendiri.
+
+Uji di browser (Chrome headless lewat skrip di luar repo, viewport HP 390 px, backend lokal): absen masuk sah dengan lokasi dan kamera tiruan (201, status terlambat pukul 08:39), Ambil Ulang, penolakan di luar area (peringatan di browser dan pesan backend 857 m), izin lokasi ditolak, kamera tidak tersedia lalu foto 3000×4000 lewat input file, riwayat, rekap dengan detail dan dialog koreksi (catatan wajib), pengaturan (ketuk peta, geser penanda, input manual, simpan, jam tidak urut ditolak di form), dan guru yang membuka rekap atau pengaturan diarahkan ke beranda. Uji ini menemukan tombol Ambil Foto yang aktif sebelum kamera siap (nomor 4). Yang belum diuji: HP sungguhan (GPS, kamera depan, Safari iOS, dialog izin asli), unduh CSV dari tombol di browser (endpoint-nya diuji lewat curl), dan absen pulang sampai tersimpan dari browser.
+
 ## Temuan kontrak Fase 6
 
 - Sudah diperbaiki backend (dipakai di Fase 8): `PUT /kegiatan/{id}` sekarang `PerbaruiKegiatanRequest` (JSON, tanpa `kelas_id` dan `foto`), dan `PUT /murid/{id}` memakai `PerbaruiMuridRequest` dengan `status` wajib. Pembuangan `kelas_id` lewat `bodySerializer` sudah dihapus.
@@ -461,6 +483,10 @@ Andika hanya punya bobot 400 dan 700, jadi `font-semibold` tampil sebagai 700.
 | `/mudarris/pengumuman/baru` | SA, G | Form Tiptap + sasaran; `?dari=tunggakan&kelas=` terisi murid penunggak (K) |
 | `/dashboard/pengumuman/[id]` (W); `/mudarris/pengumuman/[id]`, `/[id]/ubah` (SA, G) | SA, G, W / penulis, SA | Detail; ubah dan hapus untuk penulis dan SA |
 | `/dashboard/agenda` (W); `/mudarris/agenda` (SA, G) | SA (kelola), G, W | Kalender bulanan + daftar (`?bulan=`, `?hari=`); SA tambah/ubah/hapus |
+| `/mudarris/absensi` | SA, G | Status hari ini, tombol Absen Masuk / Absen Pulang, alur lokasi + swafoto |
+| `/mudarris/absensi/riwayat` | SA, G | Riwayat pribadi per bulan (`?bulan=`) dengan foto |
+| `/mudarris/absensi/rekap` | SA | Rekap per peserta (`?bulan=`), detail per hari (`?peserta=`), koreksi status, unduh CSV |
+| `/mudarris/pengaturan/absensi` | SA | Peta lokasi sekolah, radius, batas akurasi, jam, tanggal mulai, hari kerja, tanggal libur, masa simpan foto |
 | `/dashboard/*`, `/mudarris/*` lain | | 404 di dalam kerangka area masing-masing (`[...lainnya]`), status HTTP 404 |
 | `/api/auth/staff/google`, `/api/auth/staff/login`, `/api/auth/wali/login`, `/api/auth/logout`, `/api/auth/sesi-habis` | route handler | BFF sesi |
 | `/api/proxy/[...path]` | route handler | Proxy ke backend |
@@ -487,6 +513,26 @@ Tempat deploy belum ditentukan. Syarat yang sudah pasti:
 6. **Masuk dengan Google**: `NEXT_PUBLIC_GOOGLE_CLIENT_ID` diisi sebelum `npm run build`, dan origin FE produksi (misalnya `https://tkta8.sch.id`) didaftarkan di Authorized JavaScript origins Client ID itu di Google Cloud Console. Backend memakai Client ID yang sama di `GOOGLE_CLIENT_ID`.
 
 ## Changelog
+
+### Absensi guru dan Kepala Sekolah (branch `fe/absensi`)
+
+Diminta pemilik repo. Bagian A disalin identik dari `PROMPT_BE_TK.md` (branch `be/absensi`); Bagian B ditambah baris peta di B1, empat route di B4, dan B9. Tipe digenerate ulang dari `api.json` backend. Keputusan detail dan hasil uji ada di "Keputusan absensi".
+
+File baru:
+
+- `src/app/mudarris/(halaman)/absensi/page.tsx`, `absensi/riwayat/page.tsx`, `absensi/rekap/page.tsx`, `pengaturan/absensi/page.tsx`.
+- `src/components/features/absensi/`: `halaman-absensi.tsx` (kartu status, tombol absen), `alur-absen.tsx`, `use-lokasi.ts`, `info-lokasi.tsx`, `kamera-swafoto.tsx`, `daftar-absensi-harian.tsx`, `riwayat-absensi.tsx`, `rekap-absensi.tsx`, `dialog-koreksi-absensi.tsx`, `pilih-bulan.tsx`.
+- `src/components/features/pengaturan/absensi/`: `form-pengaturan-absensi.tsx`, `peta-lokasi-sekolah.tsx` (Leaflet), `daftar-tanggal-libur.tsx`, `skema-pengaturan-absensi.ts`.
+- `src/lib/absensi.ts` (jarak Haversine, URL foto, pengelompokan per hari, `langkahAbsen`), `src/lib/api/absensi.ts` (hook status, absen, riwayat, rekap, ekspor, koreksi).
+
+File yang diubah:
+
+- `src/lib/navigation.ts` (tiga menu), `src/lib/api/query-keys.ts`, `src/lib/api/pengaturan-dashboard.ts` (grup `absensi`, `skemaAbsensi`), `src/lib/constants/{label, status}.ts`, `src/lib/format.ts` (`formatHariTanggal`, `formatJam`), `src/lib/gambar.ts` (`kompresFotoAbsensi`, `tangkapBingkai`), `src/types/domain.ts`.
+- `src/types/api.d.ts` (hasil generate), `package.json` dan `package-lock.json` (`leaflet`, `@types/leaflet`), `PROMPT_FE_TK.md`.
+
+Tambahan setelah review: tanggal mulai absensi (`skema-pengaturan-absensi.ts`, `form-pengaturan-absensi.tsx`, `daftar-tanggal-libur.tsx`, `src/lib/absensi.ts`, `src/lib/api/pengaturan-dashboard.ts`), Bagian A disalin ulang, tipe digenerate ulang.
+
+Hasil pengecekan: `npm run lint`, `npm run typecheck`, `npm run build`, dan `npm run check:slop` tanpa temuan.
 
 ### `/mudarris/login` satu form (branch `fe/login-staff-satu-form`)
 

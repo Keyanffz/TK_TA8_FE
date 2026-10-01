@@ -27,6 +27,8 @@ export type StatusPendaftaran = Schemas["StatusPendaftaran"];
 export type JenisDokumen = Schemas["JenisDokumen"];
 export type JenisNotifikasi = Schemas["JenisNotifikasi"];
 export type NadaInfo = Schemas["NadaInfo"];
+export type JenisAbsensi = Schemas["JenisAbsensi"];
+export type StatusAbsensi = Schemas["StatusAbsensi"];
 
 // A5 punya StatusKelasMurid, tetapi api.json tidak mengekspornya sebagai skema tersendiri.
 export type StatusKelasMurid = "aktif" | "naik" | "tinggal" | "lulus" | "keluar";
@@ -61,10 +63,13 @@ export type ElemenPenilaian = Schemas["ElemenPenilaianResource"];
 export type Pendaftaran = Schemas["PendaftaranResource"];
 export type PendaftaranDetail = Schemas["PendaftaranDetailResource"];
 export type PendaftaranPublik = Schemas["PendaftaranPublikResource"];
+export type Absensi = Schemas["AbsensiResource"];
 
 export type Dashboard = DataRespons<"dashboard.dashboard">;
 export type LaporanKeuangan = DataRespons<"laporan.keuangan">;
 export type LaporanTunggakan = DataRespons<"laporan.tunggakan">;
+export type AbsensiHariIni = DataRespons<"absensi.hariIni">;
+export type RekapAbsensi = DataRespons<"absensi.rekap">[number];
 
 export type KodeError =
   | "UNAUTHENTICATED"

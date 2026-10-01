@@ -59,6 +59,19 @@ export function formatTanggalWaktu(nilai: string): string {
   }).format(new Date(nilai));
 }
 
+/** "2026-10-01" → "Kamis, 1 Oktober 2026" */
+export function formatHariTanggal(nilai: string): string {
+  const { date, timeZone } = keDate(nilai);
+  return new Intl.DateTimeFormat("id-ID", { weekday: "long", day: "numeric", month: "long", year: "numeric", timeZone }).format(date);
+}
+
+const jamMenit = new Intl.DateTimeFormat("id-ID", { hour: "2-digit", minute: "2-digit", timeZone: ZONA_WAKTU });
+
+/** "2026-10-01T06:55:00+07:00" → "06.55" */
+export function formatJam(nilai: string): string {
+  return jamMenit.format(new Date(nilai));
+}
+
 /** Untuk notifikasi: "3 jam yang lalu" */
 export function formatRelatif(nilai: string): string {
   return formatDistanceToNowStrict(new Date(nilai), { addSuffix: true, locale: id });
