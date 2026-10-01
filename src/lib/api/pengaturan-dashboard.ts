@@ -11,7 +11,7 @@ import { queryKeys } from "@/lib/api/query-keys";
 import { segarkanWebsite, type TagPublik } from "@/lib/api/website";
 import { TAG_PUBLIK } from "@/lib/constants/sekolah";
 
-export type GrupPengaturan = "profil" | "landing" | "keuangan" | "ppdb" | "beranda";
+export type GrupPengaturan = "profil" | "landing" | "keuangan" | "ppdb" | "beranda" | "absensi";
 
 // Grup yang tampil di website publik; setelah disimpan, cache halaman publiknya dibuang.
 const TAG_GRUP: Partial<Record<GrupPengaturan, TagPublik>> = {
@@ -75,6 +75,22 @@ export const skemaPpdb = z.object({
   "ppdb.info": teks,
 });
 
+const jam = z.string().regex(/^\d{2}:\d{2}$/);
+
+// Nilai cadangan sama dengan nilai bawaan backend (A4), dipakai kalau sebuah kunci belum tersimpan.
+export const skemaAbsensi = z.object({
+  "absensi.lokasi": z.object({ latitude: z.number(), longitude: z.number() }).nullable().catch(null),
+  "absensi.radius_meter": z.number().catch(100),
+  "absensi.batas_akurasi_meter": z.number().catch(100),
+  "absensi.jam_masuk": z.object({ buka: jam, batas_terlambat: jam, tutup: jam }).catch({ buka: "06:30", batas_terlambat: "07:15", tutup: "09:00" }),
+  "absensi.jam_pulang": z.object({ buka: jam, tutup: jam }).catch({ buka: "11:00", tutup: "15:00" }),
+  "absensi.hari_kerja": z.array(z.number()).catch([1, 2, 3, 4, 5, 6]),
+  "absensi.tanggal_libur": z.array(z.string()).catch([]),
+  "absensi.masa_simpan_foto_bulan": z.number().catch(6),
+});
+
+export type PengaturanAbsensi = z.infer<typeof skemaAbsensi>;
+
 /**
  * Pesan VALIDATION_ERROR untuk satu kunci pengaturan, sebagai pasangan [sisa path, pesan].
  * Backend memakai kunci "items.<kunci>.<field>", misalnya "items.landing.program.0.judul" → "0.judul".
@@ -104,6 +120,7 @@ export function useSimpanPengaturan(grup: GrupPengaturan) {
         queryClient.invalidateQueries({ queryKey: queryKeys.pengaturan(grup) }),
         queryClient.invalidateQueries({ queryKey: ["dashboard"] }),
         grup === "ppdb" ? queryClient.invalidateQueries({ queryKey: queryKeys.pendaftaran.status }) : null,
+        grup === "absensi" ? queryClient.invalidateQueries({ queryKey: queryKeys.absensi.semua }) : null,
         tag ? segarkanWebsite([tag]) : null,
       ]);
     },

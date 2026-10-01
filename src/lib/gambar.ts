@@ -20,3 +20,41 @@ export async function kompresGambar(file: File): Promise<File> {
   const hasil: Blob = await imageCompression(file, { maxSizeMB: UKURAN_MAKS_MB, maxWidthOrHeight: SISI_MAKS_PX, useWebWorker: true });
   return hasil instanceof File ? hasil : new File([hasil], file.name, { type: hasil.type, lastModified: Date.now() });
 }
+
+// Swafoto absensi: backend membatasi 2 MB, dan foto cukup untuk mengenali wajah.
+const SISI_MAKS_FOTO_ABSENSI_PX = 1280;
+const UKURAN_MAKS_FOTO_ABSENSI_MB = 1;
+const KUALITAS_JPEG_ABSENSI = 0.85;
+
+/** Foto dari input file (cadangan kalau kamera di halaman tidak bisa dipakai) dijadikan JPEG maksimal 1280 px. */
+export async function kompresFotoAbsensi(file: File): Promise<File> {
+  const hasil: Blob = await imageCompression(file, {
+    maxSizeMB: UKURAN_MAKS_FOTO_ABSENSI_MB,
+    maxWidthOrHeight: SISI_MAKS_FOTO_ABSENSI_PX,
+    fileType: "image/jpeg",
+    useWebWorker: true,
+  });
+  return new File([hasil], "swafoto.jpg", { type: "image/jpeg", lastModified: Date.now() });
+}
+
+/** Satu bingkai video kamera menjadi JPEG maksimal 1280 px. Null kalau kamera belum menghasilkan gambar. */
+export function tangkapBingkai(video: HTMLVideoElement): Promise<File | null> {
+  const { videoWidth, videoHeight } = video;
+  if (videoWidth === 0 || videoHeight === 0) return Promise.resolve(null);
+
+  const skala = Math.min(1, SISI_MAKS_FOTO_ABSENSI_PX / Math.max(videoWidth, videoHeight));
+  const kanvas = document.createElement("canvas");
+  kanvas.width = Math.round(videoWidth * skala);
+  kanvas.height = Math.round(videoHeight * skala);
+  const konteks = kanvas.getContext("2d");
+  if (!konteks) return Promise.resolve(null);
+  konteks.drawImage(video, 0, 0, kanvas.width, kanvas.height);
+
+  return new Promise((selesai) => {
+    kanvas.toBlob(
+      (blob) => selesai(blob ? new File([blob], "swafoto.jpg", { type: "image/jpeg", lastModified: Date.now() }) : null),
+      "image/jpeg",
+      KUALITAS_JPEG_ABSENSI,
+    );
+  });
+}

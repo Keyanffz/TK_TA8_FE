@@ -1,5 +1,6 @@
 import type {
   JenisAgenda,
+  StatusAbsensi,
   StatusAkun,
   StatusMurid,
   StatusPembayaran,
@@ -64,4 +65,10 @@ export const NADA_JENIS_AGENDA: Record<JenisAgenda, NadaStatus> = {
   libur: "bahaya",
   rapat: "proses",
   lainnya: "netral",
+};
+
+export const NADA_STATUS_ABSENSI: Record<StatusAbsensi, NadaStatus> = {
+  hadir: "sukses",
+  terlambat: "menunggu",
+  tidak_hadir: "bahaya",
 };

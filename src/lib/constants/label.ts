@@ -6,6 +6,7 @@ import type {
   MetodeBayar,
   PeriodeTagihan,
   Role,
+  StatusAbsensi,
   StatusAkun,
   StatusKelasMurid,
   StatusMurid,
@@ -133,3 +134,25 @@ export const LABEL_JENIS_DOKUMEN: Record<JenisDokumen, string> = {
   pas_foto: "Pas foto",
   lainnya: "Dokumen lain",
 };
+
+export const LABEL_STATUS_ABSENSI: Record<StatusAbsensi, string> = {
+  hadir: "Hadir",
+  terlambat: "Terlambat",
+  tidak_hadir: "Tidak Hadir",
+};
+
+export const OPSI_STATUS_ABSENSI = (["hadir", "terlambat", "tidak_hadir"] as const satisfies readonly StatusAbsensi[]).map((nilai) => ({
+  nilai,
+  label: LABEL_STATUS_ABSENSI[nilai],
+}));
+
+/** Nomor hari ISO dipakai `absensi.hari_kerja`: 1 = Senin sampai 7 = Minggu. */
+export const HARI_ISO = [
+  { nomor: 1, label: "Senin", pendek: "Sen" },
+  { nomor: 2, label: "Selasa", pendek: "Sel" },
+  { nomor: 3, label: "Rabu", pendek: "Rab" },
+  { nomor: 4, label: "Kamis", pendek: "Kam" },
+  { nomor: 5, label: "Jumat", pendek: "Jum" },
+  { nomor: 6, label: "Sabtu", pendek: "Sab" },
+  { nomor: 7, label: "Minggu", pendek: "Min" },
+] as const;
