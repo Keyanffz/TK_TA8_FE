@@ -33,7 +33,7 @@ export function DaftarTanggalLibur({ tanggal, onUbah, error }: DaftarTanggalLibu
         </Button>
       </div>
       <FieldDescription>
-        {sudahAda ? "Tanggal itu sudah ada di daftar." : "Libur nasional, libur semester, atau hari sekolah diliburkan. Hari di luar hari kerja tidak perlu didaftarkan."}
+        {sudahAda ? "Tanggal itu sudah ada di daftar." : "Libur nasional, libur semester, atau hari sekolah diliburkan. Kalau tanggalnya sudah lewat, tanda tidak hadir otomatis pada hari itu dihapus saat disimpan."}
       </FieldDescription>
       {tanggal.length > 0 ? (
         <ul className="flex flex-wrap gap-2">

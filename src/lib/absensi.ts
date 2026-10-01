@@ -1,3 +1,4 @@
+import { formatTanggal } from "@/lib/format";
 import type { Absensi, AbsensiHariIni, JenisAbsensi } from "@/types/domain";
 
 const JARI_JARI_BUMI_METER = 6_371_000;
@@ -50,6 +51,9 @@ export function langkahAbsen(status: AbsensiHariIni): LangkahAbsen {
 
   if (!status.hari_kerja) {
     return { boleh: false, keterangan: status.tanggal_libur ? "Hari ini libur sekolah, jadi tidak ada absensi." : "Hari ini bukan hari kerja, jadi tidak ada absensi." };
+  }
+  if (status.tanggal_mulai !== null && status.tanggal < status.tanggal_mulai) {
+    return { boleh: false, keterangan: `Absensi baru berlaku mulai ${formatTanggal(status.tanggal_mulai)}.` };
   }
   if (status.lokasi === null) {
     return { boleh: false, keterangan: "Lokasi sekolah belum diatur, jadi absen belum bisa dilakukan. Minta Kepala Sekolah mengisi pengaturan absensi." };

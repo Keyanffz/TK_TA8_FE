@@ -326,7 +326,8 @@ Fitur diminta pemilik repo (branch `fe/absensi`, backend `be/absensi`). Kontrakn
 9. Rekap berupa kartu per peserta (belasan orang), bukan tabel, supaya sama di HP dan desktop. Detail per hari dibuka di halaman yang sama (`?peserta=`). Koreksi hanya untuk absen masuk; pilihan status tidak memuat status saat ini.
 10. Pengaturan absensi dibuat halaman sendiri `/mudarris/pengaturan/absensi` (bukan tab di `/mudarris/pengaturan`) sesuai permintaan, dengan satu tombol simpan untuk semua kunci. Peta dimuat `next/dynamic` tanpa SSR. Penanda memakai ikon SVG sendiri (`L.divIcon`) berwarna token `--primary`, karena ikon PNG bawaan Leaflet tidak ikut ter-bundle. Sebelum titik diisi, peta menampilkan Kota Semarang.
 11. Mengosongkan latitude dan longitude menyimpan `absensi.lokasi = null` (absen dimatikan). Batas angka di form sama dengan validasi backend; urutan jam diperiksa di browser dan lagi di backend.
-12. Menu: "Absensi" (SA, G) di grup Utama, "Rekap Absensi" (SA) di grup Sekolah, "Pengaturan Absensi" (SA) di grup Website & Pengaturan. Riwayat dibuka dari halaman Absensi, tidak punya menu sendiri.
+12. Tambahan setelah review (backend menambah `absensi.tanggal_mulai`): input "Tanggal mulai absensi" di bagian Hari kerja dan libur, wajib diisi. Sebelum tanggal itu halaman Absensi menampilkan "Absensi baru berlaku mulai ..." dari `tanggal_mulai` di `GET /absensi/hari-ini`, tanpa tombol absen. Keterangan tanggal libur menyebut bahwa tanggal yang sudah lewat menghapus tanda tidak hadir otomatis pada hari itu (dikerjakan backend saat disimpan; FE tidak meminta konfirmasi).
+13. Menu: "Absensi" (SA, G) di grup Utama, "Rekap Absensi" (SA) di grup Sekolah, "Pengaturan Absensi" (SA) di grup Website & Pengaturan. Riwayat dibuka dari halaman Absensi, tidak punya menu sendiri.
 
 Uji di browser (Chrome headless lewat skrip di luar repo, viewport HP 390 px, backend lokal): absen masuk sah dengan lokasi dan kamera tiruan (201, status terlambat pukul 08:39), Ambil Ulang, penolakan di luar area (peringatan di browser dan pesan backend 857 m), izin lokasi ditolak, kamera tidak tersedia lalu foto 3000×4000 lewat input file, riwayat, rekap dengan detail dan dialog koreksi (catatan wajib), pengaturan (ketuk peta, geser penanda, input manual, simpan, jam tidak urut ditolak di form), dan guru yang membuka rekap atau pengaturan diarahkan ke beranda. Uji ini menemukan tombol Ambil Foto yang aktif sebelum kamera siap (nomor 4). Yang belum diuji: HP sungguhan (GPS, kamera depan, Safari iOS, dialog izin asli), unduh CSV dari tombol di browser (endpoint-nya diuji lewat curl), dan absen pulang sampai tersimpan dari browser.
 
@@ -485,7 +486,7 @@ Andika hanya punya bobot 400 dan 700, jadi `font-semibold` tampil sebagai 700.
 | `/mudarris/absensi` | SA, G | Status hari ini, tombol Absen Masuk / Absen Pulang, alur lokasi + swafoto |
 | `/mudarris/absensi/riwayat` | SA, G | Riwayat pribadi per bulan (`?bulan=`) dengan foto |
 | `/mudarris/absensi/rekap` | SA | Rekap per peserta (`?bulan=`), detail per hari (`?peserta=`), koreksi status, unduh CSV |
-| `/mudarris/pengaturan/absensi` | SA | Peta lokasi sekolah, radius, batas akurasi, jam, hari kerja, tanggal libur, masa simpan foto |
+| `/mudarris/pengaturan/absensi` | SA | Peta lokasi sekolah, radius, batas akurasi, jam, tanggal mulai, hari kerja, tanggal libur, masa simpan foto |
 | `/dashboard/*`, `/mudarris/*` lain | | 404 di dalam kerangka area masing-masing (`[...lainnya]`), status HTTP 404 |
 | `/api/auth/staff/google`, `/api/auth/staff/login`, `/api/auth/wali/login`, `/api/auth/logout`, `/api/auth/sesi-habis` | route handler | BFF sesi |
 | `/api/proxy/[...path]` | route handler | Proxy ke backend |
@@ -528,6 +529,8 @@ File yang diubah:
 
 - `src/lib/navigation.ts` (tiga menu), `src/lib/api/query-keys.ts`, `src/lib/api/pengaturan-dashboard.ts` (grup `absensi`, `skemaAbsensi`), `src/lib/constants/{label, status}.ts`, `src/lib/format.ts` (`formatHariTanggal`, `formatJam`), `src/lib/gambar.ts` (`kompresFotoAbsensi`, `tangkapBingkai`), `src/types/domain.ts`.
 - `src/types/api.d.ts` (hasil generate), `package.json` dan `package-lock.json` (`leaflet`, `@types/leaflet`), `PROMPT_FE_TK.md`.
+
+Tambahan setelah review: tanggal mulai absensi (`skema-pengaturan-absensi.ts`, `form-pengaturan-absensi.tsx`, `daftar-tanggal-libur.tsx`, `src/lib/absensi.ts`, `src/lib/api/pengaturan-dashboard.ts`), Bagian A disalin ulang, tipe digenerate ulang.
 
 Hasil pengecekan: `npm run lint`, `npm run typecheck`, `npm run build`, dan `npm run check:slop` tanpa temuan.
 

@@ -87,6 +87,7 @@ export const skemaAbsensi = z.object({
   "absensi.hari_kerja": z.array(z.number()).catch([1, 2, 3, 4, 5, 6]),
   "absensi.tanggal_libur": z.array(z.string()).catch([]),
   "absensi.masa_simpan_foto_bulan": z.number().catch(6),
+  "absensi.tanggal_mulai": z.string().nullable().catch(null),
 });
 
 export type PengaturanAbsensi = z.infer<typeof skemaAbsensi>;

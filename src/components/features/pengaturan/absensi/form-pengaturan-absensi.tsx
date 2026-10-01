@@ -159,6 +159,14 @@ function FormIsi({ awal }: { awal: PengaturanAbsensi }) {
           Hari kerja dan libur
         </h2>
         <FieldGroup>
+          <KolomTeks
+            label="Tanggal mulai absensi"
+            type="date"
+            className="max-w-52"
+            deskripsi="Absen baru bisa dilakukan mulai tanggal ini, dan hari-hari sebelumnya tidak pernah ditandai tidak hadir."
+            error={errors.tanggal_mulai?.message}
+            {...form.register("tanggal_mulai")}
+          />
           <Controller
             control={form.control}
             name="hari_kerja"

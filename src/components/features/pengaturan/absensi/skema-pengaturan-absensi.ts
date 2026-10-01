@@ -24,6 +24,7 @@ export const skemaFormAbsensi = z
     pulang_tutup: jam,
     hari_kerja: z.array(z.number()).min(1, "Pilih paling sedikit satu hari kerja."),
     tanggal_libur: z.array(z.string()),
+    tanggal_mulai: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Tanggal mulai absensi wajib diisi."),
     masa_simpan_foto_bulan: bulat(1, 60, "Antara 1 dan 60 bulan."),
   })
   .refine((nilai) => (nilai.latitude === "") === (nilai.longitude === ""), { path: ["longitude"], message: "Isi latitude dan longitude, atau kosongkan keduanya." })
@@ -57,6 +58,7 @@ export function nilaiAwalForm(data: PengaturanAbsensi): MasukanFormAbsensi {
     pulang_tutup: data["absensi.jam_pulang"].tutup,
     hari_kerja: data["absensi.hari_kerja"],
     tanggal_libur: data["absensi.tanggal_libur"],
+    tanggal_mulai: data["absensi.tanggal_mulai"] ?? "",
     masa_simpan_foto_bulan: String(data["absensi.masa_simpan_foto_bulan"]),
   };
 }
@@ -71,6 +73,7 @@ export function keItemsPengaturan(nilai: KeluaranFormAbsensi): Record<string, un
     "absensi.jam_pulang": { buka: nilai.pulang_buka, tutup: nilai.pulang_tutup },
     "absensi.hari_kerja": nilai.hari_kerja,
     "absensi.tanggal_libur": nilai.tanggal_libur,
+    "absensi.tanggal_mulai": nilai.tanggal_mulai,
     "absensi.masa_simpan_foto_bulan": nilai.masa_simpan_foto_bulan,
   };
 }
@@ -86,5 +89,6 @@ export const FIELD_PER_KUNCI: readonly [string, keyof MasukanFormAbsensi][] = [
   ["absensi.jam_pulang", "pulang_tutup"],
   ["absensi.hari_kerja", "hari_kerja"],
   ["absensi.tanggal_libur", "tanggal_libur"],
+  ["absensi.tanggal_mulai", "tanggal_mulai"],
   ["absensi.masa_simpan_foto_bulan", "masa_simpan_foto_bulan"],
 ];

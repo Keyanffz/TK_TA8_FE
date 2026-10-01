@@ -65,7 +65,8 @@ export interface paths {
         /**
          * Status absensi hari ini untuk pengguna yang login: apakah hari kerja, jam tiap jenis absen dan apakah
          *     sedang terbuka menurut jam server, absensi yang sudah tercatat, serta lokasi dan radius sekolah untuk
-         *     menampilkan jarak di FE. `hari_kerja` false kalau hari itu di luar hari kerja atau termasuk tanggal libur
+         *     menampilkan jarak di FE. `hari_kerja` false kalau hari itu di luar hari kerja atau termasuk tanggal libur.
+         *     Sebelum `tanggal_mulai`, `terbuka` selalu false
          */
         get: operations["absensi.hariIni"];
         put?: never;
@@ -91,7 +92,7 @@ export interface paths {
         put?: never;
         /**
          * Absen masuk atau pulang (`multipart/form-data`). Ditolak 422 `BUSINESS_RULE` dengan pesan yang
-         *     menjelaskan sebabnya: bukan hari kerja, tanggal libur, di luar jam, sudah absen jenis itu hari ini, absen
+         *     menjelaskan sebabnya: sebelum tanggal mulai absensi, bukan hari kerja, tanggal libur, di luar jam, sudah absen jenis itu hari ini, absen
          *     pulang tanpa absen masuk, akurasi lokasi melebihi batas, atau di luar radius sekolah. Status absen masuk
          *     `hadir` atau `terlambat` ditentukan dari jam server. Dibatasi 10 kali per menit per pengguna
          */
@@ -3829,6 +3830,7 @@ export interface operations {
                             waktu_server: string;
                             hari_kerja: boolean;
                             tanggal_libur: boolean;
+                            tanggal_mulai: string | null;
                             lokasi: {
                                 latitude: number;
                                 longitude: number;
