@@ -70,6 +70,7 @@ export type LaporanKeuangan = DataRespons<"laporan.keuangan">;
 export type LaporanTunggakan = DataRespons<"laporan.tunggakan">;
 export type AbsensiHariIni = DataRespons<"absensi.hariIni">;
 export type RekapAbsensi = DataRespons<"absensi.rekap">[number];
+export type AbsensiPerTanggal = DataRespons<"absensi.harian">;
 
 export type KodeError =
   | "UNAUTHENTICATED"
