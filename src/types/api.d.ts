@@ -38,6 +38,49 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/absensi/harian": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Absen masuk dan pulang semua peserta pada satu tanggal (bawaan hari ini), urut nama. Pesertanya sama dengan
+         *     rekap: guru dan Kepala Sekolah yang aktif, ditambah akun nonaktif yang punya absensi di tanggal itu.
+         *     `hari_kerja`, `tanggal_libur`, dan `tanggal_mulai` sama artinya dengan di `GET /absensi/hari-ini`
+         */
+        get: operations["absensi.harian"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/absensi/koreksi": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Mencatat absen masuk untuk peserta yang belum punya absen masuk pada tanggal itu, misalnya guru lupa absen
+         *     padahal masuk. Catatan wajib; waktu, lokasi, dan foto kosong. Ditolak 422 `BUSINESS_RULE` kalau akun bukan
+         *     peserta absensi, tanggal setelah hari ini atau sebelum tanggal mulai absensi, bukan hari kerja, tanggal libur,
+         *     atau absen masuk tanggal itu sudah ada (koreksi lewat `PATCH /absensi/{id}/koreksi`)
+         */
+        post: operations["absensi.koreksiBaru"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/absensi/{id}/koreksi": {
         parameters: {
             query?: never;
@@ -2520,6 +2563,26 @@ export interface components {
             /** Format: date-time */
             created_at: string | null;
         };
+        /**
+         * KoreksiAbsensiBaruRequest
+         * @description `POST /absensi/koreksi`: absen masuk untuk hari yang belum punya baris. Tidak hadir tidak bisa dibuat di sini;
+         *     baris itu dibuat scheduler.
+         */
+        KoreksiAbsensiBaruRequest: {
+            /** @description Peserta absensi: guru aktif atau Kepala Sekolah. */
+            user_id: number;
+            /**
+             * Format: date
+             * @description Tanggal `YYYY-MM-DD`.
+             */
+            tanggal: string;
+            /**
+             * @description Status absen masuk. Absen pulang tidak punya status.
+             * @enum {string}
+             */
+            status: "hadir" | "terlambat";
+            catatan: string;
+        };
         /** KoreksiAbsensiRequest */
         KoreksiAbsensiRequest: {
             status: components["schemas"]["StatusAbsensi"];
@@ -3674,6 +3737,203 @@ export interface operations {
                         message: string;
                         /** @enum {string} */
                         code: "VALIDATION_ERROR";
+                        errors: {
+                            [key: string]: string[];
+                        };
+                    };
+                };
+            };
+            /** @description TOO_MANY_REQUESTS */
+            429: {
+                headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "TOO_MANY_REQUESTS";
+                        errors: null;
+                    };
+                };
+            };
+        };
+    };
+    "absensi.harian": {
+        parameters: {
+            query?: {
+                /** @description Tanggal `YYYY-MM-DD`, bawaan hari ini. */
+                tanggal?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        data: {
+                            tanggal: string;
+                            hari_kerja: boolean;
+                            tanggal_libur: boolean;
+                            tanggal_mulai: string | null;
+                            peserta: {
+                                user: {
+                                    id: number;
+                                    nama: string;
+                                    jabatan: string | null;
+                                };
+                                masuk: components["schemas"]["AbsensiResource"] | null;
+                                pulang: components["schemas"]["AbsensiResource"] | null;
+                            }[];
+                        };
+                        meta: null;
+                    };
+                };
+            };
+            /** @description UNAUTHENTICATED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "UNAUTHENTICATED";
+                        errors: null;
+                    };
+                };
+            };
+            /** @description FORBIDDEN / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "FORBIDDEN" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        errors: null;
+                    };
+                };
+            };
+            /** @description VALIDATION_ERROR */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "VALIDATION_ERROR";
+                        errors: {
+                            [key: string]: string[];
+                        };
+                    };
+                };
+            };
+            /** @description TOO_MANY_REQUESTS */
+            429: {
+                headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "TOO_MANY_REQUESTS";
+                        errors: null;
+                    };
+                };
+            };
+        };
+    };
+    "absensi.koreksiBaru": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["KoreksiAbsensiBaruRequest"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        data: components["schemas"]["AbsensiResource"];
+                        meta: null;
+                    };
+                };
+            };
+            /** @description UNAUTHENTICATED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "UNAUTHENTICATED";
+                        errors: null;
+                    };
+                };
+            };
+            /** @description FORBIDDEN / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "FORBIDDEN" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        errors: null;
+                    };
+                };
+            };
+            /** @description BUSINESS_RULE / VALIDATION_ERROR */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "BUSINESS_RULE" | "VALIDATION_ERROR";
                         errors: {
                             [key: string]: string[];
                         };

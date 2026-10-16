@@ -38,6 +38,12 @@ export function geserBulan(bulan: string, geser: number): string {
   return `${tujuan.getUTCFullYear()}-${String(tujuan.getUTCMonth() + 1).padStart(2, "0")}`;
 }
 
+/** Tanggal YYYY-MM-DD digeser sejumlah hari. */
+export function geserHari(tanggal: string, geser: number): string {
+  const [tahun, bulan, hari] = tanggal.split("-").map(Number);
+  return new Date(Date.UTC(tahun, bulan - 1, hari + geser)).toISOString().slice(0, 10);
+}
+
 /** Tanggal YYYY-MM-DD dalam satu bulan, beserta posisi hari pertamanya (0 = Senin). */
 export function hariDalamBulan(bulan: string): { tanggal: string[]; geserAwal: number } {
   const [tahun, nomor] = bulan.split("-").map(Number);

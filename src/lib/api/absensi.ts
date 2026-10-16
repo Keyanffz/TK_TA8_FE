@@ -47,6 +47,14 @@ export function useRekapAbsensi(bulan: string) {
   });
 }
 
+export function useAbsensiHarian(tanggal: string) {
+  return useQuery({
+    queryKey: queryKeys.absensi.harian(tanggal),
+    queryFn: async () => (await ambilData(api.GET("/absensi/harian", { params: { query: { tanggal } } }))).data,
+    placeholderData: keepPreviousData,
+  });
+}
+
 export function ambilEksporRekapAbsensi(bulan: string): Promise<Blob> {
   return ambilData(api.GET("/absensi/rekap/export", { params: { query: { bulan } }, parseAs: "blob" }));
 }
@@ -56,6 +64,17 @@ export function useKoreksiAbsensi() {
   return useMutation({
     mutationFn: ({ id, status, catatan }: { id: number; status: StatusAbsensi; catatan: string }) =>
       ambilData(api.PATCH("/absensi/{id}/koreksi", { params: { path: { id } }, body: { status, catatan } })),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.absensi.semua }),
+  });
+}
+
+export type IsianAbsenMasukBaru = { user_id: number; tanggal: string; status: Exclude<StatusAbsensi, "tidak_hadir">; catatan: string };
+
+/** Absen masuk yang dicatat Kepala Sekolah untuk peserta yang belum punya absen masuk di tanggal itu. */
+export function useCatatAbsenMasuk() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (isian: IsianAbsenMasukBaru) => ambilData(api.POST("/absensi/koreksi", { body: isian })),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.absensi.semua }),
   });
 }

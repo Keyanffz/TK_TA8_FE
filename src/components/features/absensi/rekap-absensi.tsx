@@ -1,17 +1,19 @@
 "use client";
 
 import { Download } from "lucide-react";
-import { parseAsInteger, useQueryState } from "nuqs";
+import { parseAsInteger, parseAsStringLiteral, useQueryState } from "nuqs";
 import { useState } from "react";
 import { toast } from "sonner";
 
 import { DaftarAbsensiHarian } from "@/components/features/absensi/daftar-absensi-harian";
 import { DialogKoreksiAbsensi } from "@/components/features/absensi/dialog-koreksi-absensi";
 import { PilihBulan, useBulanDipilih } from "@/components/features/absensi/pilih-bulan";
+import { RekapHarian } from "@/components/features/absensi/rekap-harian";
 import { EmptyState } from "@/components/shared/empty-state";
 import { GalatMuat } from "@/components/shared/galat-muat";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { kelompokkanPerHari } from "@/lib/absensi";
 import { ambilEksporRekapAbsensi, useRekapAbsensi, useRiwayatAbsensi } from "@/lib/api/absensi";
 import { pesanError } from "@/lib/api/errors";
@@ -72,8 +74,8 @@ function KartuPeserta({ baris, dipilih, onPilih }: { baris: BarisRekap; dipilih:
   );
 }
 
-/** Rekap absensi per bulan per peserta untuk Kepala Sekolah, dengan detail per hari, koreksi, dan ekspor CSV. */
-export function RekapAbsensi() {
+/** Rekap per bulan per peserta, dengan detail per hari, koreksi, dan ekspor CSV. */
+function RekapBulanan() {
   const { bulan, bulanIni, setBulan } = useBulanDipilih();
   const [pesertaId, setPesertaId] = useQueryState("peserta", parseAsInteger);
   const [mengunduh, setMengunduh] = useState(false);
@@ -129,5 +131,31 @@ export function RekapAbsensi() {
         </div>
       )}
     </div>
+  );
+}
+
+const TAB = ["harian", "bulanan"] as const;
+
+/** Rekap absensi untuk Kepala Sekolah: Harian untuk mengecek satu tanggal, Bulanan untuk jumlah per peserta. */
+export function RekapAbsensi() {
+  const [tab, setTab] = useQueryState("tab", parseAsStringLiteral(TAB).withDefault("harian"));
+
+  return (
+    <Tabs value={tab} onValueChange={(nilai) => void setTab(nilai === "bulanan" ? "bulanan" : null)} className="gap-5">
+      <TabsList aria-label="Jenis rekap">
+        <TabsTrigger value="harian" className="px-4">
+          Harian
+        </TabsTrigger>
+        <TabsTrigger value="bulanan" className="px-4">
+          Bulanan
+        </TabsTrigger>
+      </TabsList>
+      <TabsContent value="harian">
+        <RekapHarian />
+      </TabsContent>
+      <TabsContent value="bulanan">
+        <RekapBulanan />
+      </TabsContent>
+    </Tabs>
   );
 }
