@@ -45,9 +45,11 @@ export type LangkahAbsen =
  * Apa yang bisa dilakukan sekarang menurut status dari backend. Tombol hanya muncul kalau backend bilang
  * jamnya terbuka; selain itu pengguna diberi tahu sebabnya.
  */
-export function langkahAbsen(status: AbsensiHariIni): LangkahAbsen {
+export function langkahAbsen(status: AbsensiHariIni, kepalaSekolah: boolean): LangkahAbsen {
   const { masuk, pulang } = status;
   const sudahMasuk = masuk.absensi !== null && masuk.absensi.status !== "tidak_hadir";
+  // Kepala Sekolah mengoreksi absensinya sendiri dari Rekap Absensi, jadi tidak diarahkan menghubungi dirinya sendiri.
+  const caraKoreksi = kepalaSekolah ? "Catat atau koreksi lewat Rekap Absensi kalau perlu." : "Hubungi Kepala Sekolah kalau perlu koreksi.";
 
   if (!status.hari_kerja) {
     return { boleh: false, keterangan: status.tanggal_libur ? "Hari ini libur sekolah, jadi tidak ada absensi." : "Hari ini bukan hari kerja, jadi tidak ada absensi." };
@@ -64,9 +66,9 @@ export function langkahAbsen(status: AbsensiHariIni): LangkahAbsen {
   const jam = jamServer(status);
   if (masuk.absensi === null && jam < masuk.buka) return { boleh: false, keterangan: `Absen masuk dibuka pukul ${masuk.buka}.` };
   if (masuk.absensi === null) {
-    return { boleh: false, keterangan: `Jam absen masuk sudah tutup pukul ${masuk.tutup} dan Anda belum absen. Hubungi Kepala Sekolah kalau perlu koreksi.` };
+    return { boleh: false, keterangan: `Jam absen masuk sudah tutup pukul ${masuk.tutup} dan Anda belum absen. ${caraKoreksi}` };
   }
-  if (!sudahMasuk) return { boleh: false, keterangan: "Hari ini Anda tercatat tidak hadir. Hubungi Kepala Sekolah kalau perlu koreksi." };
+  if (!sudahMasuk) return { boleh: false, keterangan: `Hari ini Anda tercatat tidak hadir. ${caraKoreksi}` };
   if (pulang.absensi !== null) return { boleh: false, keterangan: "Absen masuk dan pulang hari ini sudah tercatat." };
   if (jam < pulang.buka) return { boleh: false, keterangan: `Absen pulang dibuka pukul ${pulang.buka}.` };
   return { boleh: false, keterangan: `Jam absen pulang sudah tutup pukul ${pulang.tutup}.` };

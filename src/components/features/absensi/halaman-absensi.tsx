@@ -123,7 +123,7 @@ export function HalamanAbsensi({ kepalaSekolah }: { kepalaSekolah: boolean }) {
   if (isPending) return <Skeleton className="h-72 rounded-xl" />;
   if (isError) return <GalatMuat error={error} onCobaLagi={() => void refetch()} />;
 
-  const langkah = langkahAbsen(data);
+  const langkah = langkahAbsen(data, kepalaSekolah);
   // Kalau jamnya tutup saat alur masih terbuka, alur ditutup dan keterangan terbaru yang tampil.
   const alurAktif = alur !== null && langkah.boleh && langkah.jenis === alur ? alur : null;
 
