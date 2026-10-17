@@ -46,7 +46,11 @@ export function KolomTeks({ label, error, deskripsi, akhiran, id, className, ...
   );
 }
 
-/** KolomTeks untuk password dengan tombol tampilkan/sembunyikan. */
+/**
+ * KolomTeks untuk password dengan tombol tampilkan/sembunyikan. Form yang
+ * memakainya diberi `method="post"`: kalau form terkirim sebelum JavaScript
+ * jalan, browser mengirim isian di body, bukan di query string URL.
+ */
 export function KolomPassword(props: Omit<KolomTeksProps, "type" | "akhiran">) {
   const [terlihat, setTerlihat] = useState(false);
   return (

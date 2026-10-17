@@ -36,7 +36,7 @@ export function FormLoginWali() {
   });
 
   return (
-    <form noValidate onSubmit={form.handleSubmit(masuk)}>
+    <form method="post" noValidate onSubmit={form.handleSubmit(masuk)}>
       <FieldGroup>
         {pesan ? <KotakPesan nada="bahaya">{pesan}</KotakPesan> : null}
         <KolomTeks

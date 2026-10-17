@@ -63,7 +63,7 @@ export function FormGantiPassword({ wajib = false }: { wajib?: boolean }) {
   });
 
   return (
-    <form noValidate onSubmit={form.handleSubmit((nilai) => mutation.mutate(nilai))}>
+    <form method="post" noValidate onSubmit={form.handleSubmit((nilai) => mutation.mutate(nilai))}>
       <FieldGroup>
         <KolomPassword
           label={wajib ? "Password awal" : "Password lama"}
