@@ -50,7 +50,7 @@ function PilihTanggal({ tanggal, hariIni, onUbah }: { tanggal: string; hariIni: 
   );
 }
 
-function keteranganTanpaAbsen(data: AbsensiPerTanggal): string | null {
+function pesanTanpaAbsensi(data: AbsensiPerTanggal): string | null {
   if (data.tanggal_libur) return "Tanggal ini libur sekolah, jadi tidak ada absensi.";
   if (!data.hari_kerja) return "Tanggal ini bukan hari kerja, jadi tidak ada absensi.";
   if (data.tanggal_mulai !== null && data.tanggal < data.tanggal_mulai) return `Absensi baru berlaku mulai ${formatTanggal(data.tanggal_mulai)}.`;
@@ -87,9 +87,9 @@ export function RekapHarian() {
   const { tanggal, hariIni, setTanggal } = useTanggalDipilih();
   const { data, isPending, isError, error, refetch, isPlaceholderData } = useAbsensiHarian(tanggal);
 
-  const keterangan = data ? keteranganTanpaAbsen(data) : null;
+  const pesanTanpaAbsen = data ? pesanTanpaAbsensi(data) : null;
   // Di luar hari absensi hanya peserta yang ternyata punya baris absensi yang ditampilkan.
-  const peserta = data ? (keterangan ? data.peserta.filter(({ masuk, pulang }) => masuk || pulang) : data.peserta) : [];
+  const peserta = data ? (pesanTanpaAbsen ? data.peserta.filter(({ masuk, pulang }) => masuk || pulang) : data.peserta) : [];
 
   return (
     <div className="flex flex-col gap-4">
@@ -106,7 +106,7 @@ export function RekapHarian() {
         <GalatMuat error={error} onCobaLagi={() => void refetch()} />
       ) : (
         <div className={cn("flex flex-col gap-4", isPlaceholderData && "opacity-60")}>
-          {keterangan ? <KotakPesan nada="proses">{keterangan}</KotakPesan> : <Ringkasan peserta={data.peserta} />}
+          {pesanTanpaAbsen ? <KotakPesan nada="proses">{pesanTanpaAbsen}</KotakPesan> : <Ringkasan peserta={data.peserta} />}
           {data.peserta.length === 0 ? (
             <EmptyState judul="Belum ada guru aktif." deskripsi="Daftar ini terisi setelah guru ditambahkan di menu Guru." />
           ) : (
@@ -115,11 +115,11 @@ export function RekapHarian() {
                 <KartuAbsensiHarian
                   key={user.id}
                   judul={user.nama}
-                  keterangan={user.jabatan}
+                  subjudul={user.jabatan}
                   masuk={masuk}
                   pulang={pulang}
-                  labelTanpaMasuk={keterangan ? undefined : "Belum absen"}
-                  aksi={<AksiKoreksiHarian nama={user.nama} userId={user.id} tanggal={data.tanggal} masuk={masuk} pulang={pulang} bolehCatat={!keterangan} />}
+                  labelTanpaMasuk={pesanTanpaAbsen ? undefined : "Belum absen"}
+                  aksi={<AksiKoreksiHarian nama={user.nama} userId={user.id} tanggal={data.tanggal} masuk={masuk} pulang={pulang} bolehCatat={!pesanTanpaAbsen} />}
                 />
               ))}
             </ul>

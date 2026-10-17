@@ -41,7 +41,11 @@ export type JumlahBulanRekap = (typeof JUMLAH_BULAN_REKAP)[number];
  * Riwayat `jumlahBulan` bulan yang berakhir di `bulan`. `userId` null = milik sendiri; peserta lain hanya untuk
  * Kepala Sekolah.
  */
-export function useRiwayatAbsensi(bulan: string, userId: number | null, aktif = true, jumlahBulan: JumlahBulanRekap = 1) {
+export function useRiwayatAbsensi(
+  bulan: string,
+  userId: number | null,
+  { aktif = true, jumlahBulan = 1 }: { aktif?: boolean; jumlahBulan?: JumlahBulanRekap } = {},
+) {
   return useQuery({
     queryKey: queryKeys.absensi.riwayat(bulan, userId, jumlahBulan),
     queryFn: async () =>

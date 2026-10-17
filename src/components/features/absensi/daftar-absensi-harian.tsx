@@ -68,7 +68,7 @@ function SatuAbsen({ judul, absensi, labelFoto, teksKosong = "Tidak ada" }: { ju
 
 type KartuAbsensiHarianProps = {
   judul: string;
-  keterangan?: string | null;
+  subjudul?: string | null;
   masuk: Absensi | null;
   pulang: Absensi | null;
   /** Ditampilkan sebagai badge kalau belum ada absen masuk. */
@@ -77,8 +77,8 @@ type KartuAbsensiHarianProps = {
 };
 
 /** Absen masuk dan pulang satu hari untuk satu orang, dengan foto dan catatan koreksi. */
-export function KartuAbsensiHarian({ judul, keterangan, masuk, pulang, labelTanpaMasuk, aksi }: KartuAbsensiHarianProps) {
-  const labelFoto = keterangan ? `${judul}, ${keterangan}` : judul;
+export function KartuAbsensiHarian({ judul, subjudul, masuk, pulang, labelTanpaMasuk, aksi }: KartuAbsensiHarianProps) {
+  const labelFoto = subjudul ? `${judul}, ${subjudul}` : judul;
   // Hari izin atau sakit memang tidak punya absen pulang.
   const tidakMasuk = masuk?.status === "izin" || masuk?.status === "sakit";
   return (
@@ -86,7 +86,7 @@ export function KartuAbsensiHarian({ judul, keterangan, masuk, pulang, labelTanp
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div>
           <h3 className="font-heading font-bold">{judul}</h3>
-          {keterangan ? <p className="text-sm text-muted-foreground">{keterangan}</p> : null}
+          {subjudul ? <p className="text-sm text-muted-foreground">{subjudul}</p> : null}
         </div>
         {masuk?.status ? (
           <StatusBadge nada={NADA_STATUS_ABSENSI[masuk.status]}>{LABEL_STATUS_ABSENSI[masuk.status]}</StatusBadge>

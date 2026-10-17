@@ -69,7 +69,7 @@ function RiwayatTerbaru({ hariIni }: { hariIni: string }) {
   const bulanIni = useRiwayatAbsensi(bulan, null);
   const hariBulanIni = kelompokkanPerHari(bulanIni.data ?? []).filter((hari) => hari.tanggal < hariIni);
   const perluBulanLalu = bulanIni.isSuccess && hariBulanIni.length < JUMLAH_RIWAYAT_TERBARU;
-  const bulanLalu = useRiwayatAbsensi(geserBulan(bulan, -1), null, perluBulanLalu);
+  const bulanLalu = useRiwayatAbsensi(geserBulan(bulan, -1), null, { aktif: perluBulanLalu });
 
   const memuat = bulanIni.isPending || (perluBulanLalu && bulanLalu.isPending);
   const galat = bulanIni.error ?? (perluBulanLalu ? bulanLalu.error : null);
@@ -118,7 +118,6 @@ function RiwayatTerbaru({ hariIni }: { hariIni: string }) {
   );
 }
 
-/** Alur yang sedang dibuka masih sah menurut status terbaru dari backend. */
 function alurMasihBerlaku(mode: ModeAbsen, langkah: LangkahAbsen, status: AbsensiHariIni): boolean {
   if (mode === "pulang_awal") return status.pulang.boleh_lebih_awal;
   return langkah.boleh && langkah.jenis === (mode === "pulang" ? "pulang" : "masuk");
@@ -159,7 +158,6 @@ export function HalamanAbsensi({ kepalaSekolah }: { kepalaSekolah: boolean }) {
           <KotakPesan nada="proses">{langkah.keterangan}</KotakPesan>
           {data.pulang.boleh_lebih_awal ? (
             <Button size="lg" variant="outline" className="h-12" onClick={() => setAlur("pulang_awal")}>
-              <LogOut aria-hidden="true" className="size-5" />
               Pulang Lebih Awal
             </Button>
           ) : null}

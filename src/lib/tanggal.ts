@@ -38,7 +38,7 @@ export function geserBulan(bulan: string, geser: number): string {
   return `${tujuan.getUTCFullYear()}-${String(tujuan.getUTCMonth() + 1).padStart(2, "0")}`;
 }
 
-/** Tanggal YYYY-MM-DD digeser sejumlah hari. */
+/** Geser tanggal YYYY-MM-DD; dihitung di UTC supaya hasilnya tidak bergantung pada zona waktu perangkat. */
 export function geserHari(tanggal: string, geser: number): string {
   const [tahun, bulan, hari] = tanggal.split("-").map(Number);
   return new Date(Date.UTC(tahun, bulan - 1, hari + geser)).toISOString().slice(0, 10);

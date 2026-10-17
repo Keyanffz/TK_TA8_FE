@@ -30,7 +30,7 @@ type Mode = "koreksi" | JenisAbsensi;
 
 const TEKS: Record<Mode, { tombol: string; simpan: string; deskripsiCatatan: string }> = {
   koreksi: { tombol: "Koreksi Status", simpan: "Simpan Koreksi", deskripsiCatatan: "Alasan koreksi, misalnya dinas luar atau GPS HP bermasalah." },
-  masuk: { tombol: "Catat Absen Masuk", simpan: "Simpan Absen Masuk", deskripsiCatatan: "Alasan, misalnya lupa absen atau HP tertinggal." },
+  masuk: { tombol: "Catat Absen Masuk", simpan: "Simpan Absen Masuk", deskripsiCatatan: "Alasan, misalnya lupa absen, HP tertinggal, atau izin acara keluarga." },
   pulang: { tombol: "Catat Absen Pulang", simpan: "Simpan Absen Pulang", deskripsiCatatan: "Alasan, misalnya lupa absen pulang atau HP mati." },
 };
 
@@ -47,7 +47,7 @@ function keterangan(props: DialogKoreksiAbsensiProps): string {
   }
   const tanggal = formatHariTanggal(props.tanggal);
   return props.jenis === "masuk"
-    ? `${tanggal}, belum ada absen masuk. Pakai ini kalau ${props.nama} masuk tetapi lupa absen. ${pencatat}`
+    ? `${tanggal}, belum ada absen masuk. Pakai ini kalau ${props.nama} masuk tetapi lupa absen, atau untuk mencatat izin atau sakit. ${pencatat}`
     : `${tanggal}, sudah absen masuk tetapi belum ada absen pulang. Pakai ini kalau ${props.nama} lupa absen pulang. ${pencatat}`;
 }
 
