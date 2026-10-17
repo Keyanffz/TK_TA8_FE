@@ -8,22 +8,23 @@ Website publik dan dashboard sistem informasi TK Tarbiyathul Athfal 8 (TK Muslim
 |---|---|
 | 0. Analisis | Selesai, rencana disetujui (Arah desain A "Buku Cerita") |
 | 1. Fondasi | Selesai |
-| 2. Publik & auth | Selesai; revisi setelah review (login terpisah, warna, font, gerak) menunggu review |
+| 2. Publik & auth | Selesai, disetujui (revisi login terpisah, warna, font, gerak sudah di-merge dan dipakai) |
 | Penyesuaian login wali NIS (sebelum Fase 4) | Selesai |
 | 3. Shell dashboard | Selesai (review Fase 3 tanpa revisi) |
 | 4. Master data | Selesai, disetujui (perbaikan setelah review: lihat "Review Fase 4–5") |
 | 5. Keuangan | Selesai, disetujui (perbaikan setelah review: lihat "Review Fase 4–5") |
 | 6. Akademik & komunikasi | Selesai, disetujui (lihat "Review Fase 6–7") |
 | 7. PPDB, CMS, pengaturan | Selesai, disetujui (lihat "Review Fase 6–7") |
-| 8. Integrasi & polish | Selesai, menunggu review (lihat "Review Fase 8") |
-| Login terpisah (endpoint auth baru backend) | Selesai, menunggu review (lihat "Keputusan login terpisah") |
-| Area `/mudarris` untuk guru dan Kepala Sekolah | Selesai, menunggu review (lihat "Keputusan area /mudarris") |
-| Login Google staff, guru tanpa pendaftaran mandiri (branch `fe/login-google-staff`) | Selesai, menunggu review (lihat "Keputusan login Google staff"); butuh backend branch `be/login-google-staff` |
-| `/mudarris/login` satu form (branch `fe/login-staff-satu-form`) | Selesai, menunggu review (lihat "Keputusan login Google staff") |
-| Absensi guru dan Kepala Sekolah (branch `fe/absensi`) | Selesai, menunggu review (lihat "Keputusan absensi"); butuh backend branch `be/absensi` |
+| 8. Integrasi & polish | Selesai, disetujui (lihat "Review Fase 8") |
+| Login terpisah (endpoint auth baru backend) | Selesai, disetujui (lihat "Keputusan login terpisah") |
+| Area `/mudarris` untuk guru dan Kepala Sekolah | Selesai, disetujui (lihat "Keputusan area /mudarris") |
+| Login Google staff, guru tanpa pendaftaran mandiri (branch `fe/login-google-staff`) | Selesai, disetujui (lihat "Keputusan login Google staff") |
+| `/mudarris/login` satu form (branch `fe/login-staff-satu-form`) | Selesai, disetujui (lihat "Keputusan login Google staff") |
+| Absensi guru dan Kepala Sekolah (branch `fe/absensi`) | Selesai, disetujui, di-merge (PR #6) |
 | Absensi harian, Catat Absen Masuk, riwayat terbaru (branch `fe/absensi-harian`) | Selesai, diuji di browser, di-merge (PR #7) |
 | Izin dan sakit, pulang lebih awal, notifikasi absensi, rekap 1–3 bulan (branch `fe/absensi-lanjutan`) | Selesai, diuji di browser, di-merge (PR #11; backend PR #11) |
-| Perapian sesuai Bagian C untuk revisi hari ini (branch `fe/rapikan-slop`) | Selesai, menunggu review (lihat Changelog) |
+| Perapian sesuai Bagian C untuk revisi hari ini (branch `fe/rapikan-slop`) | Selesai, di-merge (PR #12) |
+| Flowchart A6 absensi (branch `fe/flowchart-a6`) | Selesai, di-merge (PR #13) |
 | Catat Absen Pulang untuk guru yang lupa absen pulang (branch `fe/absensi-pulang`) | Selesai, diuji di browser, di-merge (PR #8; backend PR #10) |
 
 Mode mock tidak dipakai: `api.json` final dari backend sudah tersedia sejak Fase 1, jadi semua request memakai backend asli dan tipe hasil generate. Tidak ada endpoint mock.
@@ -532,8 +533,15 @@ Menu sidebar untuk semua route B4 sudah ada sejak Fase 3 (`src/lib/navigation.ts
 
 ## Rencana perbaikan berikutnya
 
-- **File gambar pengaturan yang tidak jadi disimpan (F7-3)**: `POST /pengaturan/upload` langsung menyimpan file ke disk `public` folder `pengaturan/` (`PengaturanService::FOLDER_GAMBAR`), sedangkan path-nya baru tercatat saat tab CMS disimpan. Kalau Kepala Sekolah memilih gambar lalu membatalkan atau meninggalkan halaman, file itu tidak pernah dipakai dan tidak pernah dihapus. Gambar yang diganti saat menyimpan sudah dihapus backend (`PengaturanService`, perbandingan `semuaGambar()` sebelum dan sesudah simpan), jadi yang tertinggal hanya unggahan yang tidak pernah disimpan.
-  Usulan untuk repo backend (belum dikerjakan): perintah artisan `pengaturan:bersihkan-gambar` yang menghapus file di `pengaturan/` pada disk `public` yang tidak ada di `semuaGambar()` pengaturan saat ini dan berumur lebih dari 1 hari (dari waktu ubah file). Batas 1 hari menjaga file yang baru diunggah dan masih menunggu disimpan di form yang sedang terbuka. Dijadwalkan harian di `routes/console.php` pada jam sepi, misalnya `Schedule::command('pengaturan:bersihkan-gambar')->dailyAt('02:00');`, dengan jumlah file yang dihapus dicatat di log. FE tidak perlu berubah.
+- **File gambar pengaturan yang tidak jadi disimpan (F7-3)**: dikerjakan di backend (branch `be/bersihkan-gambar`). `POST /pengaturan/upload` langsung menyimpan file ke folder `pengaturan/`, sedangkan path-nya baru tercatat saat tab CMS disimpan, jadi gambar yang batal disimpan tertinggal. Perintah `pengaturan:bersihkan-gambar` berjalan harian pukul 02:00 WIB dan menghapus file di folder itu yang tidak dipakai pengaturan mana pun dan terakhir diubah lebih dari sehari lalu; batas sehari menjaga gambar yang masih menunggu disimpan di form yang terbuka. FE tidak berubah.
+
+## Saran dari Claude
+
+Usulan di luar desain saat ini, belum dibuat karena ditunda pemilik repo:
+
+- **Payment gateway**: pembayaran tagihan langsung dari aplikasi (misalnya Midtrans atau Xendit) supaya wali tidak perlu mengunggah bukti transfer dan Kepala Sekolah tidak perlu memverifikasi manual. Belum dibuat karena desain memakai transfer manual dan butuh akun serta biaya dari penyedia.
+- **Push notification (FCM)**: notifikasi langsung ke HP untuk aplikasi Flutter nanti. Belum dibuat karena aplikasi HP belum ada; notifikasi sekarang hanya di dalam web.
+- **Lampiran di Pengumuman**: unggah berkas (misalnya surat edaran PDF) bersama pengumuman. Belum dibuat karena kontrak pengumuman hanya berisi teks.
 
 ## Deploy
 
@@ -547,6 +555,10 @@ Tempat deploy belum ditentukan. Syarat yang sudah pasti:
 6. **Masuk dengan Google**: `NEXT_PUBLIC_GOOGLE_CLIENT_ID` diisi sebelum `npm run build`, dan origin FE produksi (misalnya `https://tkta8.sch.id`) didaftarkan di Authorized JavaScript origins Client ID itu di Google Cloud Console. Backend memakai Client ID yang sama di `GOOGLE_CLIENT_ID`.
 
 ## Changelog
+
+### Status dokumentasi dan saran dari Claude (branch `fe/status-dokumentasi`)
+
+Diminta pemilik repo: fitur yang sudah di-merge dan dipakai dianggap disetujui, jadi baris "menunggu review" di tabel Status diubah, dan baris perapian Bagian C serta flowchart A6 diperbaiki. Bagian baru "Saran dari Claude" mencatat usulan di luar desain (payment gateway, push notification, lampiran pengumuman). File yang diubah: `dokumentasi.md`.
 
 ### Flowchart A6 absensi (branch `fe/flowchart-a6`)
 
