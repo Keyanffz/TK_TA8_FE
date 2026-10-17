@@ -7,6 +7,7 @@ import { parseAsInteger, parseAsString, parseAsStringLiteral, useQueryState } fr
 import { TombolKwitansi } from "@/components/features/pembayaran/tombol-kwitansi";
 import { EmptyState } from "@/components/shared/empty-state";
 import { KolomCari } from "@/components/shared/kolom-cari";
+import { KELAS_KONTROL_SARINGAN } from "@/components/shared/kolom-teks";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { TabelData } from "@/components/shared/tabel-data";
 import { useDaftarPembayaran } from "@/lib/api/pembayaran";
@@ -18,7 +19,6 @@ import type { Pembayaran } from "@/types/domain";
 
 const STATUS = ["menunggu", "diterima", "ditolak"] as const;
 const METODE = ["transfer", "tunai"] as const;
-const KELAS_SELECT = "h-11 rounded-md border border-input bg-card px-3 text-sm";
 
 const KOLOM: ColumnDef<Pembayaran>[] = [
   {
@@ -67,7 +67,7 @@ export function RiwayatPembayaranSekolah() {
     <div className="flex flex-col gap-4">
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-[1fr_auto_auto_auto]">
         <KolomCari nilai={cari} onUbah={(nilai) => ubahFilter(() => setCari(nilai || null))} label="Cari pembayaran" placeholder="Cari kode atau nama murid" />
-        <select aria-label="Saring status" className={KELAS_SELECT} value={status ?? ""} onChange={(e) => ubahFilter(() => setStatus(STATUS.find((s) => s === e.target.value) ?? null))}>
+        <select aria-label="Saring status" className={KELAS_KONTROL_SARINGAN} value={status ?? ""} onChange={(e) => ubahFilter(() => setStatus(STATUS.find((s) => s === e.target.value) ?? null))}>
           <option value="">Semua status</option>
           {STATUS.map((nilai) => (
             <option key={nilai} value={nilai}>
@@ -75,7 +75,7 @@ export function RiwayatPembayaranSekolah() {
             </option>
           ))}
         </select>
-        <select aria-label="Saring cara bayar" className={KELAS_SELECT} value={metode ?? ""} onChange={(e) => ubahFilter(() => setMetode(METODE.find((m) => m === e.target.value) ?? null))}>
+        <select aria-label="Saring cara bayar" className={KELAS_KONTROL_SARINGAN} value={metode ?? ""} onChange={(e) => ubahFilter(() => setMetode(METODE.find((m) => m === e.target.value) ?? null))}>
           <option value="">Semua cara bayar</option>
           {METODE.map((nilai) => (
             <option key={nilai} value={nilai}>
@@ -85,7 +85,7 @@ export function RiwayatPembayaranSekolah() {
         </select>
         <label className="flex items-center gap-2 text-sm text-muted-foreground">
           <span className="shrink-0">Tanggal bayar</span>
-          <input type="date" className={`${KELAS_SELECT} min-w-0 flex-1 text-foreground`} value={tanggal ?? ""} onChange={(e) => ubahFilter(() => setTanggal(e.target.value || null))} />
+          <input type="date" className={`${KELAS_KONTROL_SARINGAN} min-w-0 flex-1 text-foreground`} value={tanggal ?? ""} onChange={(e) => ubahFilter(() => setTanggal(e.target.value || null))} />
         </label>
       </div>
       <TabelData

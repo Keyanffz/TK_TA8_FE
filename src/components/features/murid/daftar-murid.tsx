@@ -7,6 +7,7 @@ import { parseAsInteger, parseAsString, parseAsStringLiteral, useQueryState } fr
 import { EmptyState } from "@/components/shared/empty-state";
 import { FotoProfil } from "@/components/shared/foto-profil";
 import { KolomCari } from "@/components/shared/kolom-cari";
+import { KELAS_KONTROL_SARINGAN } from "@/components/shared/kolom-teks";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { TabelData } from "@/components/shared/tabel-data";
 import { useDaftarKelas } from "@/lib/api/kelas";
@@ -18,7 +19,6 @@ import type { Murid } from "@/types/domain";
 
 const STATUS = ["aktif", "lulus", "pindah", "keluar"] as const;
 const TINGKAT = ["A", "B"] as const;
-const KELAS_SELECT = "h-11 rounded-md border border-input bg-card px-3 text-sm";
 
 function Identitas({ murid }: { murid: Murid }) {
   return (
@@ -67,7 +67,7 @@ export function DaftarMurid() {
     <div className="flex flex-col gap-4">
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-[1fr_auto_auto_auto]">
         <KolomCari nilai={cari} onUbah={(nilai) => ubahFilter(() => setCari(nilai || null))} label="Cari murid" placeholder="Cari nama atau NIS" />
-        <select aria-label="Saring kelas" className={KELAS_SELECT} value={kelasId ?? ""} onChange={(e) => ubahFilter(() => setKelasId(e.target.value ? Number(e.target.value) : null))}>
+        <select aria-label="Saring kelas" className={KELAS_KONTROL_SARINGAN} value={kelasId ?? ""} onChange={(e) => ubahFilter(() => setKelasId(e.target.value ? Number(e.target.value) : null))}>
           <option value="">Semua kelas</option>
           {kelasTahunAktif.map((item) => (
             <option key={item.id} value={item.id}>
@@ -77,7 +77,7 @@ export function DaftarMurid() {
         </select>
         <select
           aria-label="Saring kelompok"
-          className={KELAS_SELECT}
+          className={KELAS_KONTROL_SARINGAN}
           value={tingkat ?? ""}
           onChange={(e) => ubahFilter(() => setTingkat(TINGKAT.find((nilai) => nilai === e.target.value) ?? null))}
         >
@@ -90,7 +90,7 @@ export function DaftarMurid() {
         </select>
         <select
           aria-label="Saring status"
-          className={KELAS_SELECT}
+          className={KELAS_KONTROL_SARINGAN}
           value={status ?? ""}
           onChange={(e) => ubahFilter(() => setStatus(STATUS.find((nilai) => nilai === e.target.value) ?? null))}
         >
