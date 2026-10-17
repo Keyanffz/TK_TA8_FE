@@ -6,7 +6,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 import { DaftarAbsensiHarian } from "@/components/features/absensi/daftar-absensi-harian";
-import { DialogKoreksiAbsensi } from "@/components/features/absensi/dialog-koreksi-absensi";
+import { AksiKoreksiHarian } from "@/components/features/absensi/dialog-koreksi-absensi";
 import { PilihBulan, useBulanDipilih } from "@/components/features/absensi/pilih-bulan";
 import { RekapHarian } from "@/components/features/absensi/rekap-harian";
 import { EmptyState } from "@/components/shared/empty-state";
@@ -44,7 +44,12 @@ function DetailPeserta({ peserta, bulan }: { peserta: BarisRekap["user"]; bulan:
       ) : data.length === 0 ? (
         <EmptyState ringkas judul="Belum ada absensi di bulan ini." />
       ) : (
-        <DaftarAbsensiHarian hari={kelompokkanPerHari(data)} aksi={(masuk) => <DialogKoreksiAbsensi absensi={masuk} nama={peserta.nama} />} />
+        <DaftarAbsensiHarian
+          hari={kelompokkanPerHari(data)}
+          aksi={({ tanggal, masuk, pulang }) => (
+            <AksiKoreksiHarian nama={peserta.nama} userId={peserta.id} tanggal={tanggal} masuk={masuk} pulang={pulang} bolehCatat />
+          )}
+        />
       )}
     </section>
   );

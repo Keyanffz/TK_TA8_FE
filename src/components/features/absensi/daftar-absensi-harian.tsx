@@ -10,10 +10,23 @@ import { NADA_STATUS_ABSENSI } from "@/lib/constants/status";
 import { formatHariTanggal, formatJam, formatTanggalWaktu } from "@/lib/format";
 import type { Absensi } from "@/types/domain";
 
-/** Absen masuk berstatus hadir/terlambat tanpa jam berarti dicatat Kepala Sekolah lewat koreksi. */
+/** Absen tanpa jam yang bukan tanda tidak hadir berarti dicatat Kepala Sekolah lewat koreksi. */
 function teksJam(absensi: Absensi | null): string {
   if (absensi?.waktu) return formatJam(absensi.waktu);
-  return absensi?.status === "hadir" || absensi?.status === "terlambat" ? "Tanpa jam" : "Tidak ada";
+  return absensi?.dikoreksi_at && absensi.status !== "tidak_hadir" ? "Tanpa jam" : "Tidak ada";
+}
+
+function CatatanKoreksi({ absensi }: { absensi: Absensi }) {
+  return (
+    <p className="mt-3 rounded-md bg-muted px-3 py-2 text-sm">
+      <span className="font-semibold">
+        {absensi.jenis === "pulang" ? "Absen pulang dicatat" : "Dikoreksi"}
+        {absensi.dikoreksi_oleh ? ` oleh ${absensi.dikoreksi_oleh.nama}` : ""}
+        {absensi.dikoreksi_at ? `, ${formatTanggalWaktu(absensi.dikoreksi_at)}` : ""}:
+      </span>{" "}
+      {absensi.catatan_koreksi}
+    </p>
+  );
 }
 
 function SatuAbsen({ judul, absensi, labelFoto }: { judul: string; absensi: Absensi | null; labelFoto: string }) {
@@ -63,32 +76,31 @@ export function KartuAbsensiHarian({ judul, keterangan, masuk, pulang, labelTanp
         <SatuAbsen judul="Masuk" absensi={masuk} labelFoto={labelFoto} />
         <SatuAbsen judul="Pulang" absensi={pulang} labelFoto={labelFoto} />
       </div>
-      {masuk?.catatan_koreksi ? (
-        <p className="mt-3 rounded-md bg-muted px-3 py-2 text-sm">
-          <span className="font-semibold">
-            Dikoreksi{masuk.dikoreksi_oleh ? ` oleh ${masuk.dikoreksi_oleh.nama}` : ""}
-            {masuk.dikoreksi_at ? `, ${formatTanggalWaktu(masuk.dikoreksi_at)}` : ""}:
-          </span>{" "}
-          {masuk.catatan_koreksi}
-        </p>
-      ) : null}
-      {aksi ? <div className="mt-3">{aksi}</div> : null}
+      {masuk?.catatan_koreksi ? <CatatanKoreksi absensi={masuk} /> : null}
+      {pulang?.catatan_koreksi ? <CatatanKoreksi absensi={pulang} /> : null}
+      {aksi ? <div className="mt-3 empty:hidden">{aksi}</div> : null}
     </li>
   );
 }
 
 type DaftarAbsensiHarianProps = {
   hari: readonly AbsensiHarian[];
-  /** Tombol koreksi untuk absen masuk hari itu, hanya di rekap Kepala Sekolah. */
-  aksi?: (masuk: Absensi) => ReactNode;
+  /** Tombol koreksi dan catat absen untuk hari itu, hanya di rekap Kepala Sekolah. */
+  aksi?: (hari: AbsensiHarian) => ReactNode;
 };
 
 /** Absensi per hari dengan foto, dipakai riwayat pribadi dan detail peserta di rekap. */
 export function DaftarAbsensiHarian({ hari, aksi }: DaftarAbsensiHarianProps) {
   return (
     <ul className="flex flex-col gap-3">
-      {hari.map(({ tanggal, masuk, pulang }) => (
-        <KartuAbsensiHarian key={tanggal} judul={formatHariTanggal(tanggal)} masuk={masuk} pulang={pulang} aksi={aksi && masuk ? aksi(masuk) : null} />
+      {hari.map((satuHari) => (
+        <KartuAbsensiHarian
+          key={satuHari.tanggal}
+          judul={formatHariTanggal(satuHari.tanggal)}
+          masuk={satuHari.masuk}
+          pulang={satuHari.pulang}
+          aksi={aksi ? aksi(satuHari) : null}
+        />
       ))}
     </ul>
   );
