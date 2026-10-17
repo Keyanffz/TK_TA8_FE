@@ -230,6 +230,16 @@
     content: counter(angka);
   }
 
+  /* Scrollbar yang hanya terlihat selama digulir; atribut data-menggulir dipasang dan dilepas komponennya
+     (Sidebar). Lebarnya tetap disediakan supaya isi tidak bergeser saat scrollbar muncul. */
+  .scrollbar-saat-gulir {
+    scrollbar-width: thin;
+    scrollbar-color: transparent transparent;
+  }
+  .scrollbar-saat-gulir[data-menggulir] {
+    scrollbar-color: color-mix(in oklab, currentColor 45%, transparent) transparent;
+  }
+
   /* Umpan balik hover yang cepat, tetap ada walau gerak dekoratif dimatikan. */
   .angkat {
     transition:
