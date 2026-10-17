@@ -83,8 +83,8 @@ export const queryKeys = {
   absensi: {
     semua: ["absensi"] as const,
     hariIni: ["absensi", "hari-ini"] as const,
-    riwayat: (bulan: string, userId: number | null) => ["absensi", "riwayat", bulan, userId] as const,
-    rekap: (bulan: string) => ["absensi", "rekap", bulan] as const,
+    riwayat: (bulan: string, userId: number | null, jumlahBulan: number) => ["absensi", "riwayat", bulan, userId, jumlahBulan] as const,
+    rekap: (bulan: string, jumlahBulan: number) => ["absensi", "rekap", bulan, jumlahBulan] as const,
     harian: (tanggal: string) => ["absensi", "harian", tanggal] as const,
   },
   laporan: {

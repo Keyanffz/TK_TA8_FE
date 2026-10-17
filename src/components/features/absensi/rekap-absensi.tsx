@@ -1,7 +1,7 @@
 "use client";
 
 import { Download } from "lucide-react";
-import { parseAsInteger, parseAsStringLiteral, useQueryState } from "nuqs";
+import { parseAsInteger, parseAsNumberLiteral, parseAsStringLiteral, useQueryState } from "nuqs";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -15,34 +15,48 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { kelompokkanPerHari } from "@/lib/absensi";
-import { ambilEksporRekapAbsensi, useRekapAbsensi, useRiwayatAbsensi } from "@/lib/api/absensi";
+import { ambilEksporRekapAbsensi, JUMLAH_BULAN_REKAP, useRekapAbsensi, useRiwayatAbsensi, type JumlahBulanRekap } from "@/lib/api/absensi";
 import { pesanError } from "@/lib/api/errors";
 import { simpanBlob } from "@/lib/api/unduh";
 import { formatBulan } from "@/lib/format";
+import { geserBulan } from "@/lib/tanggal";
 import { cn } from "@/lib/utils";
 import type { RekapAbsensi as BarisRekap } from "@/types/domain";
 
 const KOLOM = [
   { kunci: "hadir", label: "Hadir" },
   { kunci: "terlambat", label: "Terlambat" },
+  { kunci: "izin", label: "Izin" },
+  { kunci: "sakit", label: "Sakit" },
   { kunci: "tidak_hadir", label: "Tidak hadir" },
   { kunci: "tidak_absen_pulang", label: "Tidak absen pulang" },
 ] as const;
 
-function DetailPeserta({ peserta, bulan }: { peserta: BarisRekap["user"]; bulan: string }) {
-  const { data, isPending, isError, error, refetch } = useRiwayatAbsensi(bulan, peserta.id);
+const KELAS_SELECT = "h-11 rounded-md border border-input bg-card px-3 text-sm";
+
+function bulanAwal(bulan: string, jumlahBulan: JumlahBulanRekap): string {
+  return geserBulan(bulan, 1 - jumlahBulan);
+}
+
+/** "Oktober 2026" atau "Agustus 2026 – Oktober 2026". */
+function formatRentang(bulan: string, jumlahBulan: JumlahBulanRekap): string {
+  return jumlahBulan === 1 ? formatBulan(bulan) : `${formatBulan(bulanAwal(bulan, jumlahBulan))} – ${formatBulan(bulan)}`;
+}
+
+function DetailPeserta({ peserta, bulan, jumlahBulan }: { peserta: BarisRekap["user"]; bulan: string; jumlahBulan: JumlahBulanRekap }) {
+  const { data, isPending, isError, error, refetch } = useRiwayatAbsensi(bulan, peserta.id, true, jumlahBulan);
 
   return (
     <section aria-labelledby="judul-detail-peserta" className="flex flex-col gap-3">
       <h2 id="judul-detail-peserta" className="text-lg font-extrabold">
-        {peserta.nama}, {formatBulan(bulan)}
+        {peserta.nama}, {formatRentang(bulan, jumlahBulan)}
       </h2>
       {isPending ? (
         <Skeleton className="h-48 rounded-xl" />
       ) : isError ? (
         <GalatMuat error={error} onCobaLagi={() => void refetch()} />
       ) : data.length === 0 ? (
-        <EmptyState ringkas judul="Belum ada absensi di bulan ini." />
+        <EmptyState ringkas judul="Belum ada absensi di rentang ini." />
       ) : (
         <DaftarAbsensiHarian
           hari={kelompokkanPerHari(data)}
@@ -67,7 +81,7 @@ function KartuPeserta({ baris, dipilih, onPilih }: { baris: BarisRekap; dipilih:
           {dipilih ? "Tutup Detail" : "Lihat per Hari"}
         </Button>
       </div>
-      <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 sm:grid-cols-4">
+      <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 sm:grid-cols-3">
         {KOLOM.map(({ kunci, label }) => (
           <div key={kunci}>
             <dt className="text-sm text-muted-foreground">{label}</dt>
@@ -79,18 +93,20 @@ function KartuPeserta({ baris, dipilih, onPilih }: { baris: BarisRekap; dipilih:
   );
 }
 
-/** Rekap per bulan per peserta, dengan detail per hari, koreksi, dan ekspor CSV. */
+/** Rekap 1 sampai 3 bulan per peserta, dengan detail per hari, koreksi, dan ekspor CSV. */
 function RekapBulanan() {
   const { bulan, bulanIni, setBulan } = useBulanDipilih();
+  const [jumlahBulan, setJumlahBulan] = useQueryState("rentang", parseAsNumberLiteral(JUMLAH_BULAN_REKAP).withDefault(1));
   const [pesertaId, setPesertaId] = useQueryState("peserta", parseAsInteger);
   const [mengunduh, setMengunduh] = useState(false);
-  const { data, isPending, isError, error, refetch, isPlaceholderData } = useRekapAbsensi(bulan);
+  const { data, isPending, isError, error, refetch, isPlaceholderData } = useRekapAbsensi(bulan, jumlahBulan);
   const dipilih = data?.find((baris) => baris.user.id === pesertaId) ?? null;
 
   const unduh = async () => {
     setMengunduh(true);
     try {
-      simpanBlob(await ambilEksporRekapAbsensi(bulan), `rekap-absensi-${bulan}.csv`);
+      const namaBerkas = jumlahBulan === 1 ? `rekap-absensi-${bulan}.csv` : `rekap-absensi-${bulanAwal(bulan, jumlahBulan)}-sampai-${bulan}.csv`;
+      simpanBlob(await ambilEksporRekapAbsensi(bulan, jumlahBulan), namaBerkas);
     } catch (galat) {
       toast.error(pesanError(galat));
     } finally {
@@ -101,7 +117,21 @@ function RekapBulanan() {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <PilihBulan bulan={bulan} bulanIni={bulanIni} onUbah={setBulan} />
+        <div className="flex flex-wrap items-center gap-2">
+          <PilihBulan bulan={bulan} bulanIni={bulanIni} onUbah={setBulan} />
+          <select
+            aria-label="Rentang rekap"
+            className={KELAS_SELECT}
+            value={jumlahBulan}
+            onChange={(event) => void setJumlahBulan(JUMLAH_BULAN_REKAP.find((jumlah) => jumlah === Number(event.target.value)) ?? 1)}
+          >
+            {JUMLAH_BULAN_REKAP.map((jumlah) => (
+              <option key={jumlah} value={jumlah}>
+                {jumlah === 1 ? "1 bulan" : `${jumlah} bulan terakhir`}
+              </option>
+            ))}
+          </select>
+        </div>
         <Button variant="outline" disabled={mengunduh || !data || data.length === 0} onClick={() => void unduh()}>
           <Download aria-hidden="true" />
           {mengunduh ? "Menyiapkan..." : "Unduh CSV"}
@@ -127,7 +157,7 @@ function RekapBulanan() {
             ))}
           </ul>
           {dipilih ? (
-            <DetailPeserta peserta={dipilih.user} bulan={bulan} />
+            <DetailPeserta peserta={dipilih.user} bulan={bulan} jumlahBulan={jumlahBulan} />
           ) : (
             <p className="rounded-xl border-2 border-dashed border-border p-4 text-sm text-muted-foreground">
               Tekan Lihat per Hari pada salah satu nama untuk melihat jam, foto, dan mengoreksi status.
