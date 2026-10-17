@@ -43,3 +43,6 @@ next-env.d.ts
 
 # screenshot uji, tidak disimpan di repo
 docs/review/
+
+# pengaturan Claude Code lokal
+.claude/
