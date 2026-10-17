@@ -11,9 +11,24 @@ import { formatHariTanggal, formatJam, formatTanggalWaktu } from "@/lib/format";
 import type { Absensi } from "@/types/domain";
 
 /** Absen tanpa jam yang bukan tanda tidak hadir berarti dicatat Kepala Sekolah lewat koreksi. */
-function teksJam(absensi: Absensi | null): string {
-  if (absensi?.waktu) return formatJam(absensi.waktu);
-  return absensi?.dikoreksi_at && absensi.status !== "tidak_hadir" ? "Tanpa jam" : "Tidak ada";
+function teksJam(absensi: Absensi | null, teksKosong: string): string {
+  if (absensi === null) return teksKosong;
+  if (absensi.waktu) return formatJam(absensi.waktu);
+  return absensi.dikoreksi_at && absensi.status !== "tidak_hadir" ? "Tanpa jam" : "Tidak ada";
+}
+
+/** Alasan yang ditulis peserta sendiri saat izin, sakit, atau pulang lebih awal. */
+function KeteranganPeserta({ absensi }: { absensi: Absensi }) {
+  const judul = absensi.pulang_awal
+    ? "Alasan pulang lebih awal"
+    : absensi.status === "izin" || absensi.status === "sakit"
+      ? `Keterangan ${LABEL_STATUS_ABSENSI[absensi.status].toLowerCase()}`
+      : `Keterangan absen ${absensi.jenis}`;
+  return (
+    <p className="mt-3 text-sm">
+      <span className="font-semibold">{judul}:</span> {absensi.keterangan}
+    </p>
+  );
 }
 
 function CatatanKoreksi({ absensi }: { absensi: Absensi }) {
@@ -29,7 +44,7 @@ function CatatanKoreksi({ absensi }: { absensi: Absensi }) {
   );
 }
 
-function SatuAbsen({ judul, absensi, labelFoto }: { judul: string; absensi: Absensi | null; labelFoto: string }) {
+function SatuAbsen({ judul, absensi, labelFoto, teksKosong = "Tidak ada" }: { judul: string; absensi: Absensi | null; labelFoto: string; teksKosong?: string }) {
   return (
     <div className="flex items-center gap-3">
       {absensi?.ada_foto ? (
@@ -39,8 +54,13 @@ function SatuAbsen({ judul, absensi, labelFoto }: { judul: string; absensi: Abse
       )}
       <div className="min-w-0">
         <p className="text-sm text-muted-foreground">{judul}</p>
-        <p className="font-heading font-bold tabular-nums">{teksJam(absensi)}</p>
+        <p className="font-heading font-bold tabular-nums">{teksJam(absensi, teksKosong)}</p>
         {absensi?.jarak_meter != null ? <p className="text-xs text-muted-foreground">{absensi.jarak_meter} m dari sekolah</p> : null}
+        {absensi?.pulang_awal ? (
+          <StatusBadge nada="menunggu" className="mt-1">
+            Pulang lebih awal
+          </StatusBadge>
+        ) : null}
       </div>
     </div>
   );
@@ -59,6 +79,8 @@ type KartuAbsensiHarianProps = {
 /** Absen masuk dan pulang satu hari untuk satu orang, dengan foto dan catatan koreksi. */
 export function KartuAbsensiHarian({ judul, keterangan, masuk, pulang, labelTanpaMasuk, aksi }: KartuAbsensiHarianProps) {
   const labelFoto = keterangan ? `${judul}, ${keterangan}` : judul;
+  // Hari izin atau sakit memang tidak punya absen pulang.
+  const tidakMasuk = masuk?.status === "izin" || masuk?.status === "sakit";
   return (
     <li className="rounded-xl border border-border bg-card p-4 shadow-sm">
       <div className="flex flex-wrap items-start justify-between gap-2">
@@ -74,8 +96,10 @@ export function KartuAbsensiHarian({ judul, keterangan, masuk, pulang, labelTanp
       </div>
       <div className="mt-3 grid gap-3 sm:grid-cols-2">
         <SatuAbsen judul="Masuk" absensi={masuk} labelFoto={labelFoto} />
-        <SatuAbsen judul="Pulang" absensi={pulang} labelFoto={labelFoto} />
+        <SatuAbsen judul="Pulang" absensi={pulang} labelFoto={labelFoto} teksKosong={tidakMasuk ? "Tidak perlu" : undefined} />
       </div>
+      {masuk?.keterangan ? <KeteranganPeserta absensi={masuk} /> : null}
+      {pulang?.keterangan ? <KeteranganPeserta absensi={pulang} /> : null}
       {masuk?.catatan_koreksi ? <CatatanKoreksi absensi={masuk} /> : null}
       {pulang?.catatan_koreksi ? <CatatanKoreksi absensi={pulang} /> : null}
       {aksi ? <div className="mt-3 empty:hidden">{aksi}</div> : null}

@@ -11,7 +11,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Rekap satu bulan per peserta: jumlah hadir, terlambat, tidak hadir, dan hari yang tidak absen pulang */
+        /**
+         * Rekap per peserta untuk 1–3 bulan (`jumlah_bulan` bulan yang berakhir di `bulan`): jumlah hadir, terlambat,
+         *     izin, sakit, tidak hadir, dan hari yang tidak absen pulang
+         */
         get: operations["absensi.rekap"];
         put?: never;
         post?: never;
@@ -28,7 +31,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** File CSV berisi rekap yang sama dengan `GET /absensi/rekap` */
+        /**
+         * File CSV berisi rekap yang sama dengan `GET /absensi/rekap`. Nama file menyebut bulannya, misalnya
+         *     `rekap-absensi-2026-10.csv` atau `rekap-absensi-2026-08-sampai-2026-10.csv`
+         */
         get: operations["absensi.export"];
         put?: never;
         post?: never;
@@ -111,7 +117,9 @@ export interface paths {
          * Status absensi hari ini untuk pengguna yang login: apakah hari kerja, jam tiap jenis absen dan apakah
          *     sedang terbuka menurut jam server, absensi yang sudah tercatat, serta lokasi dan radius sekolah untuk
          *     menampilkan jarak di FE. `hari_kerja` false kalau hari itu di luar hari kerja atau termasuk tanggal libur.
-         *     Sebelum `tanggal_mulai`, `terbuka` selalu false
+         *     Sebelum `tanggal_mulai`, `terbuka` selalu false. `pulang.boleh_lebih_awal` true kalau absen pulang sekarang
+         *     akan diterima sebagai pulang lebih awal (dengan keterangan): hari kerja, tidak sebelum `tanggal_mulai`, jam
+         *     pulang belum buka, absen masuk hari ini hadir atau terlambat, dan belum absen pulang
          */
         get: operations["absensi.hariIni"];
         put?: never;
@@ -130,16 +138,20 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Riwayat absensi satu peserta dalam satu bulan, terbaru dulu, tanpa paginasi. Guru hanya melihat
-         *     riwayatnya sendiri; Kepala Sekolah bisa membuka riwayat peserta lain lewat `user_id`
+         * Riwayat absensi satu peserta dalam 1–3 bulan (`jumlah_bulan` bulan yang berakhir di `bulan`), terbaru dulu,
+         *     tanpa paginasi. Guru hanya melihat riwayatnya sendiri; Kepala Sekolah bisa membuka riwayat peserta lain lewat
+         *     `user_id`
          */
         get: operations["absensi.index"];
         put?: never;
         /**
          * Absen masuk atau pulang (`multipart/form-data`). Ditolak 422 `BUSINESS_RULE` dengan pesan yang
          *     menjelaskan sebabnya: sebelum tanggal mulai absensi, bukan hari kerja, tanggal libur, di luar jam, sudah absen jenis itu hari ini, absen
-         *     pulang tanpa absen masuk, akurasi lokasi melebihi batas, atau di luar radius sekolah. Status absen masuk
-         *     `hadir` atau `terlambat` ditentukan dari jam server. Dibatasi 10 kali per menit per pengguna
+         *     pulang tanpa absen masuk hadir atau terlambat, akurasi lokasi melebihi batas, atau di luar radius sekolah. Status absen masuk
+         *     `hadir` atau `terlambat` ditentukan dari jam server. Absen masuk dengan `status` `izin` atau `sakit` tidak butuh
+         *     lokasi, tetapi butuh `keterangan` dan foto; hari itu tidak ada absen pulang. Absen pulang sebelum jam pulang
+         *     buka diterima sebagai pulang lebih awal (`pulang_awal` true) kalau `keterangan` diisi, tanpa persetujuan.
+         *     Dibatasi 10 kali per menit per pengguna
          */
         post: operations["absensi.store"];
         delete?: never;
@@ -2128,17 +2140,26 @@ export interface components {
         /**
          * AbsenRequest
          * @description `POST /absensi` (multipart). Di sini hanya bentuk isian; hari kerja, jam, jarak, dan akurasi diperiksa
-         *     `AbsensiService` dengan jam server.
+         *     `AbsensiService` dengan jam server. Izin dan sakit tidak butuh lokasi, tetapi butuh keterangan dan foto.
          */
         AbsenRequest: {
             jenis: components["schemas"]["JenisAbsensi"];
-            latitude: number;
-            longitude: number;
-            /** @description Akurasi lokasi dari perangkat, dalam meter. */
-            akurasi: number;
+            /**
+             * @description Hanya untuk absen masuk: `izin` atau `sakit`. Kosong untuk absen masuk biasa (hadir atau terlambat dari jam server).
+             * @enum {string|null}
+             */
+            status?: "izin" | "sakit" | null;
+            /** @description Wajib kecuali izin atau sakit. */
+            latitude?: number;
+            /** @description Wajib kecuali izin atau sakit. */
+            longitude?: number;
+            /** @description Akurasi lokasi dari perangkat, dalam meter. Wajib kecuali izin atau sakit. */
+            akurasi?: number;
+            /** @description Alasan dari peserta. Wajib untuk izin atau sakit. */
+            keterangan?: string | null;
             /**
              * Format: binary
-             * @description Maximum file size: 2048 kilobytes.
+             * @description Swafoto, atau foto surat izin/keterangan sakit. jpeg, png, atau webp, maksimal 2 MB.
              */
             foto: Blob;
         };
@@ -2156,6 +2177,8 @@ export interface components {
             akurasi_meter: number | null;
             jarak_meter: number | null;
             ada_foto: boolean;
+            keterangan: string | null;
+            pulang_awal: boolean;
             catatan_koreksi: string | null;
             dikoreksi_oleh: {
                 id: number;
@@ -2427,7 +2450,7 @@ export interface components {
          * @description Nilai `jenis` pada notifikasi (A7 "Bentuk notifikasi"). FE memakainya untuk ikon dan pengelompokan.
          * @enum {string}
          */
-        JenisNotifikasi: "tagihan_baru" | "tagihan_tertunda" | "pengingat_tagihan" | "tagihan_terlambat" | "pembayaran_masuk" | "pembayaran_diterima" | "pembayaran_ditolak" | "rapor_diajukan" | "rapor_revisi" | "rapor_terbit" | "pengumuman_baru" | "pendaftaran_baru" | "pendaftaran_diproses" | "anak_tertaut";
+        JenisNotifikasi: "tagihan_baru" | "tagihan_tertunda" | "pengingat_tagihan" | "tagihan_terlambat" | "pembayaran_masuk" | "pembayaran_diterima" | "pembayaran_ditolak" | "rapor_diajukan" | "rapor_revisi" | "rapor_terbit" | "pengumuman_baru" | "pendaftaran_baru" | "pendaftaran_diproses" | "anak_tertaut" | "absensi_tercatat" | "absensi_dikoreksi";
         /** JenisTagihanResource */
         JenisTagihanResource: {
             id: number;
@@ -2584,7 +2607,7 @@ export interface components {
              * @description Wajib untuk absen masuk; tidak boleh dikirim untuk absen pulang.
              * @enum {string}
              */
-            status?: "hadir" | "terlambat";
+            status?: "hadir" | "terlambat" | "izin" | "sakit";
             catatan: string;
         };
         /** KoreksiAbsensiRequest */
@@ -3330,7 +3353,7 @@ export interface components {
          * @description Status absen masuk. Absen pulang tidak punya status.
          * @enum {string}
          */
-        StatusAbsensi: "hadir" | "terlambat" | "tidak_hadir";
+        StatusAbsensi: "hadir" | "terlambat" | "tidak_hadir" | "izin" | "sakit";
         /**
          * StatusAkun
          * @enum {string}
@@ -3580,8 +3603,10 @@ export interface operations {
     "absensi.rekap": {
         parameters: {
             query?: {
-                /** @description Bulan `YYYY-MM`, bawaan bulan berjalan. */
+                /** @description Bulan terakhir rentang, `YYYY-MM`, bawaan bulan berjalan. */
                 bulan?: string;
+                /** @description Jumlah bulan sampai `bulan`, 1–3, bawaan 1. Contoh `bulan=2026-10&jumlah_bulan=3` = Agustus sampai Oktober 2026. */
+                jumlah_bulan?: number;
             };
             header?: never;
             path?: never;
@@ -3605,6 +3630,8 @@ export interface operations {
                             };
                             hadir: number;
                             terlambat: number;
+                            izin: number;
+                            sakit: number;
                             tidak_hadir: number;
                             tidak_absen_pulang: number;
                         }[];
@@ -3681,8 +3708,10 @@ export interface operations {
     "absensi.export": {
         parameters: {
             query?: {
-                /** @description Bulan `YYYY-MM`, bawaan bulan berjalan. */
+                /** @description Bulan terakhir rentang, `YYYY-MM`, bawaan bulan berjalan. */
                 bulan?: string;
+                /** @description Jumlah bulan sampai `bulan`, 1–3, bawaan 1. Contoh `bulan=2026-10&jumlah_bulan=3` = Agustus sampai Oktober 2026. */
+                jumlah_bulan?: number;
             };
             header?: never;
             path?: never;
@@ -4113,6 +4142,7 @@ export interface operations {
                                 tutup: string;
                                 terbuka: boolean;
                                 absensi: components["schemas"]["AbsensiResource"] | null;
+                                boleh_lebih_awal: boolean;
                             };
                         };
                         meta: null;
@@ -4171,8 +4201,10 @@ export interface operations {
     "absensi.index": {
         parameters: {
             query?: {
-                /** @description Bulan `YYYY-MM`, bawaan bulan berjalan. */
+                /** @description Bulan terakhir rentang, `YYYY-MM`, bawaan bulan berjalan. */
                 bulan?: string;
+                /** @description Jumlah bulan sampai `bulan`, 1–3, bawaan 1. Contoh `bulan=2026-10&jumlah_bulan=3` = Agustus sampai Oktober 2026. */
+                jumlah_bulan?: number;
                 /** @description Peserta yang riwayatnya dibuka Kepala Sekolah; bawaan diri sendiri. */
                 user_id?: number;
             };

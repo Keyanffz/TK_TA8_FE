@@ -22,6 +22,7 @@ Website publik dan dashboard sistem informasi TK Tarbiyathul Athfal 8 (TK Muslim
 | `/mudarris/login` satu form (branch `fe/login-staff-satu-form`) | Selesai, menunggu review (lihat "Keputusan login Google staff") |
 | Absensi guru dan Kepala Sekolah (branch `fe/absensi`) | Selesai, menunggu review (lihat "Keputusan absensi"); butuh backend branch `be/absensi` |
 | Absensi harian, Catat Absen Masuk, riwayat terbaru (branch `fe/absensi-harian`) | Selesai, diuji di browser, di-merge (PR #7) |
+| Izin dan sakit, pulang lebih awal, notifikasi absensi, rekap 1–3 bulan (branch `fe/absensi-lanjutan`) | Selesai, diuji di browser, menunggu review (lihat "Keputusan absensi" nomor 24–30); butuh backend branch `be/absensi-lanjutan` |
 | Catat Absen Pulang untuk guru yang lupa absen pulang (branch `fe/absensi-pulang`) | Selesai, diuji di browser, di-merge (PR #8; backend PR #10) |
 
 Mode mock tidak dipakai: `api.json` final dari backend sudah tersedia sejak Fase 1, jadi semua request memakai backend asli dan tipe hasil generate. Tidak ada endpoint mock.
@@ -346,6 +347,19 @@ Pengecekan revisi ini: `npm run lint`, `npm run typecheck`, `npm run build`, dan
 
 Pengecekan Catat Absen Pulang: `npm run lint`, `npm run typecheck`, `npm run build`, dan `npm run check:slop` tanpa temuan. Uji di browser (backend lokal branch `be/absensi-pulang`, masuk sebagai Kepala Sekolah, data uji yang sama): tab Harian 8 Oktober menampilkan "Belum absen pulang 1" dan tombol Catat Absen Pulang untuk timothy; dialog tanpa pilihan status, catatan kosong ditolak di form, lalu tersimpan (201): Pulang "Tanpa jam", catatan "Absen pulang dicatat oleh ...", ringkasan kembali 0, tombol hilang. Tab Bulanan: "Tidak absen pulang" timothy turun dari 3 ke 2, lalu ke 1 setelah Catat Absen Pulang dari detail per hari (15 Oktober). Tampilan 375 px tab Harian dengan lima kotak ringkasan tanpa elemen melebar. Uji ulang setelah merge, di `main` (backend 898 test lulus): penolakan backend tampil di dialog. Dialog Catat Absen Pulang untuk Nafi 14 Oktober dibuka di tab pertama, absen pulang yang sama dicatat dulu dari tab kedua, lalu Simpan di tab pertama membalas 422 dan dialog menampilkan "Absen pulang Nafi tanggal 14 Oktober 2026 sudah tercatat." tanpa menutup. Data di tab pertama baru diperbarui saat dibuka ulang atau pada pengambilan ulang berikutnya. Tab Bulanan ikut berubah ("Tidak absen pulang" Nafi menjadi 0), dan halaman Absensi di hari Sabtu menampilkan "bukan hari kerja". Belum diuji: HP sungguhan.
 
+24. **Izin, sakit, pulang lebih awal, notifikasi, dan rekap 1–3 bulan (branch `fe/absensi-lanjutan`, diminta pemilik repo):** backend `be/absensi-lanjutan` menambah status `izin` dan `sakit`, kolom `keterangan` dan `pulang_awal`, `pulang.boleh_lebih_awal` di `GET /absensi/hari-ini`, dua jenis notifikasi, dan `jumlah_bulan` di riwayat, rekap, dan ekspor (Bagian A disalin ulang). Keputusan pemilik repo: izin/sakit tanpa lokasi, foto dan keterangan wajib; pulang lebih awal tanpa persetujuan dengan alasan wajib; rentang rekap 1, 2, atau 3 bulan.
+25. Alur absen (`AlurAbsen`) punya empat mode: absen masuk, absen pulang, pulang lebih awal (lokasi, alasan, foto), dan izin atau sakit (pilihan Sakit/Izin dengan `KolomRadio`, keterangan, foto; lokasi tidak dicari sama sekali sehingga guru di rumah tidak dimintai izin lokasi). Tombol Izin atau Sakit hanya ada saat absen masuk terbuka; tombol Pulang Lebih Awal mengikuti `pulang.boleh_lebih_awal` dari backend. Tombol kirim baru aktif setelah alasan atau keterangan terisi.
+26. `langkahAbsen()` menganggap peserta sudah masuk hanya kalau statusnya hadir atau terlambat; hari izin atau sakit menampilkan "Hari ini Anda tercatat izin, jadi tidak perlu absen pulang." dan baris pulang ditulis "Tidak perlu" (kartu status dan kartu harian).
+27. Keterangan dari peserta tampil sebagai "Keterangan izin/sakit: ..." atau "Alasan pulang lebih awal: ...", terpisah dari catatan koreksi Kepala Sekolah. Absen pulang lebih awal diberi badge "Lebih awal" di kartu status dan "Pulang lebih awal" di kartu harian; di Riwayat Terbaru jam pulangnya diberi "(lebih awal)".
+28. Warna status: izin `proses`, sakit `netral`. Ringkasan tab Harian sekarang tujuh kotak (Hadir, Terlambat, Izin, Sakit, Tidak hadir, Belum absen, Belum absen pulang). Ringkasan riwayat pribadi ikut menampilkan Izin dan Sakit karena memakai `OPSI_STATUS_ABSENSI`.
+29. Rentang rekap dipilih lewat select di sebelah pemilih bulan (`?rentang=1|2|3`, bawaan 1) dan berarti N bulan yang berakhir di bulan terpilih. Detail per hari dan nama berkas CSV mengikuti rentang (`rekap-absensi-YYYY-MM-sampai-YYYY-MM.csv`, sama dengan backend).
+30. Notifikasi `absensi_tercatat` (ikon `MapPinCheck`, sukses) dan `absensi_dikoreksi` (ikon `CalendarCheck`, proses) ditambahkan ke `TAMPILAN_NOTIFIKASI`; tidak ada perubahan lain karena daftar notifikasi sudah membuka `url` dari backend.
+
+Pengecekan nomor 24–30: `npm run lint`, `npm run typecheck`, `npm run build`, dan `npm run check:slop` tanpa temuan. Uji di browser (backend lokal branch `be/absensi-lanjutan`, migration sudah dijalankan). Karena hari uji Sabtu, `absensi.hari_kerja` sementara ditambah Sabtu dan jam masuk tutup sementara 23:00, lalu dikembalikan ke `[1,2,3,4,5]` dan 09:30/10:15/12:00 setelah uji; baris uji hari itu, fotonya, dan notifikasinya dihapus.
+- Sebagai guru (Nafi): Izin atau Sakit (tanpa langkah lokasi, kamera tidak ada lalu foto lewat input file, tombol kirim nonaktif sebelum foto), tersimpan 201 sebagai Izin dengan keterangan; halaman menampilkan tidak perlu absen pulang; notifikasi "Izin tercatat" muncul di lonceng dan membuka riwayat dengan keterangan izin. Pulang Lebih Awal (absen masuk hadir disiapkan langsung di database; lokasi tiruan lewat `navigator.geolocation` karena panel browser menolak izin lokasi): tombol muncul sebelum jam pulang buka, tombol kirim nonaktif tanpa alasan, tersimpan 201, riwayat menampilkan badge dan alasan.
+- Sebagai Kepala Sekolah: Koreksi Status menawarkan Hadir, Izin, Sakit, Tidak Hadir (tanpa status sekarang); koreksi Nafi 7 Oktober ke Izin tersimpan dan notifikasi `absensi_dikoreksi` terkirim ke Nafi (dicek di database). Catat Absen Masuk menawarkan Hadir, Terlambat, Izin, Sakit; Sakit untuk Syafira 9 Oktober tersimpan, pulang tertulis "Tidak perlu" tanpa tombol Catat Absen Pulang. Tab Bulanan rentang 3 bulan: kolom Izin dan Sakit, detail "Agustus 2026 – Oktober 2026", ekspor (dicek lewat fetch tanpa mengunduh) 200 dengan kolom baru dan nama berkas rentang.
+- Belum diuji: Absen Masuk biasa dan Absen Pulang biasa setelah perubahan alur (alurnya tetap sama, dicek lewat typecheck), HP sungguhan.
+
 Uji di browser (Chrome headless lewat skrip di luar repo, viewport HP 390 px, backend lokal): absen masuk sah dengan lokasi dan kamera tiruan (201, status terlambat pukul 08:39), Ambil Ulang, penolakan di luar area (peringatan di browser dan pesan backend 857 m), izin lokasi ditolak, kamera tidak tersedia lalu foto 3000×4000 lewat input file, riwayat, rekap dengan detail dan dialog koreksi (catatan wajib), pengaturan (ketuk peta, geser penanda, input manual, simpan, jam tidak urut ditolak di form), dan guru yang membuka rekap atau pengaturan diarahkan ke beranda. Uji ini menemukan tombol Ambil Foto yang aktif sebelum kamera siap (nomor 4). Yang belum diuji: HP sungguhan (GPS, kamera depan, Safari iOS, dialog izin asli), unduh CSV dari tombol di browser (endpoint-nya diuji lewat curl), dan absen pulang sampai tersimpan dari browser.
 
 ## Temuan kontrak Fase 6
@@ -502,9 +516,9 @@ Andika hanya punya bobot 400 dan 700, jadi `font-semibold` tampil sebagai 700.
 | `/mudarris/pengumuman/baru` | SA, G | Form Tiptap + sasaran; `?dari=tunggakan&kelas=` terisi murid penunggak (K) |
 | `/dashboard/pengumuman/[id]` (W); `/mudarris/pengumuman/[id]`, `/[id]/ubah` (SA, G) | SA, G, W / penulis, SA | Detail; ubah dan hapus untuk penulis dan SA |
 | `/dashboard/agenda` (W); `/mudarris/agenda` (SA, G) | SA (kelola), G, W | Kalender bulanan + daftar (`?bulan=`, `?hari=`); SA tambah/ubah/hapus |
-| `/mudarris/absensi` | SA, G | Status hari ini, tombol Absen Masuk / Absen Pulang, alur lokasi + swafoto, lima hari terakhir |
+| `/mudarris/absensi` | SA, G | Status hari ini, tombol Absen Masuk / Absen Pulang, Izin atau Sakit, Pulang Lebih Awal, alur lokasi + swafoto, lima hari terakhir |
 | `/mudarris/absensi/riwayat` | SA, G | Riwayat pribadi per bulan (`?bulan=`) dengan foto |
-| `/mudarris/absensi/rekap` | SA | Tab Harian (bawaan, `?tanggal=`): semua peserta di satu tanggal, koreksi status, Catat Absen Masuk, Catat Absen Pulang. Tab Bulanan (`?tab=bulanan`): rekap per peserta (`?bulan=`), detail per hari (`?peserta=`), koreksi status, Catat Absen Pulang, unduh CSV |
+| `/mudarris/absensi/rekap` | SA | Tab Harian (bawaan, `?tanggal=`): semua peserta di satu tanggal, koreksi status, Catat Absen Masuk, Catat Absen Pulang. Tab Bulanan (`?tab=bulanan`): rekap per peserta untuk 1–3 bulan (`?bulan=`, `?rentang=`), detail per hari (`?peserta=`), koreksi status, Catat Absen Pulang, unduh CSV |
 | `/mudarris/pengaturan/absensi` | SA | Peta lokasi sekolah, radius, batas akurasi, jam, tanggal mulai, hari kerja, tanggal libur, masa simpan foto |
 | `/dashboard/*`, `/mudarris/*` lain | | 404 di dalam kerangka area masing-masing (`[...lainnya]`), status HTTP 404 |
 | `/api/auth/staff/google`, `/api/auth/staff/login`, `/api/auth/wali/login`, `/api/auth/logout`, `/api/auth/sesi-habis` | route handler | BFF sesi |
@@ -532,6 +546,18 @@ Tempat deploy belum ditentukan. Syarat yang sudah pasti:
 6. **Masuk dengan Google**: `NEXT_PUBLIC_GOOGLE_CLIENT_ID` diisi sebelum `npm run build`, dan origin FE produksi (misalnya `https://tkta8.sch.id`) didaftarkan di Authorized JavaScript origins Client ID itu di Google Cloud Console. Backend memakai Client ID yang sama di `GOOGLE_CLIENT_ID`.
 
 ## Changelog
+
+### Izin dan sakit, pulang lebih awal, notifikasi absensi, rekap 1–3 bulan (branch `fe/absensi-lanjutan`)
+
+Diminta pemilik repo. Bagian A disalin identik dari `PROMPT_BE_TK.md` (branch `be/absensi-lanjutan`); B4 dan B9 ditambah. Tipe digenerate ulang. Keputusan dan hasil uji ada di "Keputusan absensi" nomor 24–30.
+
+File yang diubah:
+
+- `src/components/features/absensi/alur-absen.tsx` (mode `ModeAbsen`: masuk, pulang, pulang lebih awal, izin atau sakit), `halaman-absensi.tsx` (tombol Izin atau Sakit dan Pulang Lebih Awal, baris pulang "Tidak perlu", badge "Lebih awal"), `daftar-absensi-harian.tsx` (keterangan peserta, badge pulang lebih awal, "Tidak perlu"), `rekap-harian.tsx` (kotak Izin dan Sakit), `rekap-absensi.tsx` (kolom Izin dan Sakit, rentang 1–3 bulan), `dialog-koreksi-absensi.tsx` (status Izin dan Sakit).
+- `src/lib/absensi.ts` (`langkahAbsen` untuk izin dan sakit), `src/lib/api/absensi.ts` (`IsianAbsen` tanpa lokasi untuk izin/sakit, `JUMLAH_BULAN_REKAP`, `jumlah_bulan` di riwayat, rekap, ekspor), `src/lib/api/query-keys.ts`, `src/lib/constants/label.ts`, `status.ts`, `notifikasi.ts`.
+- `src/types/api.d.ts` (hasil generate), `PROMPT_FE_TK.md`.
+
+Hasil pengecekan: `npm run lint`, `npm run typecheck`, `npm run build`, dan `npm run check:slop` tanpa temuan.
 
 ### Sidebar: tidak ikut tergulir di beranda, scrollbar hanya saat digulir (branch `fe/sidebar-scrollbar`)
 

@@ -19,7 +19,11 @@ export function useAbsensiHariIni() {
   });
 }
 
-export type IsianAbsen = { jenis: JenisAbsensi; latitude: number; longitude: number; akurasi: number; foto: File };
+/** Izin dan sakit dikirim tanpa lokasi; absen lain wajib membawa lokasi. */
+export type IsianAbsen = { jenis: JenisAbsensi; keterangan?: string; foto: File } & (
+  | { latitude: number; longitude: number; akurasi: number }
+  | { jenis: "masuk"; status: "izin" | "sakit"; keterangan: string }
+);
 
 export function useAbsen() {
   const queryClient = useQueryClient();
@@ -29,20 +33,28 @@ export function useAbsen() {
   });
 }
 
-/** Riwayat satu bulan. `userId` null = milik sendiri; peserta lain hanya untuk Kepala Sekolah. */
-export function useRiwayatAbsensi(bulan: string, userId: number | null, aktif = true) {
+/** Riwayat dan rekap mencakup 1 sampai 3 bulan yang berakhir di `bulan`. */
+export const JUMLAH_BULAN_REKAP = [1, 2, 3] as const;
+export type JumlahBulanRekap = (typeof JUMLAH_BULAN_REKAP)[number];
+
+/**
+ * Riwayat `jumlahBulan` bulan yang berakhir di `bulan`. `userId` null = milik sendiri; peserta lain hanya untuk
+ * Kepala Sekolah.
+ */
+export function useRiwayatAbsensi(bulan: string, userId: number | null, aktif = true, jumlahBulan: JumlahBulanRekap = 1) {
   return useQuery({
-    queryKey: queryKeys.absensi.riwayat(bulan, userId),
-    queryFn: async () => (await ambilData(api.GET("/absensi", { params: { query: { bulan, user_id: userId ?? undefined } } }))).data,
+    queryKey: queryKeys.absensi.riwayat(bulan, userId, jumlahBulan),
+    queryFn: async () =>
+      (await ambilData(api.GET("/absensi", { params: { query: { bulan, jumlah_bulan: jumlahBulan, user_id: userId ?? undefined } } }))).data,
     placeholderData: keepPreviousData,
     enabled: aktif,
   });
 }
 
-export function useRekapAbsensi(bulan: string) {
+export function useRekapAbsensi(bulan: string, jumlahBulan: JumlahBulanRekap) {
   return useQuery({
-    queryKey: queryKeys.absensi.rekap(bulan),
-    queryFn: async () => (await ambilData(api.GET("/absensi/rekap", { params: { query: { bulan } } }))).data,
+    queryKey: queryKeys.absensi.rekap(bulan, jumlahBulan),
+    queryFn: async () => (await ambilData(api.GET("/absensi/rekap", { params: { query: { bulan, jumlah_bulan: jumlahBulan } } }))).data,
     placeholderData: keepPreviousData,
   });
 }
@@ -55,8 +67,8 @@ export function useAbsensiHarian(tanggal: string) {
   });
 }
 
-export function ambilEksporRekapAbsensi(bulan: string): Promise<Blob> {
-  return ambilData(api.GET("/absensi/rekap/export", { params: { query: { bulan } }, parseAs: "blob" }));
+export function ambilEksporRekapAbsensi(bulan: string, jumlahBulan: JumlahBulanRekap): Promise<Blob> {
+  return ambilData(api.GET("/absensi/rekap/export", { params: { query: { bulan, jumlah_bulan: jumlahBulan } }, parseAs: "blob" }));
 }
 
 export function useKoreksiAbsensi() {

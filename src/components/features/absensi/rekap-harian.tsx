@@ -61,6 +61,8 @@ function Ringkasan({ peserta }: { peserta: AbsensiPerTanggal["peserta"] }) {
   const jumlah = [
     { label: "Hadir", nilai: peserta.filter(({ masuk }) => masuk?.status === "hadir").length },
     { label: "Terlambat", nilai: peserta.filter(({ masuk }) => masuk?.status === "terlambat").length },
+    { label: "Izin", nilai: peserta.filter(({ masuk }) => masuk?.status === "izin").length },
+    { label: "Sakit", nilai: peserta.filter(({ masuk }) => masuk?.status === "sakit").length },
     { label: "Tidak hadir", nilai: peserta.filter(({ masuk }) => masuk?.status === "tidak_hadir").length },
     { label: "Belum absen", nilai: peserta.filter(({ masuk }) => masuk === null).length },
     {
@@ -69,7 +71,7 @@ function Ringkasan({ peserta }: { peserta: AbsensiPerTanggal["peserta"] }) {
     },
   ];
   return (
-    <dl className="grid grid-cols-2 gap-2 sm:grid-cols-5">
+    <dl className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-7">
       {jumlah.map(({ label, nilai }) => (
         <div key={label} className="rounded-xl border border-border bg-card px-3 py-2 shadow-sm">
           <dt className="text-sm text-muted-foreground">{label}</dt>

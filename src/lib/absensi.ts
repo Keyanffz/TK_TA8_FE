@@ -1,3 +1,4 @@
+import { LABEL_STATUS_ABSENSI } from "@/lib/constants/label";
 import { formatTanggal } from "@/lib/format";
 import type { Absensi, AbsensiHariIni, JenisAbsensi } from "@/types/domain";
 
@@ -47,7 +48,8 @@ export type LangkahAbsen =
  */
 export function langkahAbsen(status: AbsensiHariIni, kepalaSekolah: boolean): LangkahAbsen {
   const { masuk, pulang } = status;
-  const sudahMasuk = masuk.absensi !== null && masuk.absensi.status !== "tidak_hadir";
+  const statusMasuk = masuk.absensi?.status ?? null;
+  const sudahMasuk = statusMasuk === "hadir" || statusMasuk === "terlambat";
   // Kepala Sekolah mengoreksi absensinya sendiri dari Rekap Absensi, jadi tidak diarahkan menghubungi dirinya sendiri.
   const caraKoreksi = kepalaSekolah ? "Catat atau koreksi lewat Rekap Absensi kalau perlu." : "Hubungi Kepala Sekolah kalau perlu koreksi.";
 
@@ -67,6 +69,9 @@ export function langkahAbsen(status: AbsensiHariIni, kepalaSekolah: boolean): La
   if (masuk.absensi === null && jam < masuk.buka) return { boleh: false, keterangan: `Absen masuk dibuka pukul ${masuk.buka}.` };
   if (masuk.absensi === null) {
     return { boleh: false, keterangan: `Jam absen masuk sudah tutup pukul ${masuk.tutup} dan Anda belum absen. ${caraKoreksi}` };
+  }
+  if (statusMasuk === "izin" || statusMasuk === "sakit") {
+    return { boleh: false, keterangan: `Hari ini Anda tercatat ${LABEL_STATUS_ABSENSI[statusMasuk].toLowerCase()}, jadi tidak perlu absen pulang.` };
   }
   if (!sudahMasuk) return { boleh: false, keterangan: `Hari ini Anda tercatat tidak hadir. ${caraKoreksi}` };
   if (pulang.absensi !== null) return { boleh: false, keterangan: "Absen masuk dan pulang hari ini sudah tercatat." };
