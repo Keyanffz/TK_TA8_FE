@@ -96,6 +96,7 @@ Mode dev hanya menerima sambungan HMR dari `localhost` dan domain di `allowedDev
 
 - Browser tidak pernah memegang token. `POST /api/auth/staff/google` (ID token Google `credential`, ke backend `/auth/staff/google`), `POST /api/auth/staff/login` (email + password Kepala Sekolah, ke `/auth/staff/login`), dan `POST /api/auth/wali/login` (NIS anak, ke `/auth/wali/login`) meneruskan body ke backend (ditambah `perangkat: "web"`), lalu menyimpan token di cookie `tk_token` (httpOnly, `secure` di produksi, sameSite lax, 30 hari) dan `tk_role` (bukan httpOnly, hanya nama role). Cookie hanya dipasang kalau `user.role` milik endpoint itu (`super_admin`/`guru` untuk Google, `super_admin` untuk login password staff, `wali_murid` untuk wali). Respons ke browser berisi `user` tanpa token; header `Retry-After` dari 429 ikut diteruskan.
 - Tujuan setelah masuk (`tujuanSetelahMasuk()`): `wajib_ganti_password` → `/dashboard/ganti-password`; wali dengan `profil_lengkap = false` → `/dashboard/onboarding`; selain itu `?next=` atau beranda role (`/dashboard` untuk wali, `/mudarris` untuk guru dan Kepala Sekolah).
+- Form berisi password (yang memakai `KolomPassword`) ditulis dengan `method="post"`. Dengan JavaScript, `handleSubmit` menahan submit bawaan. Kalau form terkirim sebelum hydration (bundle belum termuat), browser memakai submit bawaan, dan tanpa `method` isian ikut masuk ke URL. Next.js merender POST bawaan ke halaman seperti GET, jadi halaman hanya tampil ulang.
 - `POST /api/auth/logout` memanggil `/auth/logout` backend lalu menghapus `tk_token`, `tk_role`, `tk_anak`. Cookie tetap dihapus walau backend tidak bisa dihubungi. Browser lalu dimuat ulang penuh ke halaman login sesuai role (`ruteLogin()`).
 - `GET /api/auth/sesi-habis?next=` menghapus cookie lalu redirect ke halaman login sesuai `tk_role` (`/mudarris/login` untuk guru dan Kepala Sekolah, selain itu `/login`) dengan `?next=`. Dipakai layout dashboard saat `/auth/me` menolak token, karena Server Component tidak bisa menghapus cookie.
 - `/api/proxy/[...path]` meneruskan method, query, header `Content-Type`/`Content-Length`, dan body (stream, termasuk multipart dan PUT multipart) ke `{BE_API_URL}/...` dengan `Authorization: Bearer` dari cookie. Respons diteruskan sebagai stream beserta `Content-Type`, `Content-Disposition`, `Cache-Control`, `Retry-After`, dan header rate limit. Backend membalas 401 → cookie sesi dihapus.
@@ -557,6 +558,26 @@ Tempat deploy belum ditentukan. Syarat yang sudah pasti:
 6. **Masuk dengan Google**: `NEXT_PUBLIC_GOOGLE_CLIENT_ID` diisi sebelum `npm run build`, dan origin FE produksi (misalnya `https://tkta8.sch.id`) didaftarkan di Authorized JavaScript origins Client ID itu di Google Cloud Console. Backend memakai Client ID yang sama di `GOOGLE_CLIENT_ID`.
 
 ## Changelog
+
+### `method="post"` di form berisi password (branch `fe/form-method-post`)
+
+Diminta pemilik repo. Pada 17 Oktober FE dibuka lewat `tkta8-fe.test` sebelum JavaScript halaman hidup, sehingga form login terkirim dengan submit bawaan browser, yaitu GET karena form tidak punya `method`. Email dan password masuk ke URL, lalu tercatat di access log Nginx (juga kolom Referer aset), terminal `npm run dev`, `.next/dev/trace`, dan riwayat browser. Hal yang sama bisa terjadi di HP bersinyal lemah kalau Enter ditekan sebelum hydration selesai.
+
+- Empat form yang memakai `KolomPassword` diberi `method="post"`: login wali, login staff, reset password, dan ganti password (dipakai `/dashboard/ganti-password` dan halaman profil kedua area). Tidak ada form lain berisi password (dicek lewat `KolomPassword` dan `type="password"`). JSDoc `KolomPassword` menyebut aturan ini untuk form password berikutnya.
+- Dengan JavaScript tidak ada yang berubah: `handleSubmit` tetap menahan submit bawaan dan mengirim ke BFF.
+- Tidak perlu route handler atau perubahan proxy: Next.js 16.3.6 tidak memperlakukan POST `application/x-www-form-urlencoded` tanpa header `Next-Action` sebagai Server Action (`dist/server/app-render/action-handler.js`), jadi halaman dirender seperti GET.
+
+File yang diubah: `src/components/features/auth/{form-login-wali, form-login-staff, form-reset-password}.tsx`, `src/components/features/profil/form-ganti-password.tsx`, `src/components/shared/kolom-teks.tsx` (komentar).
+
+Hasil pengecekan: `npm run lint`, `npm run typecheck`, `npm run build`, dan `npm run check:slop` tanpa temuan. Uji lewat Nginx dengan isian dummy:
+
+- curl POST bawaan: `/login`, `/mudarris/login`, dan `/mudarris/reset-password` membalas 200 dan halaman tampil ulang. `/dashboard/ganti-password`, `/dashboard/profil`, dan `/mudarris/profil` tanpa sesi membalas 307 ke halaman login, lalu POST yang diulang browser ke sana membalas 200. Hasilnya sama di dev server dan build produksi (`next start`), dan log server tanpa error.
+- Chrome headless lewat CDP dengan `/_next/static/*` diblokir, sehingga form tampil tetapi tidak terhidrasi (keadaan 17 Oktober): Enter di `/login` dan `/mudarris/login` mengirim POST dengan isian di body. URL akhir tanpa query, dan isian kosong setelah halaman tampil ulang.
+- Chrome headless dengan JavaScript dimatikan penuh: `/mudarris/reset-password` terkirim sebagai POST dengan hasil yang sama. Form `/login` dan `/mudarris/login` tidak tampil sama sekali, karena isi `<Suspense>`-nya di-stream ke elemen `hidden` yang baru dipindah oleh skrip inline React.
+- Chrome headless dengan JavaScript aktif: Enter di kedua form login mengirim `fetch` ke `/api/auth/wali/login` dan `/api/auth/staff/login` (422 untuk isian dummy) dan menampilkan pesan gagal seperti biasa, tanpa submit bawaan.
+- Access log Nginx selama uji hanya berisi path halaman, tanpa isian form, termasuk di kolom Referer. Query `/mudarris/reset-password` adalah token dan email dari tautan reset. Nilai dummy tidak ada di access log maupun `.next/dev/trace`.
+- Kasus pinggir: POST bawaan dengan cookie sesi yang sudah tidak berlaku diarahkan layout ke `/api/auth/sesi-habis` dengan 307. Browser mengulang POST ke sana, padahal route itu hanya menerima GET, sehingga balasannya 405 dengan halaman kosong. Bukan 500, dan URL tetap tanpa isian.
+- Belum diuji: login yang berhasil (database lokal tidak punya akun wali, dan password Kepala Sekolah hanya ada di `.env` backend), serta POST bawaan ke halaman profil dengan sesi yang masih berlaku.
 
 ### Domain dev lewat Nginx dan `.claude/` diabaikan (langsung ke `main`)
 
