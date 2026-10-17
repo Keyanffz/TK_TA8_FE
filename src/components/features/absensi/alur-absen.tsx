@@ -6,13 +6,32 @@ import { toast } from "sonner";
 import { InfoLokasi } from "@/components/features/absensi/info-lokasi";
 import { KameraSwafoto } from "@/components/features/absensi/kamera-swafoto";
 import { useLokasi } from "@/components/features/absensi/use-lokasi";
+import { KolomArea } from "@/components/shared/kolom-teks";
+import { KolomRadio, type OpsiRadio } from "@/components/shared/kolom-radio";
 import { KotakPesan } from "@/components/shared/kotak-pesan";
 import { Button } from "@/components/ui/button";
-import { useAbsen } from "@/lib/api/absensi";
+import { useAbsen, type IsianAbsen } from "@/lib/api/absensi";
 import { ApiError, pesanError } from "@/lib/api/errors";
-import type { AbsensiHariIni, JenisAbsensi } from "@/types/domain";
+import type { AbsensiHariIni } from "@/types/domain";
 
-const LABEL_JENIS: Record<JenisAbsensi, string> = { masuk: "Absen Masuk", pulang: "Absen Pulang" };
+/** Pulang lebih awal butuh alasan; izin dan sakit tidak memakai lokasi. */
+export type ModeAbsen = "masuk" | "pulang" | "pulang_awal" | "izin_sakit";
+
+type StatusTidakMasuk = "izin" | "sakit";
+
+const JUDUL: Record<ModeAbsen, string> = {
+  masuk: "Absen Masuk",
+  pulang: "Absen Pulang",
+  pulang_awal: "Pulang Lebih Awal",
+  izin_sakit: "Izin atau Sakit",
+};
+
+const OPSI_TIDAK_MASUK: readonly OpsiRadio<StatusTidakMasuk>[] = [
+  { nilai: "sakit", label: "Sakit", keterangan: "Tidak bisa datang karena sakit." },
+  { nilai: "izin", label: "Izin", keterangan: "Ada keperluan lain, misalnya acara keluarga." },
+];
+
+const MAKS_KETERANGAN = 500;
 
 /** Pesan penolakan backend (di luar area, akurasi, di luar jam, hari libur) ditampilkan apa adanya. */
 function pesanGagalAbsen(error: unknown): string {
@@ -23,42 +42,72 @@ function pesanGagalAbsen(error: unknown): string {
   return pesanError(error);
 }
 
-/** Dua langkah absen di satu layar HP: lokasi lalu swafoto, kemudian kirim. */
-export function AlurAbsen({ jenis, status, onTutup }: { jenis: JenisAbsensi; status: AbsensiHariIni; onTutup: () => void }) {
+/** Langkah absen di satu layar HP: lokasi (kecuali izin/sakit), alasan bila perlu, lalu swafoto, kemudian kirim. */
+export function AlurAbsen({ mode, status, onTutup }: { mode: ModeAbsen; status: AbsensiHariIni; onTutup: () => void }) {
+  const butuhLokasi = mode !== "izin_sakit";
+  const butuhKeterangan = mode === "izin_sakit" || mode === "pulang_awal";
   const { lokasi, cari } = useLokasi();
   const [foto, setFoto] = useState<File | null>(null);
+  const [tidakMasuk, setTidakMasuk] = useState<StatusTidakMasuk>("sakit");
+  const [keterangan, setKeterangan] = useState("");
   const absen = useAbsen();
   const galat = absen.isError ? pesanGagalAbsen(absen.error) : null;
 
   // Lokasi langsung dicari saat alur dibuka supaya sudah terbaca ketika foto selesai diambil.
-  useEffect(() => cari(), [cari]);
+  useEffect(() => {
+    if (butuhLokasi) cari();
+  }, [butuhLokasi, cari]);
+
+  const isian = ((): IsianAbsen | null => {
+    if (!foto || (butuhKeterangan && keterangan.trim() === "")) return null;
+    const alasan = keterangan.trim() || undefined;
+    if (mode === "izin_sakit") return { jenis: "masuk", status: tidakMasuk, keterangan: keterangan.trim(), foto };
+    if (lokasi.tahap !== "dapat") return null;
+    const { latitude, longitude, akurasi } = lokasi.posisi;
+    return { jenis: mode === "masuk" ? "masuk" : "pulang", latitude, longitude, akurasi, keterangan: alasan, foto };
+  })();
 
   const kirim = () => {
-    if (lokasi.tahap !== "dapat" || !foto) return;
-    absen.mutate(
-      { jenis, latitude: lokasi.posisi.latitude, longitude: lokasi.posisi.longitude, akurasi: lokasi.posisi.akurasi, foto },
-      {
-        onSuccess: (hasil) => {
-          toast.success(hasil.message);
-          onTutup();
-        },
+    if (!isian) return;
+    absen.mutate(isian, {
+      onSuccess: (hasil) => {
+        toast.success(hasil.message);
+        onTutup();
       },
-    );
+    });
   };
+
+  const nomorFoto = butuhKeterangan ? 3 : 2;
 
   return (
     <section aria-labelledby="judul-alur-absen" className="flex flex-col gap-5 rounded-xl border border-border bg-card p-4 shadow-sm sm:p-5">
       <h2 id="judul-alur-absen" className="text-lg font-extrabold">
-        {LABEL_JENIS[jenis]}
+        {JUDUL[mode]}
       </h2>
 
-      <div className="flex flex-col gap-3">
-        <h3 className="font-heading font-bold">1. Lokasi</h3>
-        <InfoLokasi lokasi={lokasi} onCari={cari} aturan={status} />
-      </div>
+      {mode === "izin_sakit" ? (
+        <KolomRadio label="1. Alasan tidak masuk" opsi={OPSI_TIDAK_MASUK} nilai={tidakMasuk} onUbah={setTidakMasuk} />
+      ) : (
+        <div className="flex flex-col gap-3">
+          <h3 className="font-heading font-bold">1. Lokasi</h3>
+          <InfoLokasi lokasi={lokasi} onCari={cari} aturan={status} />
+        </div>
+      )}
+
+      {butuhKeterangan ? (
+        <KolomArea
+          label={mode === "pulang_awal" ? "2. Alasan pulang lebih awal" : "2. Keterangan"}
+          rows={3}
+          maxLength={MAKS_KETERANGAN}
+          deskripsi={mode === "pulang_awal" ? "Misalnya menjemput anak atau ada urusan keluarga." : "Misalnya demam sejak semalam atau menghadiri acara keluarga."}
+          value={keterangan}
+          onChange={(event) => setKeterangan(event.target.value)}
+        />
+      ) : null}
 
       <div className="flex flex-col gap-3">
-        <h3 className="font-heading font-bold">2. Foto wajah</h3>
+        <h3 className="font-heading font-bold">{nomorFoto}. {mode === "izin_sakit" ? "Foto" : "Foto wajah"}</h3>
+        {mode === "izin_sakit" ? <p className="text-sm text-muted-foreground">Swafoto, atau foto surat dokter kalau ada.</p> : null}
         <KameraSwafoto foto={foto} onFoto={setFoto} />
       </div>
 
@@ -69,8 +118,8 @@ export function AlurAbsen({ jenis, status, onTutup }: { jenis: JenisAbsensi; sta
       ) : null}
 
       <div className="flex flex-col gap-2 sm:flex-row-reverse">
-        <Button size="lg" className="h-14 sm:flex-1" disabled={lokasi.tahap !== "dapat" || !foto || absen.isPending} onClick={kirim}>
-          {absen.isPending ? "Mengirim..." : `Kirim ${LABEL_JENIS[jenis]}`}
+        <Button size="lg" className="h-14 sm:flex-1" disabled={!isian || absen.isPending} onClick={kirim}>
+          {absen.isPending ? "Mengirim..." : mode === "izin_sakit" ? `Kirim Keterangan ${tidakMasuk === "izin" ? "Izin" : "Sakit"}` : `Kirim ${JUDUL[mode]}`}
         </Button>
         <Button size="lg" variant="outline" className="h-14" disabled={absen.isPending} onClick={onTutup}>
           Batal

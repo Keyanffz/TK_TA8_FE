@@ -19,7 +19,11 @@ export function useAbsensiHariIni() {
   });
 }
 
-export type IsianAbsen = { jenis: JenisAbsensi; latitude: number; longitude: number; akurasi: number; foto: File };
+/** Izin dan sakit dikirim tanpa lokasi; absen lain wajib membawa lokasi. */
+export type IsianAbsen = { jenis: JenisAbsensi; keterangan?: string; foto: File } & (
+  | { latitude: number; longitude: number; akurasi: number }
+  | { jenis: "masuk"; status: "izin" | "sakit"; keterangan: string }
+);
 
 export function useAbsen() {
   const queryClient = useQueryClient();

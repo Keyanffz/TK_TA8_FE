@@ -139,9 +139,11 @@ export const LABEL_STATUS_ABSENSI: Record<StatusAbsensi, string> = {
   hadir: "Hadir",
   terlambat: "Terlambat",
   tidak_hadir: "Tidak Hadir",
+  izin: "Izin",
+  sakit: "Sakit",
 };
 
-export const OPSI_STATUS_ABSENSI = (["hadir", "terlambat", "tidak_hadir"] as const satisfies readonly StatusAbsensi[]).map((nilai) => ({
+export const OPSI_STATUS_ABSENSI = (["hadir", "terlambat", "izin", "sakit", "tidak_hadir"] as const satisfies readonly StatusAbsensi[]).map((nilai) => ({
   nilai,
   label: LABEL_STATUS_ABSENSI[nilai],
 }));

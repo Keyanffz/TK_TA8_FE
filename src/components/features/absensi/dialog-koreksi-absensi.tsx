@@ -19,10 +19,10 @@ import type { Absensi, JenisAbsensi } from "@/types/domain";
 const MAKS_CATATAN = 500;
 
 const catatan = z.string().trim().min(1, "Catatan wajib diisi.").max(MAKS_CATATAN, `Catatan maksimal ${MAKS_CATATAN} karakter.`);
-const skema = z.object({ status: z.enum(["hadir", "terlambat", "tidak_hadir"]), catatan });
-// Absen masuk baru hanya hadir atau terlambat (yang tidak absen ditandai scheduler); pilihan tidak hadir tidak
+const skema = z.object({ status: z.enum(["hadir", "terlambat", "izin", "sakit", "tidak_hadir"]), catatan });
+// Absen masuk baru tidak pernah berstatus tidak hadir (yang tidak absen ditandai scheduler); pilihan itu tidak
 // ditampilkan, dan skema ini mempersempit tipenya saat dikirim.
-const skemaMasukBaru = z.object({ status: z.enum(["hadir", "terlambat"]), catatan });
+const skemaMasukBaru = z.object({ status: z.enum(["hadir", "terlambat", "izin", "sakit"]), catatan });
 
 type NilaiForm = z.infer<typeof skema>;
 

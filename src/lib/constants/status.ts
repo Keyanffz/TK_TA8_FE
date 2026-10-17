@@ -71,4 +71,6 @@ export const NADA_STATUS_ABSENSI: Record<StatusAbsensi, NadaStatus> = {
   hadir: "sukses",
   terlambat: "menunggu",
   tidak_hadir: "bahaya",
+  izin: "proses",
+  sakit: "netral",
 };
