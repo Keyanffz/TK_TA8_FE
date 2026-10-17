@@ -64,23 +64,27 @@ export function GrafikPemasukan({ data }: { data: TitikPemasukan[] }) {
           </BarChart>
         </ResponsiveContainer>
       </div>
-      <table className="sr-only">
-        <caption>Pemasukan per bulan</caption>
-        <thead>
-          <tr>
-            <th scope="col">Bulan</th>
-            <th scope="col">Pemasukan</th>
-          </tr>
-        </thead>
-        <tbody>
-          {data.map((titik) => (
-            <tr key={titik.bulan}>
-              <td>{bulanPanjang.format(keTanggal(titik.bulan))}</td>
-              <td>{formatRupiah(titik.total)}</td>
+      {/* sr-only di pembungkus, bukan di tabel: tabel selalu setinggi isinya sehingga tidak terpotong, dan
+          baris-barisnya memanjangkan halaman sampai sidebar yang menempel terdorong naik di ujung bawah. */}
+      <div className="sr-only">
+        <table>
+          <caption>Pemasukan per bulan</caption>
+          <thead>
+            <tr>
+              <th scope="col">Bulan</th>
+              <th scope="col">Pemasukan</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {data.map((titik) => (
+              <tr key={titik.bulan}>
+                <td>{bulanPanjang.format(keTanggal(titik.bulan))}</td>
+                <td>{formatRupiah(titik.total)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </figure>
   );
 }
