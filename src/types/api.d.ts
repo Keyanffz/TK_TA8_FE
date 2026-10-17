@@ -69,10 +69,12 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Mencatat absen masuk untuk peserta yang belum punya absen masuk pada tanggal itu, misalnya guru lupa absen
-         *     padahal masuk. Catatan wajib; waktu, lokasi, dan foto kosong. Ditolak 422 `BUSINESS_RULE` kalau akun bukan
-         *     peserta absensi, tanggal setelah hari ini atau sebelum tanggal mulai absensi, bukan hari kerja, tanggal libur,
-         *     atau absen masuk tanggal itu sudah ada (koreksi lewat `PATCH /absensi/{id}/koreksi`)
+         * Mencatat absen masuk atau pulang (`jenis`, bawaan `masuk`) untuk peserta yang belum punya absen jenis itu pada
+         *     tanggal tersebut, misalnya guru lupa absen padahal masuk atau lupa absen pulang. Catatan wajib; `status` wajib
+         *     untuk absen masuk dan tidak boleh dikirim untuk absen pulang; waktu, lokasi, dan foto kosong. Ditolak 422
+         *     `BUSINESS_RULE` kalau akun bukan peserta absensi, tanggal setelah hari ini atau sebelum tanggal mulai absensi,
+         *     bukan hari kerja, tanggal libur, absen jenis itu sudah ada (absen masuk dikoreksi lewat
+         *     `PATCH /absensi/{id}/koreksi`), atau untuk absen pulang, belum ada absen masuk hadir atau terlambat
          */
         post: operations["absensi.koreksiBaru"];
         delete?: never;
@@ -2565,8 +2567,8 @@ export interface components {
         };
         /**
          * KoreksiAbsensiBaruRequest
-         * @description `POST /absensi/koreksi`: absen masuk untuk hari yang belum punya baris. Tidak hadir tidak bisa dibuat di sini;
-         *     baris itu dibuat scheduler.
+         * @description `POST /absensi/koreksi`: absen masuk atau pulang untuk tanggal yang belum punya baris jenis itu. Tidak hadir
+         *     tidak bisa dibuat di sini; baris itu dibuat scheduler.
          */
         KoreksiAbsensiBaruRequest: {
             /** @description Peserta absensi: guru aktif atau Kepala Sekolah. */
@@ -2576,11 +2578,13 @@ export interface components {
              * @description Tanggal `YYYY-MM-DD`.
              */
             tanggal: string;
+            /** @description Bawaan `masuk`. */
+            jenis?: components["schemas"]["JenisAbsensi"];
             /**
-             * @description Status absen masuk. Absen pulang tidak punya status.
+             * @description Wajib untuk absen masuk; tidak boleh dikirim untuk absen pulang.
              * @enum {string}
              */
-            status: "hadir" | "terlambat";
+            status?: "hadir" | "terlambat";
             catatan: string;
         };
         /** KoreksiAbsensiRequest */
