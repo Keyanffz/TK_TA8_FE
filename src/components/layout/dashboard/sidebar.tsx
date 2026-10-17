@@ -2,12 +2,16 @@
 
 import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import Link from "next/link";
+import { useRef, type UIEvent } from "react";
 
 import { DaftarMenu } from "@/components/layout/dashboard/daftar-menu";
 import { LogoSekolah } from "@/components/shared/logo-sekolah";
 import { PolaGeometri } from "@/components/shared/ornamen/pola-geometri";
 import { useSession } from "@/lib/auth/use-session";
 import { cn } from "@/lib/utils";
+
+// Scrollbar menu hilang lagi setelah menu berhenti digulir selama ini.
+const JEDA_SEMBUNYI_SCROLLBAR_MS = 800;
 
 type SidebarProps = {
   namaSekolah: string;
@@ -18,6 +22,16 @@ type SidebarProps = {
 
 export function Sidebar({ namaSekolah, logoUrl, ciut, onUbahCiut }: SidebarProps) {
   const { beranda } = useSession();
+  const jedaSembunyi = useRef<number | undefined>(undefined);
+
+  // Atribut dipasang langsung di elemen supaya menggulir tidak merender ulang menu.
+  const tampilkanScrollbar = (event: UIEvent<HTMLDivElement>) => {
+    const daftar = event.currentTarget;
+    daftar.dataset.menggulir = "";
+    window.clearTimeout(jedaSembunyi.current);
+    jedaSembunyi.current = window.setTimeout(() => delete daftar.dataset.menggulir, JEDA_SEMBUNYI_SCROLLBAR_MS);
+  };
+
   return (
     // Pembungkus hijau ikut setinggi halaman; isi menu menempel di layar saat digulir.
     <div className={cn("hidden shrink-0 bg-primary transition-[width] duration-200 lg:block", ciut ? "w-20" : "w-64")}>
@@ -29,7 +43,7 @@ export function Sidebar({ namaSekolah, logoUrl, ciut, onUbahCiut }: SidebarProps
         </span>
         <span className={cn("font-heading leading-tight font-extrabold", ciut && "sr-only")}>{namaSekolah}</span>
       </Link>
-      <div className="min-h-0 flex-1 overflow-y-auto px-3 py-4">
+      <div onScroll={tampilkanScrollbar} className="scrollbar-saat-gulir min-h-0 flex-1 overflow-y-auto px-3 py-4">
         <DaftarMenu ciut={ciut} />
       </div>
       <button
