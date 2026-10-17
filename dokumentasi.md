@@ -80,6 +80,8 @@ Perintah lain:
 
 `src/types/api.d.ts` hasil generate di-commit dan tidak diedit manual. Jalankan ulang `npm run gen:api` setiap `api.json` backend berubah.
 
+Mode dev hanya menerima sambungan HMR dari `localhost` dan domain di `allowedDevOrigins` (`next.config.ts`). Domain lain, misalnya `tkta8-fe.test` lewat reverse proxy Nginx lokal, harus didaftarkan di situ; kalau tidak, halaman tampil tetapi tidak interaktif.
+
 ## Variabel `.env`
 
 | Variabel | Dipakai di | Keterangan |
@@ -555,6 +557,12 @@ Tempat deploy belum ditentukan. Syarat yang sudah pasti:
 6. **Masuk dengan Google**: `NEXT_PUBLIC_GOOGLE_CLIENT_ID` diisi sebelum `npm run build`, dan origin FE produksi (misalnya `https://tkta8.sch.id`) didaftarkan di Authorized JavaScript origins Client ID itu di Google Cloud Console. Backend memakai Client ID yang sama di `GOOGLE_CLIENT_ID`.
 
 ## Changelog
+
+### Domain dev lewat Nginx dan `.claude/` diabaikan (langsung ke `main`)
+
+Diminta pemilik repo. FE dibuka di `http://tkta8-fe.test` lewat reverse proxy Nginx lokal (ke port 3000). Next.js 16 mode dev menolak sambungan HMR dari origin selain `localhost`, sehingga halaman tidak interaktif dan form login terkirim sebagai GET bawaan browser. `next.config.ts` mendapat `allowedDevOrigins: ["tkta8-fe.test"]`; opsi ini hanya berlaku saat `next dev`. Folder `.claude/` (pengaturan Claude Code lokal) masuk `.gitignore`.
+
+File yang diubah: `next.config.ts`, `.gitignore`, `dokumentasi.md`.
 
 ### Status dokumentasi dan saran dari Claude (branch `fe/status-dokumentasi`)
 

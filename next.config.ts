@@ -9,6 +9,8 @@ const beOrigin = new URL(beApiUrl).origin;
 const beDiMesinLokal = ["localhost", "127.0.0.1", "[::1]"].includes(new URL(beApiUrl).hostname);
 
 const nextConfig: NextConfig = {
+  // Domain lokal lewat Nginx. Tanpa ini, mode dev menolak sambungan HMR dan halaman tidak interaktif.
+  allowedDevOrigins: ["tkta8-fe.test"],
   images: {
     // File publik backend (galeri, logo, foto guru) disajikan dari /storage.
     remotePatterns: [new URL(`${beOrigin}/storage/**`)],
