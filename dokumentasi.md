@@ -449,6 +449,8 @@ Andika hanya punya bobot 400 dan 700, jadi `font-semibold` tampil sebagai 700.
 - Bayangan dua tingkat (`--shadow-*` direset): `shadow-sm`, `shadow-md`.
 - Spasi memakai skala bawaan Tailwind (kelipatan 4 px).
 - Fokus: outline 2 px warna `ring`.
+- Scrollbar menu sidebar (desktop) hanya terlihat selama menu digulir: `.scrollbar-saat-gulir` di `globals.css` membuat warnanya transparan, dan `Sidebar` memasang `data-menggulir` saat event scroll lalu melepasnya 800 ms setelah berhenti. Lebar scrollbar tetap disediakan supaya menu tidak bergeser. Atribut dipasang langsung di elemen supaya menggulir tidak merender ulang menu.
+- Tabel `sr-only` (misalnya tabel data grafik untuk pembaca layar) diberi `sr-only` di pembungkus `<div>`, bukan di `<table>`: tabel selalu setinggi isinya sehingga tidak terpotong, dan barisnya memanjangkan halaman melewati pembungkus sidebar.
 - Light mode saja; blok `.dark` bawaan shadcn dihapus.
 - Logo: `public/logo-tk.png` (512 px, latar transparan, dipotong mengikuti lingkaran) untuk cadangan kalau `profil.logo` di CMS belum diisi. Favicon dari logo yang sama: `src/app/favicon.ico` (16/32/48), `src/app/icon.png` (192), `src/app/apple-icon.png` (180, latar putih).
 - Nama sekolah selalu dari `profil.nama_sekolah`. Nilai tetap hanya ada di metadata default `src/app/layout.tsx` sebagai cadangan.
@@ -530,6 +532,15 @@ Tempat deploy belum ditentukan. Syarat yang sudah pasti:
 6. **Masuk dengan Google**: `NEXT_PUBLIC_GOOGLE_CLIENT_ID` diisi sebelum `npm run build`, dan origin FE produksi (misalnya `https://tkta8.sch.id`) didaftarkan di Authorized JavaScript origins Client ID itu di Google Cloud Console. Backend memakai Client ID yang sama di `GOOGLE_CLIENT_ID`.
 
 ## Changelog
+
+### Sidebar: tidak ikut tergulir di beranda, scrollbar hanya saat digulir (branch `fe/sidebar-scrollbar`)
+
+Diminta pemilik repo.
+
+- Di beranda Kepala Sekolah, sidebar ikut naik saat halaman digulir sampai bawah. Penyebabnya tabel data grafik pemasukan (`sr-only`, untuk pembaca layar) yang menjulur 60 px di bawah kerangka halaman (diukur pada viewport 1280×700: dokumen 1149 px, kerangka 1089 px), sehingga sidebar `sticky` terdorong keluar pembungkusnya. `sr-only` dipindah ke pembungkus `<div>` di `src/components/features/beranda/kepala-sekolah/grafik-pemasukan.tsx`. Ini satu-satunya tabel `sr-only` di kode.
+- Scrollbar menu sidebar disembunyikan kecuali saat menu digulir: `src/components/layout/dashboard/sidebar.tsx`, `src/app/globals.css` (`.scrollbar-saat-gulir`).
+
+Hasil pengecekan: `npm run lint`, `npm run typecheck`, `npm run build`, dan `npm run check:slop` tanpa temuan. Uji di browser (viewport 1280×700, Kepala Sekolah): setelah perbaikan tinggi dokumen sama dengan kerangka (1089 px) dan sidebar tetap di posisi 0 saat digulir sampai bawah, sedangkan tabel tetap ada untuk pembaca layar. Scrollbar menu transparan saat diam, terlihat (putih 45%) saat digulir, dan kembali transparan setelah jeda. Belum dicek di Firefox dan Safari (Safari belum mendukung `scrollbar-color`, sehingga di sana scrollbar mengikuti perilaku bawaan sistem).
 
 ### Catat Absen Pulang (branch `fe/absensi-pulang`)
 
