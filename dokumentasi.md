@@ -21,7 +21,8 @@ Website publik dan dashboard sistem informasi TK Tarbiyathul Athfal 8 (TK Muslim
 | Login Google staff, guru tanpa pendaftaran mandiri (branch `fe/login-google-staff`) | Selesai, menunggu review (lihat "Keputusan login Google staff"); butuh backend branch `be/login-google-staff` |
 | `/mudarris/login` satu form (branch `fe/login-staff-satu-form`) | Selesai, menunggu review (lihat "Keputusan login Google staff") |
 | Absensi guru dan Kepala Sekolah (branch `fe/absensi`) | Selesai, menunggu review (lihat "Keputusan absensi"); butuh backend branch `be/absensi` |
-| Absensi harian, Catat Absen Masuk, riwayat terbaru (branch `fe/absensi-harian`) | Selesai, diuji di browser, menunggu review (lihat "Keputusan absensi" nomor 14–20); butuh backend branch `be/absensi-harian` |
+| Absensi harian, Catat Absen Masuk, riwayat terbaru (branch `fe/absensi-harian`) | Selesai, diuji di browser, di-merge (PR #7) |
+| Catat Absen Pulang untuk guru yang lupa absen pulang (branch `fe/absensi-pulang`) | Selesai, diuji di browser, menunggu review (lihat "Keputusan absensi" nomor 21–23); butuh backend branch `be/absensi-pulang` |
 
 Mode mock tidak dipakai: `api.json` final dari backend sudah tersedia sejak Fase 1, jadi semua request memakai backend asli dan tipe hasil generate. Tidak ada endpoint mock.
 
@@ -339,6 +340,12 @@ Fitur diminta pemilik repo (branch `fe/absensi`, backend `be/absensi`). Kontrakn
 
 Pengecekan revisi ini: `npm run lint`, `npm run typecheck`, `npm run build`, dan `npm run check:slop` tanpa temuan. Uji di browser (panel browser Claude, backend lokal branch `be/absensi-harian`, masuk sebagai Kepala Sekolah, data uji absensi 5–15 Oktober tanpa foto ditambahkan langsung ke database lokal): Riwayat Terbaru menampilkan lima hari dan melewati hari tanpa absensi; tab Harian untuk hari ini, tanggal sebelumnya lewat tombol dan input tanggal, hari Minggu (keterangan bukan hari kerja tanpa daftar), dan `?tanggal=` di masa depan (kembali ke hari ini); Catat Absen Masuk dengan catatan kosong (ditolak di form) lalu tersimpan sebagai Terlambat (201, "Tanpa jam", catatan koreksi tampil, tombol berganti Koreksi Status); koreksi ke Hadir lalu dialog dibuka lagi (pilihan Terlambat dan Tidak Hadir, nomor 18); tab Bulanan dengan detail per hari; tampilan HP 375 px untuk halaman Absensi dan tab Harian. Console tanpa error dari halaman absensi. Belum diuji: Catat Absen Masuk yang ditolak backend (misalnya peserta nonaktif), dan HP sungguhan.
 
+21. **Lupa absen pulang (branch `fe/absensi-pulang`, diminta pemilik repo):** dicatat Kepala Sekolah lewat `POST /absensi/koreksi` jenis `pulang` (tanpa status, catatan wajib), sama seperti lupa absen masuk; guru tidak absen pulang susulan sendiri. Tombol Catat Absen Pulang muncul untuk peserta dengan absen masuk hadir atau terlambat tanpa absen pulang, di tab Harian dan di detail per hari tab Bulanan, karena di tab Bulanan Kepala Sekolah melihat jumlah "Tidak absen pulang". Ringkasan tab Harian ditambah kotak "Belum absen pulang".
+22. Tombol koreksi dan catat untuk satu peserta di satu hari disatukan di `AksiKoreksiHarian` (dipakai kedua tab), dan `DaftarAbsensiHarian` meneruskan satu hari utuh ke `aksi`. Dialog koreksi punya tiga mode: koreksi status, catat masuk, catat pulang; mode pulang tanpa pilihan status.
+23. "Tanpa jam" sekarang ditentukan dari `dikoreksi_at` (absensi tanpa jam yang bukan tidak hadir), supaya berlaku juga untuk absen pulang yang tidak punya status. Catatan absen pulang tampil sebagai "Absen pulang dicatat oleh ...".
+
+Pengecekan Catat Absen Pulang: `npm run lint`, `npm run typecheck`, `npm run build`, dan `npm run check:slop` tanpa temuan. Uji di browser (backend lokal branch `be/absensi-pulang`, masuk sebagai Kepala Sekolah, data uji yang sama): tab Harian 8 Oktober menampilkan "Belum absen pulang 1" dan tombol Catat Absen Pulang untuk timothy; dialog tanpa pilihan status, catatan kosong ditolak di form, lalu tersimpan (201): Pulang "Tanpa jam", catatan "Absen pulang dicatat oleh ...", ringkasan kembali 0, tombol hilang. Tab Bulanan: "Tidak absen pulang" timothy turun dari 3 ke 2, lalu ke 1 setelah Catat Absen Pulang dari detail per hari (15 Oktober). Tampilan 375 px tab Harian dengan lima kotak ringkasan tanpa elemen melebar. Belum diuji: penolakan backend yang tampil di dialog (misalnya absen masuk tidak hadir; tombolnya memang tidak ditampilkan untuk kasus itu).
+
 Uji di browser (Chrome headless lewat skrip di luar repo, viewport HP 390 px, backend lokal): absen masuk sah dengan lokasi dan kamera tiruan (201, status terlambat pukul 08:39), Ambil Ulang, penolakan di luar area (peringatan di browser dan pesan backend 857 m), izin lokasi ditolak, kamera tidak tersedia lalu foto 3000×4000 lewat input file, riwayat, rekap dengan detail dan dialog koreksi (catatan wajib), pengaturan (ketuk peta, geser penanda, input manual, simpan, jam tidak urut ditolak di form), dan guru yang membuka rekap atau pengaturan diarahkan ke beranda. Uji ini menemukan tombol Ambil Foto yang aktif sebelum kamera siap (nomor 4). Yang belum diuji: HP sungguhan (GPS, kamera depan, Safari iOS, dialog izin asli), unduh CSV dari tombol di browser (endpoint-nya diuji lewat curl), dan absen pulang sampai tersimpan dari browser.
 
 ## Temuan kontrak Fase 6
@@ -495,7 +502,7 @@ Andika hanya punya bobot 400 dan 700, jadi `font-semibold` tampil sebagai 700.
 | `/dashboard/agenda` (W); `/mudarris/agenda` (SA, G) | SA (kelola), G, W | Kalender bulanan + daftar (`?bulan=`, `?hari=`); SA tambah/ubah/hapus |
 | `/mudarris/absensi` | SA, G | Status hari ini, tombol Absen Masuk / Absen Pulang, alur lokasi + swafoto, lima hari terakhir |
 | `/mudarris/absensi/riwayat` | SA, G | Riwayat pribadi per bulan (`?bulan=`) dengan foto |
-| `/mudarris/absensi/rekap` | SA | Tab Harian (bawaan, `?tanggal=`): semua peserta di satu tanggal, koreksi status, Catat Absen Masuk. Tab Bulanan (`?tab=bulanan`): rekap per peserta (`?bulan=`), detail per hari (`?peserta=`), koreksi status, unduh CSV |
+| `/mudarris/absensi/rekap` | SA | Tab Harian (bawaan, `?tanggal=`): semua peserta di satu tanggal, koreksi status, Catat Absen Masuk, Catat Absen Pulang. Tab Bulanan (`?tab=bulanan`): rekap per peserta (`?bulan=`), detail per hari (`?peserta=`), koreksi status, Catat Absen Pulang, unduh CSV |
 | `/mudarris/pengaturan/absensi` | SA | Peta lokasi sekolah, radius, batas akurasi, jam, tanggal mulai, hari kerja, tanggal libur, masa simpan foto |
 | `/dashboard/*`, `/mudarris/*` lain | | 404 di dalam kerangka area masing-masing (`[...lainnya]`), status HTTP 404 |
 | `/api/auth/staff/google`, `/api/auth/staff/login`, `/api/auth/wali/login`, `/api/auth/logout`, `/api/auth/sesi-habis` | route handler | BFF sesi |
@@ -523,6 +530,18 @@ Tempat deploy belum ditentukan. Syarat yang sudah pasti:
 6. **Masuk dengan Google**: `NEXT_PUBLIC_GOOGLE_CLIENT_ID` diisi sebelum `npm run build`, dan origin FE produksi (misalnya `https://tkta8.sch.id`) didaftarkan di Authorized JavaScript origins Client ID itu di Google Cloud Console. Backend memakai Client ID yang sama di `GOOGLE_CLIENT_ID`.
 
 ## Changelog
+
+### Catat Absen Pulang (branch `fe/absensi-pulang`)
+
+Diminta pemilik repo. Bagian A disalin identik dari `PROMPT_BE_TK.md` (branch `be/absensi-pulang`, field `jenis` di `POST /absensi/koreksi`); B4 dan B9 ditambah. Tipe digenerate ulang. Keputusan dan hasil uji ada di "Keputusan absensi" nomor 21–23.
+
+File yang diubah:
+
+- `src/components/features/absensi/dialog-koreksi-absensi.tsx` (mode catat pulang, `AksiKoreksiHarian`), `daftar-absensi-harian.tsx` (catatan absen pulang, "Tanpa jam" dari `dikoreksi_at`, `aksi` menerima satu hari), `rekap-harian.tsx` (kotak "Belum absen pulang", `AksiKoreksiHarian`), `rekap-absensi.tsx` (`AksiKoreksiHarian` di detail per hari).
+- `src/lib/api/absensi.ts` (`useCatatAbsen` dan `IsianAbsenBaru` menggantikan `useCatatAbsenMasuk`).
+- `src/types/api.d.ts` (hasil generate), `PROMPT_FE_TK.md`.
+
+Hasil pengecekan: `npm run lint`, `npm run typecheck`, `npm run build`, dan `npm run check:slop` tanpa temuan.
 
 ### Absensi harian dan Catat Absen Masuk (branch `fe/absensi-harian`)
 
