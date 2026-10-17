@@ -1,11 +1,13 @@
 import {
   BookCheck,
   BookOpenText,
+  CalendarCheck,
   CalendarClock,
   CircleAlert,
   CircleCheck,
   CircleX,
   Link2,
+  MapPinCheck,
   Megaphone,
   ReceiptText,
   UserPlus,
@@ -31,4 +33,6 @@ export const TAMPILAN_NOTIFIKASI: Record<JenisNotifikasi, { ikon: LucideIcon; na
   pendaftaran_baru: { ikon: UserPlus, nada: "proses" },
   pendaftaran_diproses: { ikon: UserPlus, nada: "sukses" },
   anak_tertaut: { ikon: Link2, nada: "sukses" },
+  absensi_tercatat: { ikon: MapPinCheck, nada: "sukses" },
+  absensi_dikoreksi: { ikon: CalendarCheck, nada: "proses" },
 };
