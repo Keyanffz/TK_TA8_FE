@@ -98,7 +98,7 @@ Mode dev hanya menerima sambungan HMR dari `localhost` dan domain di `allowedDev
 - Tujuan setelah masuk (`tujuanSetelahMasuk()`): `wajib_ganti_password` → `/dashboard/ganti-password`; wali dengan `profil_lengkap = false` → `/dashboard/onboarding`; selain itu `?next=` atau beranda role (`/dashboard` untuk wali, `/mudarris` untuk guru dan Kepala Sekolah).
 - Form berisi password (yang memakai `KolomPassword`) ditulis dengan `method="post"`. Dengan JavaScript, `handleSubmit` menahan submit bawaan. Kalau form terkirim sebelum hydration (bundle belum termuat), browser memakai submit bawaan, dan tanpa `method` isian ikut masuk ke URL. `proxy.ts` membalas POST itu dengan 303 ke alamat yang sama, jadi halaman dimuat ulang lewat GET (lihat Route guard).
 - `POST /api/auth/logout` memanggil `/auth/logout` backend lalu menghapus `tk_token`, `tk_role`, `tk_anak`. Cookie tetap dihapus walau backend tidak bisa dihubungi. Browser lalu dimuat ulang penuh ke halaman login sesuai role (`ruteLogin()`).
-- `GET /api/auth/sesi-habis?next=` menghapus cookie lalu redirect ke halaman login sesuai `tk_role` (`/mudarris/login` untuk guru dan Kepala Sekolah, selain itu `/login`) dengan `?next=`. Dipakai layout dashboard saat `/auth/me` menolak token, karena Server Component tidak bisa menghapus cookie.
+- `GET /api/auth/sesi-habis?next=` menghapus cookie lalu redirect ke halaman login sesuai `tk_role` (`/mudarris/login` untuk guru dan Kepala Sekolah, selain itu `/login`) dengan `?next=`. Dipakai layout dashboard saat `/auth/me` menolak token, karena Server Component tidak bisa menghapus cookie. Header `Location`-nya relatif, karena di balik reverse proxy origin request di route handler adalah alamat server Next.js (`localhost:3000`), bukan domain yang dibuka browser.
 - `/api/proxy/[...path]` meneruskan method, query, header `Content-Type`/`Content-Length`, dan body (stream, termasuk multipart dan PUT multipart) ke `{BE_API_URL}/...` dengan `Authorization: Bearer` dari cookie. Respons diteruskan sebagai stream beserta `Content-Type`, `Content-Disposition`, `Cache-Control`, `Retry-After`, dan header rate limit. Backend membalas 401 → cookie sesi dihapus.
 - Request yang mengubah data (selain GET/HEAD) ke `/api/proxy` dan `/api/auth/*` ditolak 403 kalau header `Origin` bukan host FE sendiri.
 - Segmen path `.` dan `..` di proxy ditolak supaya tidak bisa keluar dari prefix `/api/v1`.
@@ -559,6 +559,20 @@ Tempat deploy belum ditentukan. Syarat yang sudah pasti:
 
 ## Changelog
 
+### Redirect `/api/auth/sesi-habis` relatif (branch `fe/sesi-habis-relatif`)
+
+Ditemukan saat menguji PR #15 lewat Nginx, lalu dikerjakan atas permintaan pemilik repo. `/api/auth/sesi-habis` membentuk URL login dengan `request.nextUrl.origin`. Di build produksi di balik Nginx (`tkta8-fe.test` → port 3000), origin itu `http://localhost:3000`, sehingga pengguna yang sesinya habis diarahkan ke `http://localhost:3000/login?next=...`. Alamat itu tidak bisa dibuka dari HP lewat Cloudflare Tunnel maupun di produksi. Redirect dari `proxy.ts` tidak terkena, karena Next.js merelatifkan `Location` dari proxy.
+
+- Route itu sekarang membalas 307 dengan `Location` relatif dari `urlLogin()`. `NextResponse.redirect()` tidak dipakai karena hanya menerima URL absolut. Penghapusan cookie, penyaringan `amankanTujuan()`, dan pemilihan halaman login dari `tk_role` tidak berubah.
+- Tidak ada route handler lain yang membentuk URL dari origin request.
+
+File yang diubah: `src/app/api/auth/sesi-habis/route.ts`.
+
+Hasil pengecekan: `npm run lint`, `npm run typecheck`, `npm run build`, dan `npm run check:slop` tanpa temuan. Uji ke build produksi (`next start` port 3000) dengan header `Host: tkta8-fe.test`, seperti yang diteruskan Nginx (`curl --connect-to`), karena Nginx tidak aktif setelah laptop dinyalakan ulang:
+
+- `GET /api/auth/sesi-habis` dengan `tk_role` wali, Kepala Sekolah, dan tanpa role membalas 307 ke `/login?next=...` atau `/mudarris/login?next=...` (relatif), dan menghapus `tk_token`, `tk_role`, `tk_anak`. `next=//situs-lain.test` diganti `/dashboard`. Sebelumnya `Location` berisi `http://localhost:3000/...`, juga lewat Nginx.
+- Belum diuji: alur lengkap dari halaman dashboard dengan cookie sesi palsu. MariaDB tidak aktif, jadi backend membalas 500 untuk `/auth/me` dan layout tidak sampai ke route ini. Pemilik repo memutuskan uji ini dilewati.
+
 ### `method="post"` di form berisi password (branch `fe/form-method-post`)
 
 Diminta pemilik repo. Pada 17 Oktober FE dibuka lewat `tkta8-fe.test` sebelum JavaScript halaman hidup, sehingga form login terkirim dengan submit bawaan browser, yaitu GET karena form tidak punya `method`. Email dan password masuk ke URL, lalu tercatat di access log Nginx (juga kolom Referer aset), terminal `npm run dev`, `.next/dev/trace`, dan riwayat browser. Hal yang sama bisa terjadi di HP bersinyal lemah kalau Enter ditekan sebelum hydration selesai.
@@ -576,7 +590,7 @@ Hasil pengecekan: `npm run lint`, `npm run typecheck`, `npm run build`, dan `npm
 - Chrome headless dengan JavaScript dimatikan penuh: `/mudarris/reset-password` terkirim sebagai POST dengan hasil yang sama. Form `/login` dan `/mudarris/login` tidak tampil sama sekali, karena isi `<Suspense>`-nya di-stream ke elemen `hidden` yang baru dipindah oleh skrip inline React.
 - Chrome headless dengan JavaScript aktif: Enter di kedua form login mengirim `fetch` ke `/api/auth/wali/login` dan `/api/auth/staff/login` (422 untuk isian dummy) dan menampilkan pesan gagal seperti biasa, tanpa submit bawaan.
 - Access log Nginx selama uji hanya berisi path halaman, tanpa isian form, termasuk di kolom Referer. Query `/mudarris/reset-password` adalah token dan email dari tautan reset. Nilai dummy tidak ada di access log maupun `.next/dev/trace`.
-- Temuan di luar perubahan ini, belum diubah: `/api/auth/sesi-habis` membentuk URL login dari `request.nextUrl.origin`, yang di balik Nginx bernilai `http://localhost:3000`. Akibatnya browser diarahkan ke `localhost:3000/login?next=...`, juga saat route itu dibuka dengan GET biasa. Di produksi di balik reverse proxy, pengguna yang sesinya habis akan diarahkan ke alamat internal.
+- Temuan di luar perubahan ini, belum diubah: `/api/auth/sesi-habis` membentuk URL login dari `request.nextUrl.origin`, yang di balik Nginx bernilai `http://localhost:3000`. Akibatnya browser diarahkan ke `localhost:3000/login?next=...`, juga saat route itu dibuka dengan GET biasa. Di produksi di balik reverse proxy, pengguna yang sesinya habis akan diarahkan ke alamat internal. Diperbaiki di branch `fe/sesi-habis-relatif`.
 - Belum diuji: login yang berhasil (database lokal tidak punya akun wali, dan password Kepala Sekolah hanya ada di `.env` backend), serta POST bawaan ke halaman profil dengan sesi yang masih berlaku.
 
 ### Domain dev lewat Nginx dan `.claude/` diabaikan (langsung ke `main`)
