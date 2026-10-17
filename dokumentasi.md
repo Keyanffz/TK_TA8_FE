@@ -548,6 +548,12 @@ Tempat deploy belum ditentukan. Syarat yang sudah pasti:
 
 ## Changelog
 
+### Flowchart A6 absensi (branch `fe/flowchart-a6`)
+
+Disetujui pemilik repo. Bagian A disalin identik dari `PROMPT_BE_TK.md` (branch `be/rapikan-dokumentasi`): flowchart A6 absensi sekarang memuat izin atau sakit, pulang lebih awal, notifikasi `absensi_tercatat` dan `absensi_dikoreksi`, serta koreksi dan pencatatan absensi oleh Kepala Sekolah. Kontrak A7 dan kode FE tidak berubah. Backend di branch yang sama juga mengganti pesan penolakan absen pulang untuk peserta yang tercatat tidak hadir; FE tidak terpengaruh karena halaman Absensi sudah menampilkan keterangan sendiri untuk kasus itu.
+
+File yang diubah: `PROMPT_FE_TK.md`, `dokumentasi.md`.
+
 ### Perapian sesuai Bagian C (branch `fe/rapikan-slop`)
 
 Diminta pemilik repo: semua revisi FE hari ini (PR #7 sampai #11) ditinjau manual terhadap Bagian C, tidak hanya `npm run check:slop`. Glosarium (C4), tanda seru, kata terlarang, pesan commit (C5), dan ukuran komponen tidak bermasalah. Yang diperbaiki:
