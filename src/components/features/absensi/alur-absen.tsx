@@ -5,13 +5,14 @@ import { toast } from "sonner";
 
 import { InfoLokasi } from "@/components/features/absensi/info-lokasi";
 import { KameraSwafoto } from "@/components/features/absensi/kamera-swafoto";
-import { useLokasi } from "@/components/features/absensi/use-lokasi";
+import { useLokasi, type StatusLokasi } from "@/components/features/absensi/use-lokasi";
 import { KolomArea } from "@/components/shared/kolom-teks";
 import { KolomRadio, type OpsiRadio } from "@/components/shared/kolom-radio";
 import { KotakPesan } from "@/components/shared/kotak-pesan";
 import { Button } from "@/components/ui/button";
 import { useAbsen, type IsianAbsen } from "@/lib/api/absensi";
 import { ApiError, pesanError } from "@/lib/api/errors";
+import { LABEL_STATUS_ABSENSI } from "@/lib/constants/label";
 import type { AbsensiHariIni } from "@/types/domain";
 
 /** Pulang lebih awal butuh alasan; izin dan sakit tidak memakai lokasi. */
@@ -24,6 +25,13 @@ const JUDUL: Record<ModeAbsen, string> = {
   pulang: "Absen Pulang",
   pulang_awal: "Pulang Lebih Awal",
   izin_sakit: "Izin atau Sakit",
+};
+
+// Pulang lebih awal tetap sebuah absen pulang; yang berbeda hanya alasannya.
+const TOMBOL_KIRIM: Record<Exclude<ModeAbsen, "izin_sakit">, string> = {
+  masuk: "Kirim Absen Masuk",
+  pulang: "Kirim Absen Pulang",
+  pulang_awal: "Kirim Absen Pulang",
 };
 
 const OPSI_TIDAK_MASUK: readonly OpsiRadio<StatusTidakMasuk>[] = [
@@ -42,6 +50,18 @@ function pesanGagalAbsen(error: unknown): string {
   return pesanError(error);
 }
 
+type IsiAlur = { foto: File | null; keterangan: string; tidakMasuk: StatusTidakMasuk; lokasi: StatusLokasi };
+
+/** Isian yang siap dikirim, atau null selama langkah yang wajib untuk mode itu belum lengkap. */
+function susunIsian(mode: ModeAbsen, butuhKeterangan: boolean, { foto, keterangan, tidakMasuk, lokasi }: IsiAlur): IsianAbsen | null {
+  const alasan = keterangan.trim();
+  if (!foto || (butuhKeterangan && alasan === "")) return null;
+  if (mode === "izin_sakit") return { jenis: "masuk", status: tidakMasuk, keterangan: alasan, foto };
+  if (lokasi.tahap !== "dapat") return null;
+  const { latitude, longitude, akurasi } = lokasi.posisi;
+  return { jenis: mode === "masuk" ? "masuk" : "pulang", latitude, longitude, akurasi, keterangan: alasan || undefined, foto };
+}
+
 /** Langkah absen di satu layar HP: lokasi (kecuali izin/sakit), alasan bila perlu, lalu swafoto, kemudian kirim. */
 export function AlurAbsen({ mode, status, onTutup }: { mode: ModeAbsen; status: AbsensiHariIni; onTutup: () => void }) {
   const butuhLokasi = mode !== "izin_sakit";
@@ -58,14 +78,7 @@ export function AlurAbsen({ mode, status, onTutup }: { mode: ModeAbsen; status: 
     if (butuhLokasi) cari();
   }, [butuhLokasi, cari]);
 
-  const isian = ((): IsianAbsen | null => {
-    if (!foto || (butuhKeterangan && keterangan.trim() === "")) return null;
-    const alasan = keterangan.trim() || undefined;
-    if (mode === "izin_sakit") return { jenis: "masuk", status: tidakMasuk, keterangan: keterangan.trim(), foto };
-    if (lokasi.tahap !== "dapat") return null;
-    const { latitude, longitude, akurasi } = lokasi.posisi;
-    return { jenis: mode === "masuk" ? "masuk" : "pulang", latitude, longitude, akurasi, keterangan: alasan, foto };
-  })();
+  const isian = susunIsian(mode, butuhKeterangan, { foto, keterangan, tidakMasuk, lokasi });
 
   const kirim = () => {
     if (!isian) return;
@@ -107,7 +120,7 @@ export function AlurAbsen({ mode, status, onTutup }: { mode: ModeAbsen; status: 
 
       <div className="flex flex-col gap-3">
         <h3 className="font-heading font-bold">{nomorFoto}. {mode === "izin_sakit" ? "Foto" : "Foto wajah"}</h3>
-        {mode === "izin_sakit" ? <p className="text-sm text-muted-foreground">Swafoto, atau foto surat dokter kalau ada.</p> : null}
+        {mode === "izin_sakit" && tidakMasuk === "sakit" ? <p className="text-sm text-muted-foreground">Swafoto, atau foto surat dokter kalau ada.</p> : null}
         <KameraSwafoto foto={foto} onFoto={setFoto} />
       </div>
 
@@ -119,7 +132,7 @@ export function AlurAbsen({ mode, status, onTutup }: { mode: ModeAbsen; status: 
 
       <div className="flex flex-col gap-2 sm:flex-row-reverse">
         <Button size="lg" className="h-14 sm:flex-1" disabled={!isian || absen.isPending} onClick={kirim}>
-          {absen.isPending ? "Mengirim..." : mode === "izin_sakit" ? `Kirim Keterangan ${tidakMasuk === "izin" ? "Izin" : "Sakit"}` : `Kirim ${JUDUL[mode]}`}
+          {absen.isPending ? "Mengirim..." : mode === "izin_sakit" ? `Kirim Keterangan ${LABEL_STATUS_ABSENSI[tidakMasuk]}` : TOMBOL_KIRIM[mode]}
         </Button>
         <Button size="lg" variant="outline" className="h-14" disabled={absen.isPending} onClick={onTutup}>
           Batal

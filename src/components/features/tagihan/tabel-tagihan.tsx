@@ -6,6 +6,7 @@ import { parseAsInteger, parseAsString, parseAsStringLiteral, useQueryState } fr
 
 import { EmptyState } from "@/components/shared/empty-state";
 import { KolomCari } from "@/components/shared/kolom-cari";
+import { KELAS_KONTROL_SARINGAN } from "@/components/shared/kolom-teks";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { TabelData } from "@/components/shared/tabel-data";
 import { useDaftarJenisTagihan } from "@/lib/api/jenis-tagihan";
@@ -21,7 +22,6 @@ import { cn } from "@/lib/utils";
 import type { Tagihan } from "@/types/domain";
 
 const STATUS = ["belum_bayar", "terlambat", "menunggu_verifikasi", "lunas", "dibatalkan"] as const;
-const KELAS_SELECT = "h-11 rounded-md border border-input bg-card px-3 text-sm";
 
 const KOLOM: ColumnDef<Tagihan>[] = [
   {
@@ -86,7 +86,7 @@ export function TabelTagihan({ petugasKeuangan }: { petugasKeuangan: boolean }) 
     <div className="flex flex-col gap-4">
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-[1fr_auto_auto_auto_auto]">
         <KolomCari nilai={cari} onUbah={(nilai) => ubahFilter(() => setCari(nilai || null))} label="Cari tagihan" placeholder="Cari kode atau nama murid" />
-        <select aria-label="Saring status" className={KELAS_SELECT} value={status ?? ""} onChange={(e) => ubahFilter(() => setStatus(STATUS.find((s) => s === e.target.value) ?? null))}>
+        <select aria-label="Saring status" className={KELAS_KONTROL_SARINGAN} value={status ?? ""} onChange={(e) => ubahFilter(() => setStatus(STATUS.find((s) => s === e.target.value) ?? null))}>
           <option value="">Semua status</option>
           {STATUS.map((nilai) => (
             <option key={nilai} value={nilai}>
@@ -94,7 +94,7 @@ export function TabelTagihan({ petugasKeuangan }: { petugasKeuangan: boolean }) 
             </option>
           ))}
         </select>
-        <select aria-label="Saring bulan tagihan" className={KELAS_SELECT} value={periode ?? ""} onChange={(e) => ubahFilter(() => setPeriode(e.target.value || null))}>
+        <select aria-label="Saring bulan tagihan" className={KELAS_KONTROL_SARINGAN} value={periode ?? ""} onChange={(e) => ubahFilter(() => setPeriode(e.target.value || null))}>
           <option value="">Semua bulan</option>
           {pilihanBulan.map((bulan) => (
             <option key={bulan} value={bulan}>
@@ -103,7 +103,7 @@ export function TabelTagihan({ petugasKeuangan }: { petugasKeuangan: boolean }) 
           ))}
         </select>
         {petugasKeuangan ? (
-          <select aria-label="Saring kelas" className={KELAS_SELECT} value={kelasId ?? ""} onChange={(e) => ubahFilter(() => setKelasId(e.target.value ? Number(e.target.value) : null))}>
+          <select aria-label="Saring kelas" className={KELAS_KONTROL_SARINGAN} value={kelasId ?? ""} onChange={(e) => ubahFilter(() => setKelasId(e.target.value ? Number(e.target.value) : null))}>
             <option value="">Semua kelas</option>
             {(kelas.data ?? [])
               .filter((item) => item.tahun_ajaran.is_aktif)
@@ -115,7 +115,7 @@ export function TabelTagihan({ petugasKeuangan }: { petugasKeuangan: boolean }) 
           </select>
         ) : null}
         {petugasKeuangan ? (
-          <select aria-label="Saring jenis tagihan" className={KELAS_SELECT} value={jenisId ?? ""} onChange={(e) => ubahFilter(() => setJenisId(e.target.value ? Number(e.target.value) : null))}>
+          <select aria-label="Saring jenis tagihan" className={KELAS_KONTROL_SARINGAN} value={jenisId ?? ""} onChange={(e) => ubahFilter(() => setJenisId(e.target.value ? Number(e.target.value) : null))}>
             <option value="">Semua jenis</option>
             {(jenis.data ?? []).map((item) => (
               <option key={item.id} value={item.id}>

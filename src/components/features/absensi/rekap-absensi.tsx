@@ -11,6 +11,7 @@ import { PilihBulan, useBulanDipilih } from "@/components/features/absensi/pilih
 import { RekapHarian } from "@/components/features/absensi/rekap-harian";
 import { EmptyState } from "@/components/shared/empty-state";
 import { GalatMuat } from "@/components/shared/galat-muat";
+import { KELAS_KONTROL_SARINGAN } from "@/components/shared/kolom-teks";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -32,8 +33,6 @@ const KOLOM = [
   { kunci: "tidak_absen_pulang", label: "Tidak absen pulang" },
 ] as const;
 
-const KELAS_SELECT = "h-11 rounded-md border border-input bg-card px-3 text-sm";
-
 function bulanAwal(bulan: string, jumlahBulan: JumlahBulanRekap): string {
   return geserBulan(bulan, 1 - jumlahBulan);
 }
@@ -44,7 +43,7 @@ function formatRentang(bulan: string, jumlahBulan: JumlahBulanRekap): string {
 }
 
 function DetailPeserta({ peserta, bulan, jumlahBulan }: { peserta: BarisRekap["user"]; bulan: string; jumlahBulan: JumlahBulanRekap }) {
-  const { data, isPending, isError, error, refetch } = useRiwayatAbsensi(bulan, peserta.id, true, jumlahBulan);
+  const { data, isPending, isError, error, refetch } = useRiwayatAbsensi(bulan, peserta.id, { jumlahBulan });
 
   return (
     <section aria-labelledby="judul-detail-peserta" className="flex flex-col gap-3">
@@ -121,16 +120,22 @@ function RekapBulanan() {
           <PilihBulan bulan={bulan} bulanIni={bulanIni} onUbah={setBulan} />
           <select
             aria-label="Rentang rekap"
-            className={KELAS_SELECT}
+            className={KELAS_KONTROL_SARINGAN}
             value={jumlahBulan}
             onChange={(event) => void setJumlahBulan(JUMLAH_BULAN_REKAP.find((jumlah) => jumlah === Number(event.target.value)) ?? 1)}
           >
             {JUMLAH_BULAN_REKAP.map((jumlah) => (
               <option key={jumlah} value={jumlah}>
-                {jumlah === 1 ? "1 bulan" : `${jumlah} bulan terakhir`}
+                {jumlah} bulan
               </option>
             ))}
           </select>
+          {/* Pemilih bulan hanya menunjukkan bulan akhir, jadi rentang lengkapnya ditulis supaya jumlah di kartu tidak dikira satu bulan. */}
+          {jumlahBulan > 1 ? (
+            <p aria-live="polite" className="text-sm text-muted-foreground">
+              {formatRentang(bulan, jumlahBulan)}
+            </p>
+          ) : null}
         </div>
         <Button variant="outline" disabled={mengunduh || !data || data.length === 0} onClick={() => void unduh()}>
           <Download aria-hidden="true" />
@@ -160,7 +165,7 @@ function RekapBulanan() {
             <DetailPeserta peserta={dipilih.user} bulan={bulan} jumlahBulan={jumlahBulan} />
           ) : (
             <p className="rounded-xl border-2 border-dashed border-border p-4 text-sm text-muted-foreground">
-              Tekan Lihat per Hari pada salah satu nama untuk melihat jam, foto, dan mengoreksi status.
+              Tekan Lihat per Hari pada salah satu nama untuk melihat jam dan foto, mengoreksi status, atau mencatat absen yang terlupa.
             </p>
           )}
         </div>

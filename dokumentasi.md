@@ -22,7 +22,8 @@ Website publik dan dashboard sistem informasi TK Tarbiyathul Athfal 8 (TK Muslim
 | `/mudarris/login` satu form (branch `fe/login-staff-satu-form`) | Selesai, menunggu review (lihat "Keputusan login Google staff") |
 | Absensi guru dan Kepala Sekolah (branch `fe/absensi`) | Selesai, menunggu review (lihat "Keputusan absensi"); butuh backend branch `be/absensi` |
 | Absensi harian, Catat Absen Masuk, riwayat terbaru (branch `fe/absensi-harian`) | Selesai, diuji di browser, di-merge (PR #7) |
-| Izin dan sakit, pulang lebih awal, notifikasi absensi, rekap 1–3 bulan (branch `fe/absensi-lanjutan`) | Selesai, diuji di browser, menunggu review (lihat "Keputusan absensi" nomor 24–30); butuh backend branch `be/absensi-lanjutan` |
+| Izin dan sakit, pulang lebih awal, notifikasi absensi, rekap 1–3 bulan (branch `fe/absensi-lanjutan`) | Selesai, diuji di browser, di-merge (PR #11; backend PR #11) |
+| Perapian sesuai Bagian C untuk revisi hari ini (branch `fe/rapikan-slop`) | Selesai, menunggu review (lihat Changelog) |
 | Catat Absen Pulang untuk guru yang lupa absen pulang (branch `fe/absensi-pulang`) | Selesai, diuji di browser, di-merge (PR #8; backend PR #10) |
 
 Mode mock tidak dipakai: `api.json` final dari backend sudah tersedia sejak Fase 1, jadi semua request memakai backend asli dan tipe hasil generate. Tidak ada endpoint mock.
@@ -335,7 +336,7 @@ Fitur diminta pemilik repo (branch `fe/absensi`, backend `be/absensi`). Kontrakn
 15. Halaman Absensi menampilkan kartu Riwayat Terbaru: lima hari sebelum hari ini (hari ini sudah ada di kartu status), dari `GET /absensi` bulan berjalan menurut tanggal server di `GET /absensi/hari-ini`. Kalau kurang dari lima hari, bulan lalu ikut diambil. Query key-nya sama dengan halaman riwayat, jadi ikut diperbarui setelah absen. Tombol "Riwayat Saya" diganti tautan "Lihat semua riwayat" di kartu itu.
 16. Rekap Absensi dibagi dua tab (`?tab=`). Harian menjadi bawaan karena yang paling sering dicek Kepala Sekolah adalah hari ini. Tanggal dipilih lewat tombol hari sebelum/berikutnya atau input tanggal (`?tanggal=`); tanggal setelah hari ini (Asia/Jakarta) diabaikan. "Belum absen" berarti belum ada baris absen masuk, termasuk hari ini sebelum jam masuk tutup dan hari lampau yang belum ditandai scheduler.
 17. Di tanggal libur, bukan hari kerja, atau sebelum tanggal mulai, ringkasan diganti keterangan dan hanya peserta yang punya baris absensi yang ditampilkan, tanpa tombol Catat Absen Masuk.
-18. Catat Absen Masuk memakai dialog koreksi yang sama: pilihan status hanya hadir atau terlambat, catatan wajib, jam tidak dicatat. Absen masuk berstatus hadir/terlambat tanpa `waktu` tampil "Tanpa jam" di kartu harian dan riwayat. Dialog sekarang menghitung ulang pilihan status awal setiap dibuka; sebelumnya pilihan awal diambil saat komponen pertama kali dirender, sehingga membuka dialog lagi setelah satu koreksi bisa mengirim status yang sama dan ditolak backend.
+18. Catat Absen Masuk memakai dialog koreksi yang sama: pilihan status hanya hadir atau terlambat (sejak nomor 24 juga izin dan sakit), catatan wajib, jam tidak dicatat. Absen masuk berstatus hadir/terlambat tanpa `waktu` tampil "Tanpa jam" di kartu harian dan riwayat. Dialog sekarang menghitung ulang pilihan status awal setiap dibuka; sebelumnya pilihan awal diambil saat komponen pertama kali dirender, sehingga membuka dialog lagi setelah satu koreksi bisa mengirim status yang sama dan ditolak backend.
 19. `KartuAbsensiHarian` dipisah dari `DaftarAbsensiHarian` supaya kartu yang sama dipakai riwayat, detail rekap bulanan, dan tab Harian.
 20. Ditemukan saat uji: Kepala Sekolah yang belum absen setelah jam tutup mendapat pesan "Hubungi Kepala Sekolah kalau perlu koreksi". `langkahAbsen()` sekarang menerima peran, dan Kepala Sekolah diarahkan ke Rekap Absensi.
 
@@ -546,6 +547,22 @@ Tempat deploy belum ditentukan. Syarat yang sudah pasti:
 6. **Masuk dengan Google**: `NEXT_PUBLIC_GOOGLE_CLIENT_ID` diisi sebelum `npm run build`, dan origin FE produksi (misalnya `https://tkta8.sch.id`) didaftarkan di Authorized JavaScript origins Client ID itu di Google Cloud Console. Backend memakai Client ID yang sama di `GOOGLE_CLIENT_ID`.
 
 ## Changelog
+
+### Perapian sesuai Bagian C (branch `fe/rapikan-slop`)
+
+Diminta pemilik repo: semua revisi FE hari ini (PR #7 sampai #11) ditinjau manual terhadap Bagian C, tidak hanya `npm run check:slop`. Glosarium (C4), tanda seru, kata terlarang, pesan commit (C5), dan ukuran komponen tidak bermasalah. Yang diperbaiki:
+
+- C1, penamaan: prop `keterangan` di `KartuAbsensiHarian` berisi jabatan dan bentrok dengan `absensi.keterangan` (alasan peserta), jadi diganti `subjudul`; variabel `keterangan` di tab Harian diganti `pesanTanpaAbsen`.
+- C1, keterbacaan: isian absen di `AlurAbsen` disusun di fungsi bernama `susunIsian`, bukan IIFE di dalam render, dan `trim()` keterangan tidak diulang. `useRiwayatAbsensi` menerima objek `{ aktif, jumlahBulan }` sehingga pemanggil tidak lagi menulis `true` tanpa makna.
+- C1, duplikasi: konstanta kelas select saringan yang sama persis ada di enam file, satu di antaranya dari revisi hari ini; sekarang satu `KELAS_KONTROL_SARINGAN` di `src/components/shared/kolom-teks.tsx`. `kenaikan-per-kelas.tsx` tetap memakai kelasnya sendiri karena nilainya berbeda.
+- C1, komentar: komentar yang hanya mengulang nama fungsi (`alurMasihBerlaku`, `geserHari`) dihapus atau diganti alasan.
+- C3, teks: tombol kirim pulang lebih awal "Kirim Pulang Lebih Awal" menjadi "Kirim Absen Pulang"; label tombol izin/sakit memakai `LABEL_STATUS_ABSENSI`; petunjuk surat dokter hanya untuk Sakit; deskripsi dialog Catat Absen Masuk menyebut izin dan sakit; pilihan rentang rekap seragam ("1 bulan", "2 bulan", "3 bulan") dan rentang lengkap ditulis di sebelahnya karena pemilih bulan hanya menunjukkan bulan akhir; petunjuk tab Bulanan menyebut pencatatan absen yang terlupa.
+- C7: ikon di tombol sekunder Pulang Lebih Awal dihapus supaya sama dengan tombol sekunder Izin atau Sakit.
+- C5: status fitur nomor 24–30 diperbarui (sudah di-merge), keputusan nomor 18 diberi catatan status izin dan sakit, dan B9 tidak lagi menyebut Catat Absen Masuk hanya untuk hadir atau terlambat.
+
+File yang diubah: `src/components/features/absensi/{alur-absen, halaman-absensi, daftar-absensi-harian, dialog-koreksi-absensi, rekap-harian, rekap-absensi}.tsx`, `src/lib/api/absensi.ts`, `src/lib/tanggal.ts`, `src/components/shared/kolom-teks.tsx`, `src/components/features/{pembayaran/riwayat-pembayaran-sekolah, tagihan/tabel-tagihan, murid/daftar-murid, log-aktivitas/tabel-log-aktivitas, rapor/review-rapor}.tsx`, `PROMPT_FE_TK.md`.
+
+Hasil pengecekan: `npm run lint`, `npm run typecheck`, `npm run build`, dan `npm run check:slop` tanpa temuan. Di browser (Kepala Sekolah): tab Bulanan rentang 3 bulan menampilkan "Agustus 2026 – Oktober 2026" di sebelah pilihan "1 bulan / 2 bulan / 3 bulan", dan halaman Tagihan tetap menampilkan select saringannya dengan semua request 200. Alur Izin atau Sakit dan Pulang Lebih Awal tidak diuji ulang di browser setelah perapian (perubahannya teks tombol dan susunan isian yang sama; dicek lewat typecheck).
 
 ### Izin dan sakit, pulang lebih awal, notifikasi absensi, rekap 1–3 bulan (branch `fe/absensi-lanjutan`)
 

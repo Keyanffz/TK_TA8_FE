@@ -7,6 +7,7 @@ import { parseAsInteger, parseAsNumberLiteral, parseAsString, parseAsStringLiter
 import { EmptyState } from "@/components/shared/empty-state";
 import { GalatMuat } from "@/components/shared/galat-muat";
 import { KolomCari } from "@/components/shared/kolom-cari";
+import { KELAS_KONTROL_SARINGAN } from "@/components/shared/kolom-teks";
 import { Paginasi } from "@/components/shared/paginasi";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { TabelData } from "@/components/shared/tabel-data";
@@ -22,7 +23,6 @@ import type { Rapor } from "@/types/domain";
 
 const STATUS = ["draft", "diajukan", "revisi", "terbit"] as const;
 const SEMESTER = [1, 2] as const;
-const KELAS_SELECT = "h-11 rounded-md border border-input bg-card px-3 text-sm";
 
 /** Antrean rapor berstatus diajukan, yang paling lama menunggu di atas. */
 export function AntreanReviewRapor() {
@@ -101,7 +101,7 @@ export function SemuaRapor() {
     <div className="flex flex-col gap-4">
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-[1fr_auto_auto_auto]">
         <KolomCari nilai={cari} onUbah={(nilai) => ubahFilter(() => setCari(nilai || null))} label="Cari rapor" placeholder="Cari nama atau NIS murid" />
-        <select aria-label="Saring status" className={KELAS_SELECT} value={status ?? ""} onChange={(e) => ubahFilter(() => setStatus(STATUS.find((s) => s === e.target.value) ?? null))}>
+        <select aria-label="Saring status" className={KELAS_KONTROL_SARINGAN} value={status ?? ""} onChange={(e) => ubahFilter(() => setStatus(STATUS.find((s) => s === e.target.value) ?? null))}>
           <option value="">Semua status</option>
           {STATUS.map((nilai) => (
             <option key={nilai} value={nilai}>
@@ -109,7 +109,7 @@ export function SemuaRapor() {
             </option>
           ))}
         </select>
-        <select aria-label="Saring kelas" className={KELAS_SELECT} value={kelasId ?? ""} onChange={(e) => ubahFilter(() => setKelasId(e.target.value ? Number(e.target.value) : null))}>
+        <select aria-label="Saring kelas" className={KELAS_KONTROL_SARINGAN} value={kelasId ?? ""} onChange={(e) => ubahFilter(() => setKelasId(e.target.value ? Number(e.target.value) : null))}>
           <option value="">Semua kelas</option>
           {(kelas.data ?? []).map((item) => (
             <option key={item.id} value={item.id}>
@@ -119,7 +119,7 @@ export function SemuaRapor() {
         </select>
         <select
           aria-label="Saring semester"
-          className={KELAS_SELECT}
+          className={KELAS_KONTROL_SARINGAN}
           value={semester ?? ""}
           onChange={(e) => ubahFilter(() => setSemester(e.target.value === "1" ? 1 : e.target.value === "2" ? 2 : null))}
         >

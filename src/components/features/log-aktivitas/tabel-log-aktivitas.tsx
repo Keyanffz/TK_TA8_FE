@@ -5,6 +5,7 @@ import Link from "next/link";
 import { parseAsInteger, parseAsString, parseAsStringLiteral, useQueryState } from "nuqs";
 
 import { EmptyState } from "@/components/shared/empty-state";
+import { KELAS_KONTROL_SARINGAN } from "@/components/shared/kolom-teks";
 import { TabelData } from "@/components/shared/tabel-data";
 import { useLogAktivitas, type JenisLog } from "@/lib/api/log-aktivitas";
 import { LABEL_ROLE } from "@/lib/constants/label";
@@ -72,8 +73,6 @@ const KOLOM: ColumnDef<Log>[] = [
   { id: "subjek", header: "Data", cell: ({ row }) => <Subjek log={row.original} /> },
 ];
 
-const KELAS_SELECT = "h-11 rounded-md border border-input bg-card px-3 text-sm";
-
 /** Log aktivitas (Kepala Sekolah): siapa melakukan apa, terbaru di atas. */
 export function TabelLogAktivitas() {
   const [jenis, setJenis] = useQueryState("jenis", parseAsStringLiteral(JENIS));
@@ -86,7 +85,7 @@ export function TabelLogAktivitas() {
       <div className="flex flex-wrap gap-3">
         <select
           aria-label="Saring jenis aktivitas"
-          className={KELAS_SELECT}
+          className={KELAS_KONTROL_SARINGAN}
           value={jenis ?? ""}
           onChange={(event) => {
             void setJenis(JENIS.find((item) => item === event.target.value) ?? null);
@@ -104,7 +103,7 @@ export function TabelLogAktivitas() {
           <span>Tanggal</span>
           <input
             type="date"
-            className={`${KELAS_SELECT} text-foreground`}
+            className={`${KELAS_KONTROL_SARINGAN} text-foreground`}
             value={tanggal ?? ""}
             onChange={(event) => {
               void setTanggal(event.target.value || null);

@@ -8,6 +8,9 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 
+/** Select dan input tanggal di baris saringan atas tabel dan rekap, yang ukurannya disamakan dengan kolom cari. */
+export const KELAS_KONTROL_SARINGAN = "h-11 rounded-md border border-input bg-card px-3 text-sm";
+
 type KolomTeksProps = ComponentProps<typeof Input> & {
   label: string;
   error?: string;
