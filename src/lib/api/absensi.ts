@@ -68,13 +68,17 @@ export function useKoreksiAbsensi() {
   });
 }
 
-export type IsianAbsenMasukBaru = { user_id: number; tanggal: string; status: Exclude<StatusAbsensi, "tidak_hadir">; catatan: string };
+/** Absen pulang tidak punya status, jadi status hanya dikirim untuk absen masuk. */
+export type IsianAbsenBaru = { user_id: number; tanggal: string; catatan: string } & (
+  | { jenis: "masuk"; status: Exclude<StatusAbsensi, "tidak_hadir"> }
+  | { jenis: "pulang" }
+);
 
-/** Absen masuk yang dicatat Kepala Sekolah untuk peserta yang belum punya absen masuk di tanggal itu. */
-export function useCatatAbsenMasuk() {
+/** Absen masuk atau pulang yang dicatat Kepala Sekolah untuk peserta yang lupa absen di tanggal itu. */
+export function useCatatAbsen() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (isian: IsianAbsenMasukBaru) => ambilData(api.POST("/absensi/koreksi", { body: isian })),
+    mutationFn: (isian: IsianAbsenBaru) => ambilData(api.POST("/absensi/koreksi", { body: isian })),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.absensi.semua }),
   });
 }

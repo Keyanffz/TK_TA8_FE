@@ -4,7 +4,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { parseAsString, useQueryState } from "nuqs";
 
 import { KartuAbsensiHarian } from "@/components/features/absensi/daftar-absensi-harian";
-import { DialogKoreksiAbsensi } from "@/components/features/absensi/dialog-koreksi-absensi";
+import { AksiKoreksiHarian } from "@/components/features/absensi/dialog-koreksi-absensi";
 import { EmptyState } from "@/components/shared/empty-state";
 import { GalatMuat } from "@/components/shared/galat-muat";
 import { KotakPesan } from "@/components/shared/kotak-pesan";
@@ -63,9 +63,13 @@ function Ringkasan({ peserta }: { peserta: AbsensiPerTanggal["peserta"] }) {
     { label: "Terlambat", nilai: peserta.filter(({ masuk }) => masuk?.status === "terlambat").length },
     { label: "Tidak hadir", nilai: peserta.filter(({ masuk }) => masuk?.status === "tidak_hadir").length },
     { label: "Belum absen", nilai: peserta.filter(({ masuk }) => masuk === null).length },
+    {
+      label: "Belum absen pulang",
+      nilai: peserta.filter(({ masuk, pulang }) => (masuk?.status === "hadir" || masuk?.status === "terlambat") && pulang === null).length,
+    },
   ];
   return (
-    <dl className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+    <dl className="grid grid-cols-2 gap-2 sm:grid-cols-5">
       {jumlah.map(({ label, nilai }) => (
         <div key={label} className="rounded-xl border border-border bg-card px-3 py-2 shadow-sm">
           <dt className="text-sm text-muted-foreground">{label}</dt>
@@ -113,13 +117,7 @@ export function RekapHarian() {
                   masuk={masuk}
                   pulang={pulang}
                   labelTanpaMasuk={keterangan ? undefined : "Belum absen"}
-                  aksi={
-                    masuk ? (
-                      <DialogKoreksiAbsensi key="koreksi" absensi={masuk} nama={user.nama} />
-                    ) : keterangan ? null : (
-                      <DialogKoreksiAbsensi key="baru" absensi={null} userId={user.id} tanggal={data.tanggal} nama={user.nama} />
-                    )
-                  }
+                  aksi={<AksiKoreksiHarian nama={user.nama} userId={user.id} tanggal={data.tanggal} masuk={masuk} pulang={pulang} bolehCatat={!keterangan} />}
                 />
               ))}
             </ul>
