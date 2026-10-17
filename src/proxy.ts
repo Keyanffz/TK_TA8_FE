@@ -19,6 +19,12 @@ function diBawah(pathname: string, beranda: string): boolean {
  * otorisasi sebenarnya tetap di backend.
  */
 export function proxy(request: NextRequest) {
+  // Halaman tidak menerima POST (data dikirim lewat /api). POST ke sini datang dari
+  // form password yang terkirim sebelum hydration. Alamat yang sama dimuat ulang lewat
+  // GET, karena redirect 307 berikutnya mengulang POST, misalnya ke
+  // /api/auth/sesi-habis yang hanya menerima GET.
+  if (request.method === "POST") return NextResponse.redirect(request.nextUrl, 303);
+
   const { pathname, search } = request.nextUrl;
   const sudahMasuk = request.cookies.has(TOKEN_COOKIE);
   const role = request.cookies.get(ROLE_COOKIE)?.value;

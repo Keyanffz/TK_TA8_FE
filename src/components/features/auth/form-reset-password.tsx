@@ -66,7 +66,7 @@ export function FormResetPassword({ token, email }: { token: string; email: stri
   }
 
   return (
-    <form noValidate onSubmit={form.handleSubmit((nilai) => mutation.mutate(nilai))}>
+    <form method="post" noValidate onSubmit={form.handleSubmit((nilai) => mutation.mutate(nilai))}>
       <FieldGroup>
         {errors.root?.message ? (
           <KotakPesan nada="bahaya">

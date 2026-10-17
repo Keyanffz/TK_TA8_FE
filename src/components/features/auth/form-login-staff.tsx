@@ -36,7 +36,7 @@ export function FormLoginStaff({ masuk, sedangMemeriksa, sisaJeda, nonaktif }: F
   const { errors } = form.formState;
 
   return (
-    <form noValidate onSubmit={form.handleSubmit(masuk)}>
+    <form method="post" noValidate onSubmit={form.handleSubmit(masuk)}>
       <FieldGroup>
         <KolomTeks label="Email" type="email" autoComplete="email" inputMode="email" error={errors.email?.message} {...form.register("email")} />
         <KolomPassword label="Password" autoComplete="current-password" error={errors.password?.message} {...form.register("password")} />
