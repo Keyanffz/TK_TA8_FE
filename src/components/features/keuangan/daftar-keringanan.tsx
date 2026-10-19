@@ -71,10 +71,12 @@ const KOLOM: ColumnDef<Keringanan>[] = [
   { id: "potongan", header: "Potongan", cell: ({ row }) => <span className="font-bold tabular-nums">{nilaiPotongan(row.original)}</span> },
   { id: "alasan", header: "Alasan", cell: ({ row }) => <span className="line-clamp-2 max-w-xs">{row.original.alasan}</span> },
   { id: "berlaku", header: "Berlaku", cell: ({ row }) => masaBerlaku(row.original) },
-  { id: "aksi", header: () => <span className="sr-only">Aksi</span>, cell: ({ row }) => <Aksi keringanan={row.original} /> },
 ];
 
-export function DaftarKeringanan() {
+const KOLOM_AKSI: ColumnDef<Keringanan> = { id: "aksi", header: () => <span className="sr-only">Aksi</span>, cell: ({ row }) => <Aksi keringanan={row.original} /> };
+
+/** Tanpa `bisaKelola` (izin lihat keuangan saja) daftar hanya bisa dilihat. */
+export function DaftarKeringanan({ bisaKelola }: { bisaKelola: boolean }) {
   const [cari, setCari] = useQueryState("cari", parseAsString.withDefault(""));
   const [halaman, setHalaman] = useQueryState("page", parseAsInteger.withDefault(1));
   const daftar = useDaftarKeringanan({ halaman, search: cari });
@@ -92,11 +94,11 @@ export function DaftarKeringanan() {
           placeholder="Cari nama murid"
           className="w-full sm:max-w-sm"
         />
-        <FormKeringanan keringanan={null} pemicu={<Button>Tambah Keringanan</Button>} />
+        {bisaKelola ? <FormKeringanan keringanan={null} pemicu={<Button>Tambah Keringanan</Button>} /> : null}
       </div>
       <TabelData
         label="Daftar keringanan"
-        kolom={KOLOM}
+        kolom={bisaKelola ? [...KOLOM, KOLOM_AKSI] : KOLOM}
         data={daftar.data}
         memuat={daftar.isPending}
         galat={daftar.error}
@@ -114,7 +116,7 @@ export function DaftarKeringanan() {
             </div>
             <span className="text-sm">{item.jenis_tagihan.nama} · {item.alasan}</span>
             <span className="text-xs text-muted-foreground">{masaBerlaku(item)}</span>
-            <Aksi keringanan={item} />
+            {bisaKelola ? <Aksi keringanan={item} /> : null}
           </div>
         )}
       />

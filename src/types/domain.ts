@@ -29,6 +29,9 @@ export type JenisNotifikasi = Schemas["JenisNotifikasi"];
 export type NadaInfo = Schemas["NadaInfo"];
 export type JenisAbsensi = Schemas["JenisAbsensi"];
 export type StatusAbsensi = Schemas["StatusAbsensi"];
+export type ModulIzin = Schemas["ModulIzin"];
+export type LevelIzin = Schemas["LevelIzin"];
+export type PresetIzin = Schemas["PresetIzin"];
 
 // A5 punya StatusKelasMurid, tetapi api.json tidak mengekspornya sebagai skema tersendiri.
 export type StatusKelasMurid = "aktif" | "naik" | "tinggal" | "lulus" | "keluar";
@@ -64,6 +67,13 @@ export type Pendaftaran = Schemas["PendaftaranResource"];
 export type PendaftaranDetail = Schemas["PendaftaranDetailResource"];
 export type PendaftaranPublik = Schemas["PendaftaranPublikResource"];
 export type Absensi = Schemas["AbsensiResource"];
+export type RiwayatStatusMurid = MuridDetail["riwayat_status"][number];
+/** Izin per modul dari `/auth/me` (A2.13): `lihat`, `kelola`, atau null. */
+export type IzinEfektif = User["izin"];
+export type DaftarIzin = DataRespons<"izinGuru.index">;
+export type PratinjauImportMurid = DataRespons<"importMurid.pratinjau">;
+export type BarisImportMurid = PratinjauImportMurid["baris"][number];
+export type HasilImportMurid = DataRespons<"importMurid.simpan">;
 
 export type Dashboard = DataRespons<"dashboard.dashboard">;
 export type LaporanKeuangan = DataRespons<"laporan.keuangan">;

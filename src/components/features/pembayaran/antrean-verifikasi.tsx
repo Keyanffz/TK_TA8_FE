@@ -17,7 +17,7 @@ import type { Pembayaran } from "@/types/domain";
 
 const ANTREAN_PER_HALAMAN = 10;
 
-function KartuAntrean({ bayar }: { bayar: Pembayaran }) {
+function KartuAntrean({ bayar, bisaVerifikasi }: { bayar: Pembayaran; bisaVerifikasi: boolean }) {
   return (
     <article className="grid gap-5 rounded-xl border border-border bg-card p-5 shadow-sm md:grid-cols-[minmax(0,320px)_1fr]">
       {bayar.bukti_url ? (
@@ -57,19 +57,23 @@ function KartuAntrean({ bayar }: { bayar: Pembayaran }) {
             <dd className="font-bold">{bayar.nama_pengirim ?? "-"}</dd>
           </div>
         </dl>
-        <p className="rounded-md bg-highlight-soft px-3 py-2 text-sm">
-          Cocokkan nominal dan tanggal di bukti dengan mutasi rekening sekolah sebelum menerima.
-        </p>
-        <div className="mt-auto">
-          <AksiVerifikasi id={bayar.id} jumlah={bayar.jumlah} namaTagihan={namaTagihan(bayar.tagihan)} namaMurid={bayar.tagihan.murid.nama_panggilan} besar />
-        </div>
+        {bisaVerifikasi ? (
+          <>
+            <p className="rounded-md bg-highlight-soft px-3 py-2 text-sm">
+              Cocokkan nominal dan tanggal di bukti dengan mutasi rekening sekolah sebelum menerima.
+            </p>
+            <div className="mt-auto">
+              <AksiVerifikasi id={bayar.id} jumlah={bayar.jumlah} namaTagihan={namaTagihan(bayar.tagihan)} namaMurid={bayar.tagihan.murid.nama_panggilan} besar />
+            </div>
+          </>
+        ) : null}
       </div>
     </article>
   );
 }
 
 /** Bukti transfer yang menunggu diperiksa, paling lama di atas (B4: antrean verifikasi). */
-export function AntreanVerifikasi() {
+export function AntreanVerifikasi({ bisaVerifikasi }: { bisaVerifikasi: boolean }) {
   const [halaman, setHalaman] = useQueryState("page", parseAsInteger.withDefault(1));
   const { data, isPending, isError, error, refetch, isPlaceholderData } = useDaftarPembayaran({ halaman, status: "menunggu", perHalaman: ANTREAN_PER_HALAMAN });
 
@@ -82,7 +86,7 @@ export function AntreanVerifikasi() {
   return (
     <div className={cn("flex flex-col gap-4", isPlaceholderData && "opacity-60")}>
       {data.data.map((bayar) => (
-        <KartuAntrean key={bayar.id} bayar={bayar} />
+        <KartuAntrean key={bayar.id} bayar={bayar} bisaVerifikasi={bisaVerifikasi} />
       ))}
       <Paginasi meta={data.meta} onUbah={(nomor) => void setHalaman(nomor)} label="Halaman antrean" />
     </div>

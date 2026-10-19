@@ -3,11 +3,12 @@ import type { Metadata } from "next";
 import { DaftarTunggakan } from "@/components/features/laporan/daftar-tunggakan";
 import { KepalaHalaman } from "@/components/shared/kepala-halaman";
 import { wajibAkses } from "@/lib/auth/akses";
+import { punyaIzin } from "@/lib/auth/role";
 
 export const metadata: Metadata = { title: "Tunggakan" };
 
 export default async function TunggakanPage() {
-  await wajibAkses((sesi) => sesi.bisaKelolaKeuangan);
+  await wajibAkses((sesi) => punyaIzin(sesi, "keuangan"));
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-8 lg:py-8">

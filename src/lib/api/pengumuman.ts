@@ -6,6 +6,7 @@ import { ambilData } from "@/lib/api/ambil-data";
 import { api } from "@/lib/api/client";
 import { queryKeys } from "@/lib/api/query-keys";
 import { segarkanWebsite } from "@/lib/api/website";
+import { punyaIzin } from "@/lib/auth/role";
 import { useSession } from "@/lib/auth/use-session";
 import { TAG_PUBLIK } from "@/lib/constants/sekolah";
 import type { components } from "@/types/api";
@@ -37,13 +38,13 @@ export function useDetailPengumuman(id: number) {
 
 function useSegarkanPengumuman() {
   const queryClient = useQueryClient();
-  // Hanya pengumuman Kepala Sekolah yang bisa tampil di website (is_publik).
-  const { isSuperAdmin } = useSession();
+  // Hanya Kepala Sekolah dan pemegang izin kelola pengumuman yang bisa menampilkan pengumuman di website (is_publik).
+  const bebasTarget = punyaIzin(useSession(), "pengumuman", "kelola");
   return () =>
     Promise.all([
       queryClient.invalidateQueries({ queryKey: queryKeys.pengumuman.semua }),
       queryClient.invalidateQueries({ queryKey: ["dashboard"] }),
-      isSuperAdmin ? segarkanWebsite([TAG_PUBLIK.pengumuman]) : null,
+      bebasTarget ? segarkanWebsite([TAG_PUBLIK.pengumuman]) : null,
     ]);
 }
 

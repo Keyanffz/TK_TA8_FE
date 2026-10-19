@@ -5,6 +5,7 @@ import Link from "next/link";
 
 import { useAnakAktif } from "@/components/layout/dashboard/anak-aktif";
 import { FotoProfil } from "@/components/shared/foto-profil";
+import { StatusBadge } from "@/components/shared/status-badge";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -13,6 +14,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { LABEL_STATUS_MURID } from "@/lib/constants/label";
+import { NADA_STATUS_MURID } from "@/lib/constants/status";
 
 /** Pemilih anak aktif untuk wali (B3); pilihan disimpan di cookie tk_anak. */
 export function AnakSwitcher() {
@@ -39,7 +42,11 @@ export function AnakSwitcher() {
             <FotoProfil nama={anak.nama_panggilan} url={anak.foto_url} ukuran={32} className="size-8 text-xs" />
             <span className="flex-1">
               <span className="block font-bold">{anak.nama_panggilan}</span>
-              <span className="block text-xs text-muted-foreground">{anak.kelas ?? "Belum ada kelas"}</span>
+              {anak.status === "aktif" ? (
+                <span className="block text-xs text-muted-foreground">{anak.kelas ?? "Belum ada kelas"}</span>
+              ) : (
+                <StatusBadge nada={NADA_STATUS_MURID[anak.status]}>{LABEL_STATUS_MURID[anak.status]}</StatusBadge>
+              )}
             </span>
             {anak.id === anakAktif.id ? <Check aria-label="Sedang ditampilkan" className="text-primary-strong" /> : null}
           </DropdownMenuItem>

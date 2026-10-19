@@ -5,7 +5,9 @@ import { useRouter } from "next/navigation";
 import type { ReactNode } from "react";
 import { toast } from "sonner";
 
+import { DialogUbahStatus } from "@/components/features/murid/dialog-ubah-status";
 import { KartuAkunMurid } from "@/components/features/murid/kartu-akun-murid";
+import { RiwayatStatus } from "@/components/features/murid/riwayat-status";
 import { WaliTertaut } from "@/components/features/murid/wali-tertaut";
 import { DialogKonfirmasi } from "@/components/shared/dialog-konfirmasi";
 import { FotoProfil } from "@/components/shared/foto-profil";
@@ -13,7 +15,7 @@ import { GalatMuat } from "@/components/shared/galat-muat";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useDetailMurid, useHapusMurid } from "@/lib/api/murid";
+import { useDetailMurid, useHapusMurid, useUbahStatusMurid } from "@/lib/api/murid";
 import { LABEL_JENIS_KELAMIN, LABEL_STATUS_MURID } from "@/lib/constants/label";
 import { NADA_STATUS_MURID } from "@/lib/constants/status";
 import { formatTanggal } from "@/lib/format";
@@ -27,12 +29,20 @@ function Baris({ label, children }: { label: string; children: ReactNode }) {
   );
 }
 
-type DetailMuridProps = { id: number; bisaKelola: boolean; tagihan?: ReactNode };
+type DetailMuridProps = {
+  id: number;
+  /** Izin kelola data murid: ubah, hapus, ubah status, kartu akun. */
+  bisaKelola: boolean;
+  /** Ubah hubungan dan lepas tautan wali tetap khusus Kepala Sekolah. */
+  bisaKelolaWali: boolean;
+  tagihan?: ReactNode;
+};
 
-export function DetailMurid({ id, bisaKelola, tagihan }: DetailMuridProps) {
+export function DetailMurid({ id, bisaKelola, bisaKelolaWali, tagihan }: DetailMuridProps) {
   const router = useRouter();
   const { data: murid, isPending, isError, error, refetch } = useDetailMurid(id);
   const hapus = useHapusMurid();
+  const ubahStatus = useUbahStatusMurid(id);
 
   if (isPending) return <Skeleton aria-label="Memuat data murid" className="h-96 rounded-xl" />;
   if (isError) return <GalatMuat error={error} onCobaLagi={() => void refetch()} />;
@@ -60,6 +70,13 @@ export function DetailMurid({ id, bisaKelola, tagihan }: DetailMuridProps) {
                 <Link href={`/mudarris/murid/${murid.id}/ubah`} className={buttonVariants({ variant: "outline" })}>
                   Ubah Data
                 </Link>
+                <DialogUbahStatus
+                  judul={`Ubah status ${murid.nama_panggilan}`}
+                  deskripsi={`Status sekarang ${LABEL_STATUS_MURID[murid.status].toLowerCase()}. Perubahan dicatat di riwayat status.`}
+                  pemicu={<Button variant="outline">Ubah Status</Button>}
+                  statusSekarang={murid.status}
+                  kirim={async (isian) => (await ubahStatus.mutateAsync(isian)).message}
+                />
                 <DialogKonfirmasi
                   pemicu={<Button variant="ghost">Hapus</Button>}
                   judul={`Hapus data ${murid.nama_panggilan}?`}
@@ -91,13 +108,23 @@ export function DetailMurid({ id, bisaKelola, tagihan }: DetailMuridProps) {
             <Baris label="NIK">{murid.nik ?? "-"}</Baris>
             <Baris label="NISN">{murid.nisn ?? "-"}</Baris>
             <Baris label="Tanggal masuk">{formatTanggal(murid.tanggal_masuk)}</Baris>
-            {murid.tanggal_keluar ? <Baris label="Tanggal keluar">{formatTanggal(murid.tanggal_keluar)}</Baris> : null}
+            {murid.status !== "aktif" ? (
+              <Baris label={`Tanggal ${LABEL_STATUS_MURID[murid.status].toLowerCase()}`}>{murid.tanggal_keluar ? formatTanggal(murid.tanggal_keluar) : "Tidak tercatat"}</Baris>
+            ) : null}
+            {murid.tahun_lulus ? <Baris label="Tahun lulus">{murid.tahun_lulus}</Baris> : null}
+            {murid.sekolah_tujuan ? <Baris label="Sekolah tujuan">{murid.sekolah_tujuan}</Baris> : null}
+            {murid.keterangan_status ? (
+              <div className="sm:col-span-2">
+                <Baris label="Keterangan status">{murid.keterangan_status}</Baris>
+              </div>
+            ) : null}
             <div className="sm:col-span-2">
               <Baris label="Alamat">{murid.alamat}</Baris>
             </div>
           </dl>
         </section>
         {tagihan}
+        <RiwayatStatus riwayat={murid.riwayat_status} />
       </div>
       <div className="flex flex-col gap-6">
         {bisaKelola ? <KartuAkunMurid muridId={murid.id} nis={murid.nis} /> : null}
@@ -105,7 +132,7 @@ export function DetailMurid({ id, bisaKelola, tagihan }: DetailMuridProps) {
           <h2 id="judul-wali" className="mb-3 text-lg font-extrabold">
             Wali murid
           </h2>
-          <WaliTertaut murid={murid} bisaKelola={bisaKelola} />
+          <WaliTertaut murid={murid} bisaKelola={bisaKelolaWali} />
         </section>
       </div>
     </div>

@@ -6,7 +6,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 import { DaftarAbsensiHarian } from "@/components/features/absensi/daftar-absensi-harian";
-import { AksiKoreksiHarian } from "@/components/features/absensi/dialog-koreksi-absensi";
+import { AksiKoreksiHarian, type HakKoreksi } from "@/components/features/absensi/dialog-koreksi-absensi";
 import { PilihBulan, useBulanDipilih } from "@/components/features/absensi/pilih-bulan";
 import { RekapHarian } from "@/components/features/absensi/rekap-harian";
 import { EmptyState } from "@/components/shared/empty-state";
@@ -42,7 +42,7 @@ function formatRentang(bulan: string, jumlahBulan: JumlahBulanRekap): string {
   return jumlahBulan === 1 ? formatBulan(bulan) : `${formatBulan(bulanAwal(bulan, jumlahBulan))} – ${formatBulan(bulan)}`;
 }
 
-function DetailPeserta({ peserta, bulan, jumlahBulan }: { peserta: BarisRekap["user"]; bulan: string; jumlahBulan: JumlahBulanRekap }) {
+function DetailPeserta({ peserta, bulan, jumlahBulan, hak }: { peserta: BarisRekap["user"]; bulan: string; jumlahBulan: JumlahBulanRekap; hak: HakKoreksi }) {
   const { data, isPending, isError, error, refetch } = useRiwayatAbsensi(bulan, peserta.id, { jumlahBulan });
 
   return (
@@ -60,7 +60,7 @@ function DetailPeserta({ peserta, bulan, jumlahBulan }: { peserta: BarisRekap["u
         <DaftarAbsensiHarian
           hari={kelompokkanPerHari(data)}
           aksi={({ tanggal, masuk, pulang }) => (
-            <AksiKoreksiHarian nama={peserta.nama} userId={peserta.id} tanggal={tanggal} masuk={masuk} pulang={pulang} bolehCatat />
+            <AksiKoreksiHarian hak={hak} nama={peserta.nama} userId={peserta.id} tanggal={tanggal} masuk={masuk} pulang={pulang} bolehCatat />
           )}
         />
       )}
@@ -93,7 +93,7 @@ function KartuPeserta({ baris, dipilih, onPilih }: { baris: BarisRekap; dipilih:
 }
 
 /** Rekap 1 sampai 3 bulan per peserta, dengan detail per hari, koreksi, dan ekspor CSV. */
-function RekapBulanan() {
+function RekapBulanan({ hak }: { hak: HakKoreksi }) {
   const { bulan, bulanIni, setBulan } = useBulanDipilih();
   const [jumlahBulan, setJumlahBulan] = useQueryState("rentang", parseAsNumberLiteral(JUMLAH_BULAN_REKAP).withDefault(1));
   const [pesertaId, setPesertaId] = useQueryState("peserta", parseAsInteger);
@@ -162,7 +162,7 @@ function RekapBulanan() {
             ))}
           </ul>
           {dipilih ? (
-            <DetailPeserta peserta={dipilih.user} bulan={bulan} jumlahBulan={jumlahBulan} />
+            <DetailPeserta peserta={dipilih.user} bulan={bulan} jumlahBulan={jumlahBulan} hak={hak} />
           ) : (
             <p className="rounded-xl border-2 border-dashed border-border p-4 text-sm text-muted-foreground">
               Tekan Lihat per Hari pada salah satu nama untuk melihat jam dan foto, mengoreksi status, atau mencatat absen yang terlupa.
@@ -176,8 +176,11 @@ function RekapBulanan() {
 
 const TAB = ["harian", "bulanan"] as const;
 
-/** Rekap absensi untuk Kepala Sekolah: Harian untuk mengecek satu tanggal, Bulanan untuk jumlah per peserta. */
-export function RekapAbsensi() {
+/**
+ * Rekap absensi untuk Kepala Sekolah dan guru berizin laporan absensi: Harian untuk mengecek satu tanggal, Bulanan
+ * untuk jumlah per peserta.
+ */
+export function RekapAbsensi({ hak }: { hak: HakKoreksi }) {
   const [tab, setTab] = useQueryState("tab", parseAsStringLiteral(TAB).withDefault("harian"));
 
   return (
@@ -191,10 +194,10 @@ export function RekapAbsensi() {
         </TabsTrigger>
       </TabsList>
       <TabsContent value="harian">
-        <RekapHarian />
+        <RekapHarian hak={hak} />
       </TabsContent>
       <TabsContent value="bulanan">
-        <RekapBulanan />
+        <RekapBulanan hak={hak} />
       </TabsContent>
     </Tabs>
   );

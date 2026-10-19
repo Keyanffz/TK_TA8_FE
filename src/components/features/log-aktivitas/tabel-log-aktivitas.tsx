@@ -14,16 +14,23 @@ import type { components } from "@/types/api";
 
 type Log = components["schemas"]["LogAktivitasResource"];
 
-const JENIS = ["akun", "guru", "wali", "tagihan", "pembayaran", "rapor", "ppdb", "pengaturan"] as const satisfies readonly JenisLog[];
+const JENIS = [
+  "akun", "guru", "izin", "wali", "murid", "jenis_tagihan", "keringanan", "tagihan", "pembayaran", "rapor", "ppdb", "pengaturan", "absensi",
+] as const satisfies readonly JenisLog[];
 const LABEL_JENIS: Record<JenisLog, string> = {
   akun: "Akun",
   guru: "Guru",
+  izin: "Hak akses guru",
   wali: "Wali murid",
+  murid: "Murid",
+  jenis_tagihan: "Jenis tagihan",
+  keringanan: "Keringanan",
   tagihan: "Tagihan",
   pembayaran: "Pembayaran",
   rapor: "Rapor",
   ppdb: "PPDB",
   pengaturan: "Pengaturan",
+  absensi: "Absensi",
 };
 
 // Subjek log yang punya halaman detail di dashboard.

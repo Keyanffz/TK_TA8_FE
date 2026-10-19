@@ -9,6 +9,7 @@ import { FormFasilitas } from "@/components/features/website/form-fasilitas";
 import { FormHero } from "@/components/features/website/form-hero";
 import { FormProfilSekolah } from "@/components/features/website/form-profil-sekolah";
 import { GalatMuat } from "@/components/shared/galat-muat";
+import { KotakPesan } from "@/components/shared/kotak-pesan";
 import { buttonVariants } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -27,8 +28,11 @@ function TabLanding({ children }: { children: (data: ReturnType<typeof skemaLand
   return children(data);
 }
 
-/** CMS halaman depan (B7): lima tab, disimpan per tab lewat PUT /pengaturan. */
-export function HalamanWebsite() {
+/**
+ * CMS halaman depan (B7): lima tab, disimpan per tab lewat PUT /pengaturan. Tanpa izin kelola konten website
+ * semua isian dikunci lewat `<fieldset disabled>`, termasuk tombol simpannya.
+ */
+export function HalamanWebsite({ bisaKelola }: { bisaKelola: boolean }) {
   const [tab, setTab] = useQueryState("tab", parseAsStringLiteral(TAB).withDefault("profil"));
   const [kotor, setKotor] = useState(false);
   const ubahKotor = useCallback((nilai: boolean) => setKotor(nilai), []);
@@ -46,6 +50,9 @@ export function HalamanWebsite() {
     // activationMode manual: Radix mengaktifkan tab saat tombolnya mendapat fokus, sehingga setelah
     // konfirmasi ditutup (fokus kembali ke tombol tab) konfirmasi akan muncul lagi terus-menerus.
     <Tabs value={tab} onValueChange={pindahTab} activationMode="manual" className="gap-5">
+      {bisaKelola ? null : (
+        <KotakPesan nada="proses">Anda hanya bisa melihat isi website. Minta Kepala Sekolah memberi izin kelola Konten Website untuk mengubahnya.</KotakPesan>
+      )}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="-mx-4 max-w-[calc(100%+2rem)] overflow-x-auto px-4 sm:mx-0 sm:max-w-full sm:px-0">
           <TabsList aria-label="Bagian website">
@@ -61,23 +68,25 @@ export function HalamanWebsite() {
           Lihat Pratinjau
         </a>
       </div>
-      <TabsContent value="profil">
-        <FormProfilSekolah onUbahKotor={ubahKotor} />
-      </TabsContent>
-      <TabsContent value="hero">
-        <TabLanding>{(data) => <FormHero hero={data["landing.hero"]} onUbahKotor={ubahKotor} />}</TabLanding>
-      </TabsContent>
-      <TabsContent value="program">
-        <TabLanding>{(data) => <FormDaftarBerikon kunci="landing.program" nama="program" awal={data["landing.program"]} onUbahKotor={ubahKotor} />}</TabLanding>
-      </TabsContent>
-      <TabsContent value="keunggulan">
-        <TabLanding>
-          {(data) => <FormDaftarBerikon kunci="landing.keunggulan" nama="keunggulan" awal={data["landing.keunggulan"]} onUbahKotor={ubahKotor} />}
-        </TabLanding>
-      </TabsContent>
-      <TabsContent value="fasilitas">
-        <TabLanding>{(data) => <FormFasilitas awal={data["landing.fasilitas"]} onUbahKotor={ubahKotor} />}</TabLanding>
-      </TabsContent>
+      <fieldset disabled={!bisaKelola} className="contents">
+        <TabsContent value="profil">
+          <FormProfilSekolah onUbahKotor={ubahKotor} />
+        </TabsContent>
+        <TabsContent value="hero">
+          <TabLanding>{(data) => <FormHero hero={data["landing.hero"]} onUbahKotor={ubahKotor} />}</TabLanding>
+        </TabsContent>
+        <TabsContent value="program">
+          <TabLanding>{(data) => <FormDaftarBerikon kunci="landing.program" nama="program" awal={data["landing.program"]} onUbahKotor={ubahKotor} />}</TabLanding>
+        </TabsContent>
+        <TabsContent value="keunggulan">
+          <TabLanding>
+            {(data) => <FormDaftarBerikon kunci="landing.keunggulan" nama="keunggulan" awal={data["landing.keunggulan"]} onUbahKotor={ubahKotor} />}
+          </TabLanding>
+        </TabsContent>
+        <TabsContent value="fasilitas">
+          <TabLanding>{(data) => <FormFasilitas awal={data["landing.fasilitas"]} onUbahKotor={ubahKotor} />}</TabLanding>
+        </TabsContent>
+      </fieldset>
     </Tabs>
   );
 }

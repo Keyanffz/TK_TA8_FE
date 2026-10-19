@@ -2,6 +2,7 @@ import { revalidateTag } from "next/cache";
 import { NextResponse, type NextRequest } from "next/server";
 
 import { dariOriginSendiri, responsOriginDitolak } from "@/lib/api/be";
+import { punyaIzin, statusSesi } from "@/lib/auth/role";
 import { ambilSesi } from "@/lib/auth/session";
 import { TAG_PUBLIK } from "@/lib/constants/sekolah";
 import type { ResponsError } from "@/types/domain";
@@ -13,16 +14,19 @@ function galat(status: number, code: ResponsError["code"], message: string) {
 }
 
 /**
- * Membuang cache data publik (B7) setelah Kepala Sekolah menyimpan konten website. Hanya tag yang
- * dikenal yang diterima. `expire: 0` supaya pratinjau langsung menampilkan isi baru, bukan isi lama
- * yang disajikan sekali lagi selama revalidasi berjalan.
+ * Membuang cache data publik (B7) setelah Kepala Sekolah atau guru berizin kelola konten website atau pengumuman
+ * menyimpan isi website. Hanya tag yang dikenal yang diterima. `expire: 0` supaya pratinjau langsung menampilkan
+ * isi baru, bukan isi lama yang disajikan sekali lagi selama revalidasi berjalan.
  */
 export async function POST(request: NextRequest) {
   if (!dariOriginSendiri(request.headers)) return responsOriginDitolak();
 
   const user = await ambilSesi();
   if (!user) return galat(401, "UNAUTHENTICATED", "Sesi Anda sudah berakhir. Silakan masuk lagi.");
-  if (user.role !== "super_admin") return galat(403, "FORBIDDEN", "Hanya Kepala Sekolah yang bisa memperbarui website.");
+  const sesi = statusSesi(user);
+  if (!punyaIzin(sesi, "konten_website", "kelola") && !punyaIzin(sesi, "pengumuman", "kelola")) {
+    return galat(403, "FORBIDDEN", "Anda belum punya izin kelola Konten Website atau Pengumuman untuk memperbarui website.");
+  }
 
   let body: unknown;
   try {

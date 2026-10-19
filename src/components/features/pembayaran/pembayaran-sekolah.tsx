@@ -9,7 +9,7 @@ import { useDaftarPembayaran } from "@/lib/api/pembayaran";
 
 const TAB = ["antrean", "riwayat"] as const;
 
-export function PembayaranSekolah() {
+export function PembayaranSekolah({ bisaVerifikasi }: { bisaVerifikasi: boolean }) {
   const [tab, setTab] = useQueryState("tab", parseAsStringLiteral(TAB).withDefault("antrean"));
   const [, setHalaman] = useQueryState("page", parseAsInteger);
   const menunggu = useDaftarPembayaran({ halaman: 1, status: "menunggu", perHalaman: 1 });
@@ -28,7 +28,7 @@ export function PembayaranSekolah() {
           void setHalaman(null);
         }}
       />
-      {tab === "antrean" ? <AntreanVerifikasi /> : <RiwayatPembayaranSekolah />}
+      {tab === "antrean" ? <AntreanVerifikasi bisaVerifikasi={bisaVerifikasi} /> : <RiwayatPembayaranSekolah />}
     </div>
   );
 }

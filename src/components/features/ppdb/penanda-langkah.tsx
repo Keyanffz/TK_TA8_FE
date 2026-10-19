@@ -2,10 +2,10 @@ import { Check } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
-/** Nomor langkah form pendaftaran. Di HP hanya teks + batang supaya tidak berdesakan. */
-export function PenandaLangkah({ judul, aktif }: { judul: readonly string[]; aktif: number }) {
+/** Nomor langkah form bertahap (pendaftaran PPDB, import murid). Di HP hanya teks + batang supaya tidak berdesakan. */
+export function PenandaLangkah({ judul, aktif, label = "Langkah pendaftaran" }: { judul: readonly string[]; aktif: number; label?: string }) {
   return (
-    <nav aria-label="Langkah pendaftaran" className="mb-6">
+    <nav aria-label={label} className="mb-6">
       <p className="font-heading text-sm font-bold sm:hidden">
         Langkah {aktif + 1} dari {judul.length}: {judul[aktif]}
       </p>

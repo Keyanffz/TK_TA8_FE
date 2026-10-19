@@ -3,7 +3,9 @@ import type {
   JenisAgenda,
   JenisDokumen,
   JenisKelamin,
+  LevelIzin,
   MetodeBayar,
+  ModulIzin,
   PeriodeTagihan,
   Role,
   StatusAbsensi,
@@ -35,6 +37,24 @@ export const LABEL_STATUS_MURID: Record<StatusMurid, string> = {
   lulus: "Lulus",
   pindah: "Pindah",
   keluar: "Keluar",
+};
+
+export const STATUS_MURID = ["aktif", "lulus", "pindah", "keluar"] as const satisfies readonly StatusMurid[];
+
+/** Urutan sama dengan `GET /izin` (A2.13). */
+export const MODUL_IZIN = ["keuangan", "konten_website", "laporan_absensi", "data_murid", "pengumuman"] as const satisfies readonly ModulIzin[];
+
+export const LABEL_MODUL_IZIN: Record<ModulIzin, string> = {
+  keuangan: "Keuangan",
+  konten_website: "Konten Website",
+  laporan_absensi: "Laporan Absensi",
+  data_murid: "Data Murid",
+  pengumuman: "Pengumuman",
+};
+
+export const LABEL_LEVEL_IZIN: Record<LevelIzin, string> = {
+  lihat: "Lihat",
+  kelola: "Kelola",
 };
 
 export const HUBUNGAN = ["ayah", "ibu", "wali"] as const satisfies readonly Hubungan[];
