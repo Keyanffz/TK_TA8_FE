@@ -43,8 +43,8 @@ Sistem Informasi Sekolah **TK Tarbiyathul Athfal 8** berbasis web (dan nanti mob
   | `wali_murid` | Orang tua / wali | User |
 - **Murid TIDAK punya akun login.** Murid hanya data. Semua akses anak lewat akun wali murid (1 wali bisa punya beberapa anak, 1 anak bisa punya beberapa wali, misal ayah & ibu).
 - **Absensi hanya untuk guru aktif dan Kepala Sekolah** (berbasis lokasi dan foto, lihat A2.12). Tidak ada absensi murid.
-- **Dua area dashboard terpisah**: wali murid di `/dashboard/...`, guru dan Kepala Sekolah di `/mudarris/...` (termasuk halaman akun: `/mudarris/login`, serta `/mudarris/lupa-password` dan `/mudarris/reset-password` khusus Kepala Sekolah). Di dalam `/mudarris`, menu, isi beranda, dan aksi menyesuaikan role (Kepala Sekolah, guru, petugas keuangan).
-- **Hanya super admin** yang bisa mengubah konten website publik (landing page, profil sekolah, galeri) dan pengaturan sistem.
+- **Dua area dashboard terpisah**: wali murid di `/dashboard/...`, guru dan Kepala Sekolah di `/mudarris/...` (termasuk halaman akun: `/mudarris/login`, serta `/mudarris/lupa-password` dan `/mudarris/reset-password` khusus Kepala Sekolah). Di dalam `/mudarris`, menu, isi beranda, dan aksi menyesuaikan role dan izin modul guru (A2.13).
+- Konten website publik (landing page, profil sekolah, galeri) diubah super admin, atau guru yang diberi izin modul `konten_website` (A2.13). Pengaturan sistem (rekening, aturan tagihan, PPDB, absensi) tetap khusus super admin.
 
 ## A2. Keputusan Desain Penting
 
@@ -52,19 +52,21 @@ Sistem Informasi Sekolah **TK Tarbiyathul Athfal 8** berbasis web (dan nanti mob
    - Guru dan Kepala Sekolah → akun Google (Google Identity Services) dengan email yang sudah didaftarkan. Kepala Sekolah juga bisa login dengan email + password sebagai cadangan; guru tidak punya password.
    - Wali Murid → NIS anak (sebagai username) + password. Wali tidak mendaftar sendiri dan tidak punya email. Akun wali dibuat otomatis saat murid ditambahkan Kepala Sekolah atau pendaftaran PPDB diterima, kalau murid itu belum tertaut ke akun wali mana pun: role `wali_murid`, username = NIS murid, password awal = tanggal lahir anak (format DDMMYYYY), `wajib_ganti_password = true`, nama sementara "Wali <nama panggilan anak>", tertaut sebagai kontak utama (hubungan dari formulir PPDB, atau `wali` untuk murid yang ditambahkan Kepala Sekolah). Pendaftaran PPDB yang diajukan wali yang sudah login ditautkan ke akun wali itu, tanpa akun baru. Sekolah membagikan kartu akun (PDF) berisi NIS, tanpa password.
    - Selama `wajib_ganti_password = true`, akun wali hanya bisa membuka `GET /auth/me`, `PUT /auth/password`, dan `POST /auth/logout`. Password baru tidak boleh sama dengan tanggal lahir anak. Setelah itu wali melengkapi profil (onboarding). Wali yang lupa password meminta Kepala Sekolah mengembalikannya ke password awal.
-   - Akun Kepala Sekolah dibuat lewat seeder (hanya 1 akun `super_admin` aktif), sekaligus profil `guru` miliknya (jabatan "Kepala Sekolah") supaya Kepala Sekolah bisa mencatat kegiatan kelas, menjadi wali kelas bila perlu, dan tampil di daftar guru landing. Profil guru ini tidak muncul di `GET /guru`, tidak bisa dinonaktifkan, izin keuangannya tidak bisa diubah, dan tidak dihitung sebagai guru di statistik dashboard; profil ini tetap bisa dibuka dan diubah lewat `GET/PUT /guru/{id}`.
+   - Akun Kepala Sekolah dibuat lewat seeder (hanya 1 akun `super_admin` aktif), sekaligus profil `guru` miliknya (jabatan "Kepala Sekolah") supaya Kepala Sekolah bisa mencatat kegiatan kelas, menjadi wali kelas bila perlu, dan tampil di daftar guru landing. Profil guru ini tidak muncul di `GET /guru`, tidak bisa dinonaktifkan, izinnya tidak bisa diubah (Kepala Sekolah selalu punya semua izin), dan tidak dihitung sebagai guru di statistik dashboard; profil ini tetap bisa dibuka dan diubah lewat `GET/PUT /guru/{id}`.
    - Tidak ada pendaftaran guru mandiri. Kepala Sekolah membuat akun guru dengan nama dan email Google (unik tanpa membedakan huruf besar, disimpan huruf kecil); akun langsung `aktif`. Login Google tidak pernah membuat akun: email yang tidak terdaftar ditolak. `sub` akun Google disimpan saat login pertama dan login berikutnya harus dari akun Google yang sama; mengganti email guru melepas ikatan itu. Guru tidak dihapus, hanya dinonaktifkan, supaya riwayat datanya tetap utuh; akun nonaktif tidak bisa login.
 2. **Menautkan anak ke wali:** setiap murid punya akun wali otomatis (A2.1). Wali yang sudah login menambahkan kakak/adik ke akunnya dengan NIS + tanggal lahir anak. Kalau akun otomatis anak itu belum pernah dipakai (password awal belum diganti), akun itu dinonaktifkan dan tautannya dilepas; kalau sudah dipakai, anak tetap tertaut ke akun itu dan ke akun yang menambahkannya (1 anak boleh punya beberapa akun wali, misal ayah & ibu). Super admin bisa melepas tautan.
 3. **PPDB online:** orang tua mendaftarkan anak baru lewat halaman PPDB publik tanpa login saat PPDB dibuka, lalu memantau status dengan kode pendaftaran + tanggal lahir anak. Wali yang sudah punya akun juga bisa mendaftarkan kakak/adik lewat dashboard. Pendaftaran selalu untuk tahun ajaran di pengaturan `ppdb.tahun_ajaran_id` (biasanya tahun ajaran berikutnya, bukan yang sedang aktif). PPDB tidak bisa dibuka (`ppdb.dibuka = true` ditolak) kalau `ppdb.tahun_ajaran_id` belum diisi atau tahun ajarannya tidak ada. Kalau diterima, sistem otomatis membuat data murid lalu menautkannya ke wali pendaftar yang login, atau membuatkan akun wali otomatis (A2.1) untuk pendaftar tanpa login.
 4. **Tagihan (SPP) otomatis:** scheduler membuat tagihan bulanan tiap tanggal 1 untuk semua murid aktif, berdasarkan `jenis_tagihan` berperiode `bulanan` yang aktif di tahun ajaran aktif. Idempoten (tidak dobel, dijaga unique index); tagihan yang `dibatalkan` tetap dihitung sudah ada, jadi pembatalan dihormati dan tagihan itu hanya bisa dipulihkan Kepala Sekolah lewat aktifkan kembali. Potongan dari tabel `keringanan` otomatis diterapkan. Petugas keuangan bisa mengubah jatuh tempo, potongan, dan catatan tagihan yang belum dibayar.
 5. **Pembayaran:** transfer manual ke rekening sekolah + upload bukti oleh wali → diverifikasi. Petugas keuangan juga bisa mencatat pembayaran tunai, atau transfer yang sudah masuk ke rekening sekolah (bukti opsional); keduanya otomatis diterima. **Tidak ada cicilan** (1 tagihan dibayar penuh). Payment gateway (Midtrans) = pengembangan nanti, bukan sekarang.
-6. **Petugas keuangan:** super admin, ditambah guru yang diberi izin `bisa_kelola_keuangan = true` oleh super admin (untuk guru yang merangkap bendahara).
+6. **Petugas keuangan:** super admin, ditambah guru yang diberi izin modul `keuangan` level `kelola` oleh super admin (preset Bendahara, A2.13).
 7. **Tunggakan:** tagihan lewat jatuh tempo otomatis berstatus `terlambat` dan wali dapat notifikasi. Super admin/guru juga bisa membuat pengumuman dengan target `murid` tertentu (misal yang menunggak).
 8. **Rapor perkembangan anak (Kurikulum Merdeka PAUD):** penilaian naratif per elemen. Elemen bisa dikelola super admin (seed awal: Nilai Agama & Budi Pekerti; Jati Diri; Dasar-dasar Literasi, Matematika, Sains, Teknologi, Rekayasa & Seni). Alur: guru draft → ajukan → kepala sekolah terbitkan atau minta revisi (kepala sekolah boleh memperbaiki isi rapor yang sedang diajukan) → wali bisa lihat & unduh PDF. Rapor terbit bisa ditarik kepala sekolah kembali ke revisi dengan catatan.
 9. **Privasi foto anak:** foto kegiatan kelas, bukti bayar, dokumen PPDB, dan foto rapor disimpan di disk **private**, diakses via endpoint terotorisasi / signed URL. Hanya galeri publik & aset landing yang di disk public.
 10. **Uang** disimpan sebagai integer rupiah (tanpa desimal). **Zona waktu** `Asia/Jakarta`, bahasa `id`.
 11. **Notifikasi** memakai Laravel database notifications (channel mail opsional). Push notification (FCM) nanti saat Flutter.
 12. **Absensi guru dan Kepala Sekolah:** peserta absensi adalah guru yang akunnya `aktif` dan Kepala Sekolah. Guru nonaktif tidak ikut absensi dan tidak ditandai tidak hadir. Absen masuk dan absen pulang dilakukan dari HP di `/mudarris/absensi` dengan lokasi perangkat dan swafoto. Semua keputusan diambil backend dengan jam server (`Asia/Jakarta`): hari ini tidak sebelum tanggal mulai absensi, hari kerja dan bukan tanggal libur, di dalam jam jenis absen itu, jarak ke titik sekolah (Haversine) tidak melebihi radius, akurasi lokasi tidak melebihi batas, belum absen jenis itu hari ini, dan absen pulang hanya setelah absen masuk. Jarak yang ditampilkan FE hanya informasi. Status absen masuk `hadir` atau `terlambat` menurut batas terlambat; absen pulang tidak punya status. Peserta yang tidak bisa datang mencatat `izin` atau `sakit` sendiri di jam absen masuk dengan keterangan dan foto, tanpa lokasi; hari itu tidak ada absen pulang. Peserta yang perlu pulang sebelum jam pulang buka bisa absen pulang lebih awal dengan alasan, tanpa persetujuan; lokasi dan foto tetap diperiksa. Peserta mendapat notifikasi setiap absennya tercatat dan setiap Kepala Sekolah mengoreksi atau mencatat absensinya. Setelah jam masuk tutup di hari kerja, scheduler menandai peserta yang belum absen masuk sebagai `tidak_hadir`, termasuk susulan hari kerja yang terlewat sampai 7 hari ke belakang, tetapi tidak pernah untuk tanggal sebelum tanggal mulai absensi. Kalau Kepala Sekolah menambahkan tanggal libur, tanda `tidak_hadir` buatan scheduler yang belum dikoreksi pada tanggal itu dihapus; absen sungguhan dan baris yang sudah dikoreksi tetap. Kepala Sekolah bisa mengoreksi status absen masuk dengan catatan wajib; pengoreksi dan waktunya dicatat. Guru tidak bisa absen untuk hari yang sudah lewat: kalau peserta lupa absen padahal masuk dan belum punya absen masuk di tanggal itu (misalnya hari ini sebelum jam masuk tutup), Kepala Sekolah mencatat absen masuk `hadir` atau `terlambat` untuk tanggal itu dengan catatan wajib, tanpa waktu, lokasi, dan foto, dan baris itu langsung dianggap sudah dikoreksi. Hal yang sama untuk peserta yang lupa absen pulang: Kepala Sekolah mencatat absen pulang untuk tanggal yang sudah punya absen masuk `hadir` atau `terlambat` dan belum punya absen pulang. Kepala Sekolah melihat absensi semua peserta per tanggal selain rekap 1–3 bulan. Foto absensi disimpan di disk private, hanya bisa dibuka pemiliknya dan Kepala Sekolah, dan file-nya dihapus setelah masa simpan (data absensinya tetap). Aturan absensi (titik sekolah, radius, batas akurasi, jam, hari kerja, tanggal libur, tanggal mulai, masa simpan foto) diatur Kepala Sekolah di pengaturan grup `absensi`.
+13. **Hak akses guru:** Kepala Sekolah memberi guru izin per modul dengan level `lihat` atau `kelola` (`kelola` mencakup `lihat`): `keuangan` (semua tagihan dan pembayaran, keringanan, laporan, tunggakan; kelola = keringanan, tagihan sekali bayar, ubah tagihan, catat dan verifikasi pembayaran), `konten_website` (profil sekolah, landing page, banner beranda wali, galeri), `laporan_absensi` (rekap, absensi harian, riwayat dan foto peserta lain; kelola = koreksi dan pencatatan absensi peserta lain, tidak untuk absensinya sendiri), `data_murid` (semua murid dan alumni; kelola = tambah, ubah, hapus, status, import, kartu akun wali), dan `pengumuman` (semua pengumuman termasuk draft; kelola = target apa pun, tampil di website, ubah dan hapus pengumuman siapa pun). Preset (Bendahara, Admin Website, Admin Absensi, Tata Usaha) mengganti seluruh izin guru lalu bisa disesuaikan per modul. Manajemen guru, manajemen izin, pengaturan absensi, dan bagian lain di luar kelima modul tetap khusus Kepala Sekolah. Izin diperiksa backend di setiap route terkait dan dibaca dari database di setiap request, jadi pencabutan berlaku di request berikutnya. FE membangun menu, penjaga halaman, dan tombol aksi dari `izin` di `GET /auth/me`. Setiap perubahan izin dan setiap aksi di modul keuangan dicatat di log aktivitas.
+14. **Status murid, alumni, dan import:** status murid `aktif`, `lulus`, `pindah`, atau `keluar` beserta tanggal status, tahun lulus (lulus), sekolah tujuan (pindah), dan keterangan; setiap perubahan dicatat di riwayat status. Status diubah per murid, massal untuk murid terpilih, atau meluluskan satu kelas sekaligus untuk tahun tertentu; kenaikan kelas dengan status lulus juga mengisi tahun lulus dan riwayat. Murid lulus, pindah, dan keluar keluar dari penempatan kelas aktif dan tidak ikut generate tagihan berikutnya; tagihan lamanya tetap tercatat. Alumni dicari per tahun lulus. Murid bisa diimpor dari Excel/CSV lewat template: pratinjau memeriksa setiap baris (valid/invalid beserta alasan) tanpa menyimpan, lalu simpan meng-commit semua baris valid dalam satu transaksi dan mengembalikan baris yang gagal. Duplikat dideteksi lewat NISN, atau nama lengkap + tanggal lahir untuk baris tanpa NISN. Murid aktif hasil import mengikuti aturan akun wali otomatis (A2.1); murid lulus, pindah, dan keluar tidak dibuatkan akun wali. Untuk alumni, NISN dan tanggal status opsional; alumni lulus tanpa tanggal memakai akhir tahun ajaran di tahun lulusnya. Akun wali yang semua anaknya sudah tidak aktif tetap aktif (tagihan lama, kwitansi, rapor, PPDB adik), tetapi tidak lagi menerima pengumuman untuk semua dan untuk wali murid.
 
 ## A3. Use Case per Aktor
 
@@ -95,16 +97,16 @@ Sistem Informasi Sekolah **TK Tarbiyathul Athfal 8** berbasis web (dan nanti mob
 - Buat pengumuman untuk kelasnya / murid di kelasnya
 - Lihat status tagihan murid kelasnya (read-only)
 - Lihat agenda
-- **Jika `bisa_kelola_keuangan`**: akses menu keuangan seperti super admin (kecuali pengaturan rekening & jenis tagihan)
+- **Dengan izin modul dari Kepala Sekolah (A2.13)**: membuka bagian keuangan, konten website, laporan absensi, data murid (termasuk status, alumni, dan import), atau pengumuman sesuai level lihat atau kelola
 - Absen masuk dan absen pulang dengan lokasi dan foto, catat izin atau sakit dengan keterangan dan foto, absen pulang lebih awal dengan alasan, lihat status hari ini dan riwayat absensinya sendiri, dan menerima notifikasi saat absensinya tercatat atau dikoreksi
 - Notifikasi, edit profil
 
 **Kepala Sekolah (Super Admin)**
 - Semua yang bisa guru lakukan (lihat semua kelas)
 - Beranda: statistik sekolah + daftar tindakan tertunda (pembayaran menunggu verifikasi, rapor menunggu review, pendaftar PPDB baru)
-- Kelola guru: tambah (nama + email Google), edit, aktif/nonaktifkan (tanpa hapus), beri izin keuangan, tampilkan di landing
+- Kelola guru: tambah (nama + email Google), edit, aktif/nonaktifkan (tanpa hapus), atur hak akses per modul (termasuk preset), tampilkan di landing
 - Kelola tahun ajaran (aktifkan 1), kelas (wali kelas, pendamping, kapasitas), penempatan murid, kenaikan kelas massal
-- Kelola murid (CRUD, status, unduh kartu akun wali, ubah hubungan & kontak utama wali, lepas tautan wali), lihat & ubah data wali murid, reset password wali murid
+- Kelola murid (CRUD, ubah status satu murid atau massal termasuk meluluskan satu kelas, riwayat status, alumni per tahun lulus, import dari Excel/CSV, unduh kartu akun wali, ubah hubungan & kontak utama wali, lepas tautan wali), lihat & ubah data wali murid, reset password wali murid
 - Keuangan: jenis tagihan, keringanan, generate tagihan manual (idempoten), tagihan sekali bayar (uang pangkal/seragam), ubah jatuh tempo/potongan/catatan tagihan, verifikasi pembayaran, catat pembayaran tunai/transfer, batalkan tagihan dan aktifkan kembali, laporan & ekspor Excel, daftar tunggakan
 - Rapor: review, perbaiki isi sebelum terbit, terbitkan, minta revisi, tarik rapor terbit; kelola elemen penilaian
 - Pengumuman (semua target) & agenda
@@ -122,8 +124,10 @@ erDiagram
     users ||--o| wali_murid : "profil wali"
     wali_murid ||--o{ murid_wali : ""
     murid ||--o{ murid_wali : ""
+    murid ||--o{ riwayat_status_murid : ""
     tahun_ajaran ||--o{ kelas : ""
     guru ||--o{ kelas : "wali kelas / pendamping"
+    guru ||--o{ izin_guru : ""
     kelas ||--o{ kelas_murid : ""
     murid ||--o{ kelas_murid : ""
     tahun_ajaran ||--o{ jenis_tagihan : ""
@@ -164,15 +168,25 @@ erDiagram
         string status }
     guru {
         bigint id PK
-        bigint user_id FK
-        bool bisa_kelola_keuangan }
+        bigint user_id FK }
+    izin_guru {
+        bigint id PK
+        bigint guru_id FK
+        string modul
+        string level }
     wali_murid {
         bigint id PK
         bigint user_id FK }
     murid {
         bigint id PK
         string nis UK
-        string status }
+        string status
+        smallint tahun_lulus }
+    riwayat_status_murid {
+        bigint id PK
+        bigint murid_id FK
+        string status_baru
+        date tanggal }
     murid_wali {
         bigint murid_id FK
         bigint wali_murid_id FK
@@ -219,9 +233,11 @@ erDiagram
 Semua tabel punya `id` (bigint PK) dan `created_at/updated_at` kecuali pivot yang disebut. Nama tabel bahasa Indonesia → set `$table` eksplisit di model.
 
 - **users**: name, email (nullable unique, disimpan huruf kecil; wali murid tidak punya email), username (nullable unique; NIS anak untuk wali murid, kosong untuk guru dan Kepala Sekolah), password (nullable; guru tidak punya password), google_sub (nullable unique; `sub` akun Google guru/Kepala Sekolah, diisi saat login Google pertama), wajib_ganti_password (bool, default false; true selama wali memakai password awal), role (enum Role), status (enum StatusAkun), no_hp (nullable), avatar_path (nullable), email_verified_at, last_login_at, remember_token, deleted_at (soft delete)
-- **guru**: user_id (FK unique), nip (nullable), nuptk (nullable), jenis_kelamin (L/P), tempat_lahir, tanggal_lahir, alamat, pendidikan_terakhir, jabatan (string, misal "Guru Kelas"), foto_path, bisa_kelola_keuangan (bool, default false), tampil_di_landing (bool, default false)
+- **guru**: user_id (FK unique), nip (nullable), nuptk (nullable), jenis_kelamin (L/P), tempat_lahir, tanggal_lahir, alamat, pendidikan_terakhir, jabatan (string, misal "Guru Kelas"), foto_path, tampil_di_landing (bool, default false)
 - **wali_murid**: user_id (FK unique), nik (nullable), pekerjaan, alamat, profil_lengkap (bool, default false)
-- **murid**: nis (unique, auto format `TA{tahun}{urut 4 digit}`), nisn (nullable unique), nik (nullable), nama_lengkap, nama_panggilan, jenis_kelamin, tempat_lahir, tanggal_lahir, agama, alamat, anak_ke (nullable), foto_path (nullable), catatan_khusus (nullable, misal alergi makanan / kebutuhan khusus — hanya terlihat guru & kepsek & wali anak itu), status (enum StatusMurid), tanggal_masuk, tanggal_keluar (nullable), deleted_at
+- **murid**: nis (unique, auto format `TA{tahun}{urut 4 digit}`), nisn (nullable unique), nik (nullable), nama_lengkap, nama_panggilan, jenis_kelamin, tempat_lahir, tanggal_lahir, agama, alamat, anak_ke (nullable), foto_path (nullable), catatan_khusus (nullable, misal alergi makanan / kebutuhan khusus — hanya terlihat guru & kepsek & wali anak itu), status (enum StatusMurid), tanggal_masuk, tanggal_keluar (nullable; tanggal lulus, pindah, atau keluar), tahun_lulus (smallint nullable, hanya status lulus), sekolah_tujuan (nullable, hanya status pindah), keterangan_status (text nullable), deleted_at
+- **izin_guru**: guru_id (FK guru, cascade), modul (enum ModulIzin), level (enum LevelIzin). Unique (guru_id, modul). Tidak ada baris berarti guru tidak punya izin modul itu
+- **riwayat_status_murid**: murid_id (FK murid, cascade), status_lama, status_baru (enum StatusMurid), tanggal (date), tahun_lulus (nullable), sekolah_tujuan (nullable), keterangan (nullable), diubah_oleh (FK users nullable)
 - **murid_wali** (pivot): murid_id, wali_murid_id, hubungan (enum Hubungan), is_kontak_utama (bool), created_at. Unique (murid_id, wali_murid_id)
 - **tahun_ajaran**: nama ("2026/2027"), tanggal_mulai, tanggal_selesai, semester_aktif (1/2), is_aktif (hanya 1 yang true)
 - **kelas**: tahun_ajaran_id, nama ("TK A1"), tingkat (enum Tingkat), wali_kelas_id (FK guru, nullable), guru_pendamping_id (FK guru, nullable), kapasitas (int, default 20)
@@ -298,6 +314,9 @@ Semua tabel punya `id` (bigint PK) dan `created_at/updated_at` kecuali pivot yan
 - **NadaInfo**: `info`, `penting`, `peringatan`
 - **JenisAbsensi**: `masuk`, `pulang`
 - **StatusAbsensi**: `hadir`, `terlambat`, `tidak_hadir`, `izin`, `sakit`
+- **ModulIzin**: `keuangan`, `konten_website`, `laporan_absensi`, `data_murid`, `pengumuman`
+- **LevelIzin**: `lihat`, `kelola`
+- **PresetIzin**: `bendahara`, `admin_website`, `admin_absensi`, `tata_usaha`
 
 ## A6. Flowchart
 
@@ -453,6 +472,38 @@ flowchart TD
     Q([Kepsek menambah tanggal libur]) --> R[Hapus tidak_hadir otomatis yang belum dikoreksi pada tanggal itu]
 ```
 
+### Hak akses guru
+
+```mermaid
+flowchart TD
+    A([Kepala Sekolah buka Hak Akses Guru]) --> B[Daftar modul, level, preset, dan guru beserta izinnya]
+    B --> C{Cara mengatur}
+    C -->|Preset| D[Izin guru diganti isi preset]
+    C -->|Per modul| E[Pilih lihat, kelola, atau tanpa izin untuk tiap modul]
+    D --> F[Simpan + log aktivitas izin: sebelum dan sesudah]
+    E --> F
+    G([Guru mengirim request]) --> H{Backend: izin modul di database cukup?}
+    H -->|Tidak| I[403 FORBIDDEN dengan izin yang perlu diminta]
+    H -->|Ya| J[Data sesuai cakupan izin]
+    I --> K[FE menampilkan pesan tanpa akses dan memuat ulang izin dari auth/me]
+```
+
+### Status murid dan import
+
+```mermaid
+flowchart TD
+    A([Ubah status satu murid, murid terpilih, atau satu kelas]) --> B{Tanggal, tahun lulus, kelas tujuan valid?}
+    B -->|Tidak| C[Ditolak dengan pesan sebabnya]
+    B -->|Ya| D[Simpan status + riwayat; penempatan kelas aktif ditutup atau dibuka lagi]
+    D --> E[Murid non-aktif tidak ikut generate tagihan; tagihan lama tetap]
+    F([Unduh template, isi, unggah]) --> G[Pratinjau: setiap baris valid atau invalid + alasan, tanpa menyimpan]
+    G --> H[Konfirmasi: periksa ulang, simpan semua baris valid dalam satu transaksi]
+    H --> I{Status baris}
+    I -->|Aktif| J[Murid + akun wali otomatis + kelas kalau diisi]
+    I -->|Lulus, pindah, keluar| K[Murid tanpa akun wali]
+    H --> L[Hasil + baris gagal untuk diunduh, diperbaiki, dan diimpor ulang]
+```
+
 ## A7. Kontrak API
 
 **Base URL:** `{BE_URL}/api/v1`. Auth: header `Authorization: Bearer {token}` (Sanctum). Semua respons JSON.
@@ -479,9 +530,9 @@ Status HTTP di luar daftar di atas dipetakan ke kode terdekat: 405 (metode HTTP 
 
 **File private:** semua `*_url` untuk file private (foto kegiatan, foto murid, foto rapor, bukti bayar, dokumen PPDB) adalah signed URL `GET /media/{token}` yang **bisa langsung dipakai di `<img>` / `<a>` tanpa header Authorization** dan berlaku **30 menit**. Setelah kedaluwarsa, ambil ulang datanya untuk mendapat URL baru. Hak akses dicek saat URL dibuat, jadi URL hanya dikirim ke pengguna yang berhak; siapa pun yang memegang URL bisa membukanya selama masa berlaku.
 
-**Singkatan role:** SA = super_admin, G = guru, K = petugas keuangan (SA atau guru `bisa_kelola_keuangan`), W = wali_murid, Pub = publik.
+**Singkatan role:** SA = super_admin, G = guru, K = petugas keuangan (SA atau guru dengan izin `keuangan` `kelola`), W = wali_murid, Pub = publik. `Izin(modul, level)` = SA atau guru dengan izin modul itu di level tersebut atau lebih tinggi (A2.13); tanpa izin dibalas 403 `FORBIDDEN` dengan pesan izin yang perlu diminta.
 
-**Scoping data otomatis:** endpoint yang sama mengembalikan data berbeda per role. G hanya melihat kelas yang dia ampu (wali kelas / pendamping) di TA aktif. W hanya melihat anaknya sendiri. SA melihat semua.
+**Scoping data otomatis:** endpoint yang sama mengembalikan data berbeda per role. G hanya melihat kelas yang dia ampu (wali kelas / pendamping) di TA aktif, kecuali data modul yang izin lihatnya dia punya (A2.13). W hanya melihat anaknya sendiri. SA melihat semua.
 
 ### Publik
 - `GET /public/profil` — Pub — semua pengaturan grup profil + landing
@@ -513,25 +564,28 @@ Status HTTP di luar daftar di atas dipetakan ke kode terdekat: 405 (metode HTTP 
 {
   "id": 1, "name": "…", "email": "…", "username": null, "role": "guru", "status": "aktif",
   "wajib_ganti_password": false, "no_hp": "…", "avatar_url": "…",
-  "guru": { "id": 3, "bisa_kelola_keuangan": false, "kelas_diampu": [{ "id": 2, "nama": "TK A1" }] },
+  "guru": { "id": 3, "kelas_diampu": [{ "id": 2, "nama": "TK A1" }] },
   "wali_murid": null,
-  "permissions": { "kelola_keuangan": false }
+  "izin": { "keuangan": "kelola", "konten_website": null, "laporan_absensi": null, "data_murid": "lihat", "pengumuman": null }
 }
 ```
-Untuk W: `"email": null`, `"username": "TA20260001"` (NIS anak), `wajib_ganti_password` sesuai akun, dan `"wali_murid": { "id": 5, "profil_lengkap": true, "nik": "…" | null, "alamat": "…" | null, "pekerjaan": "…" | null, "anak": [{ "id": 9, "nama_panggilan": "…", "kelas": "TK B2", "foto_url": "…" }] }`.
+Untuk W: `"email": null`, `"username": "TA20260001"` (NIS anak), `wajib_ganti_password` sesuai akun, dan `"wali_murid": { "id": 5, "profil_lengkap": true, "nik": "…" | null, "alamat": "…" | null, "pekerjaan": "…" | null, "anak": [{ "id": 9, "nama_panggilan": "…", "status": "aktif", "kelas": "TK B2", "foto_url": "…" }] }`. `izin` berisi kelima modul dengan nilai `lihat`, `kelola`, atau `null`: SA `kelola` semua, W `null` semua.
 
 ### Dashboard
 - `GET /dashboard` — semua — payload sesuai role; W bisa kirim `?murid_id=`
   - SA: `{ statistik: { murid_aktif, guru_aktif, kelas, wali_murid }, keuangan_bulan_ini: { total_tagihan, terbayar, belum_terbayar, persen_lunas }, grafik_pemasukan: [{ bulan: "2026-01", total }] (12 bulan), tertunda: { pembayaran_menunggu, rapor_diajukan, pendaftaran_baru }, pengumuman_terbaru[], agenda_mendatang[] }`. `guru_aktif` tidak menghitung profil guru milik Kepala Sekolah.
-  - G: `{ kelas_saya[] (id, nama, jumlah_murid), progres_rapor: { total, draft, diajukan, revisi, terbit }, kegiatan_terbaru[], pengumuman_terbaru[], agenda_mendatang[], keuangan_kelas: { lunas, belum }, pembayaran_menunggu }`. `pembayaran_menunggu` = jumlah pembayaran berstatus `menunggu` (int) untuk guru `bisa_kelola_keuangan`, `null` untuk guru lain.
+  - G: `{ kelas_saya[] (id, nama, jumlah_murid), progres_rapor: { total, draft, diajukan, revisi, terbit }, kegiatan_terbaru[], pengumuman_terbaru[], agenda_mendatang[], keuangan_kelas: { lunas, belum }, pembayaran_menunggu }`. `pembayaran_menunggu` = jumlah pembayaran berstatus `menunggu` (int) untuk guru dengan izin kelola keuangan, `null` untuk guru lain.
   - W: `{ anak: {…}, tagihan_aktif[] , total_belum_bayar, kegiatan_terbaru[], pengumuman_terbaru[], agenda_mendatang[], rapor_terbaru, info_sekolah }`. `info_sekolah` = `{ judul, isi, nada, berlaku_sampai }` dari pengaturan `beranda.info_wali`, atau `null` kalau tidak aktif atau sudah lewat `berlaku_sampai` (tanggal itu sendiri masih tampil)
 
 ### Guru (manajemen)
-- `GET /guru` — SA — filter status (`aktif` | `nonaktif`), search. Tidak termasuk profil guru milik Kepala Sekolah
+- `GET /guru` — SA — filter status (`aktif` | `nonaktif`), search. Tidak termasuk profil guru milik Kepala Sekolah. Data guru memuat `izin` (bentuk sama dengan di `user`)
 - `GET /guru/{id}` — SA — termasuk profil guru milik Kepala Sekolah. Data guru memuat `terhubung_google` (bool: sudah pernah masuk dengan Google); nilai `sub` Google tidak pernah dikirim
-- `POST /guru` — SA — `{ name, email, no_hp, jenis_kelamin, nip?, nuptk?, tempat_lahir?, tanggal_lahir?, alamat?, pendidikan_terakhir?, jabatan?, bisa_kelola_keuangan?, tampil_di_landing?, foto? }` → 201, data guru. Akun langsung aktif tanpa password. `email` = email akun Google guru, disimpan huruf kecil dan unik tanpa membedakan huruf besar; guru login lewat `POST /auth/staff/google`
-- `PUT /guru/{id}` — SA — termasuk `bisa_kelola_keuangan`, `tampil_di_landing`. Mengganti `email` melepas akun Google yang sudah terikat. Untuk profil guru milik Kepala Sekolah, mengubah `bisa_kelola_keuangan` ditolak (422 `BUSINESS_RULE`)
+- `POST /guru` — SA — `{ name, email, no_hp, jenis_kelamin, nip?, nuptk?, tempat_lahir?, tanggal_lahir?, alamat?, pendidikan_terakhir?, jabatan?, tampil_di_landing?, foto? }` → 201, data guru. Akun langsung aktif tanpa password. `email` = email akun Google guru, disimpan huruf kecil dan unik tanpa membedakan huruf besar; guru login lewat `POST /auth/staff/google`
+- `PUT /guru/{id}` — SA — termasuk `tampil_di_landing`; izin diubah lewat `PUT /guru/{id}/izin`. Mengganti `email` melepas akun Google yang sudah terikat
 - `PATCH /guru/{id}/status` — SA — `{ status: aktif|nonaktif }` (nonaktif = cabut semua token dan login ditolak `ACCOUNT_INACTIVE`). Guru tidak bisa dihapus; tidak ada `DELETE /guru/{id}`. Ditolak untuk profil guru milik Kepala Sekolah (422 `BUSINESS_RULE`)
+- `GET /izin` — SA — `{ modul: [{ kode, label, deskripsi }], level: [{ kode, label }], preset: [{ kode, nama, izin }] }`
+- `PUT /guru/{id}/izin` — SA — `{ izin: { keuangan, konten_website, laporan_absensi, data_murid, pengumuman } }` (kelima kunci wajib, nilai `lihat` | `kelola` | `null`) → data guru; mengganti seluruh izin, dicatat di log aktivitas `izin` (sebelum dan sesudah). Profil guru milik Kepala Sekolah → 422 `BUSINESS_RULE`
+- `POST /guru/{id}/izin/preset` — SA — `{ preset }` → data guru; izin diganti isi preset, log aktivitas `izin` event `preset_diterapkan`
 - `POST /guru/{id}/reset-google` — SA — mengosongkan akun Google yang terikat (`google_sub`) supaya guru bisa masuk dengan akun Google baru beremail sama → data guru. Semua token guru itu dicabut (token lama dibalas 401). Ditolak (422 `BUSINESS_RULE`) kalau guru belum pernah masuk dengan Google
 
 ### Tahun ajaran & kelas
@@ -545,10 +599,16 @@ Untuk W: `"email": null`, `"username": "TA20260001"` (NIS anak), `wajib_ganti_pa
 - `POST /kelas/kenaikan` — SA — `{ tahun_ajaran_tujuan_id, penempatan: [{ murid_id, kelas_tujuan_id | null, status: naik|tinggal|lulus }] }`
 
 ### Murid & wali
-- `GET /murid` — SA, G(scoped), W(anak sendiri) — filter kelas_id, status, tingkat, search
-- `GET /murid/{id}` — SA, G(scoped), W(anak sendiri) — detail + kelas aktif + wali
-- `POST /murid`, `PUT /murid/{id}`, `DELETE /murid/{id}` — SA (multipart foto). `POST /murid` membuat akun wali otomatis (A2.1, hubungan `wali`, kontak utama) yang langsung muncul di `wali` detail murid. `DELETE /murid/{id}` menonaktifkan akun otomatis murid itu kalau belum pernah dipakai
-- `GET /murid/{id}/kartu-akun` — SA — PDF A6: kop sekolah, nama anak, kelas, NIS sebagai username, keterangan "Password awal: tanggal lahir anak (DDMMYYYY), wajib diganti saat login pertama", alamat login website. Tanpa password. Ditolak (422 `BUSINESS_RULE`) kalau tidak ada akun wali aktif dengan username NIS itu
+- `GET /murid` — SA dan Izin(data_murid, lihat) semua murid, G(scoped), W(anak sendiri) — filter kelas_id, status, tingkat, tahun_lulus, search; sort `tahun_lulus`. Data murid memuat `tahun_lulus`, `sekolah_tujuan`, `keterangan_status`
+- `GET /murid/{id}` — sama dengan daftar — detail + kelas aktif + wali + `riwayat_status` (terbaru dulu: `{ id, status_lama, status_baru, tanggal, tahun_lulus, sekolah_tujuan, keterangan, diubah_oleh: { id, nama } | null, created_at }`)
+- `POST /murid`, `PUT /murid/{id}`, `DELETE /murid/{id}` — Izin(data_murid, kelola) (multipart foto). `PUT /murid/{id}` tidak menerima `status` dan `tanggal_keluar` (422 `VALIDATION_ERROR`). `POST /murid` membuat akun wali otomatis (A2.1, hubungan `wali`, kontak utama) yang langsung muncul di `wali` detail murid. `DELETE /murid/{id}` menonaktifkan akun otomatis murid itu kalau belum pernah dipakai
+- `GET /murid/{id}/kartu-akun` — Izin(data_murid, kelola) — PDF A6: kop sekolah, nama anak, kelas, NIS sebagai username, keterangan "Password awal: tanggal lahir anak (DDMMYYYY), wajib diganti saat login pertama", alamat login website. Tanpa password. Ditolak (422 `BUSINESS_RULE`) kalau tidak ada akun wali aktif dengan username NIS itu
+- `PATCH /murid/{id}/status` — Izin(data_murid, kelola) — `{ status, tanggal, tahun_lulus?, sekolah_tujuan?, keterangan? }` → detail murid. `tanggal` tidak setelah hari ini; `tahun_lulus` wajib untuk `lulus` dan dilarang untuk status lain; `sekolah_tujuan` hanya untuk `pindah`. Lulus/pindah/keluar menutup penempatan di TA aktif (`lulus`/`keluar`); aktif kembali membukanya lagi. 422 `BUSINESS_RULE`: status sama, tanggal sebelum tanggal masuk, tahun lulus sebelum tahun masuk, kelas penuh saat diaktifkan kembali
+- `POST /murid/status-massal` — Izin(data_murid, kelola) — isian yang sama ditambah `murid_ids` atau `kelas_id` (murid berpenempatan aktif di kelas itu) → `{ diubah, dilewati }`; satu transaksi, murid berstatus sama dilewati
+- `GET /murid/tahun-lulus` — Izin(data_murid, lihat) — `int[]` tahun lulus yang punya alumni, terbaru dulu
+- `GET /murid/import/template` — Izin(data_murid, kelola) — file .xlsx (sheet Murid dan Petunjuk)
+- `POST /murid/import/pratinjau` — Izin(data_murid, kelola) — multipart `file` (.xlsx/.csv, maks 2 MB, maks 500 baris) → `{ ringkasan: { total, valid, invalid }, baris: [{ nomor, data, valid, alasan[] }] }` tanpa menyimpan
+- `POST /murid/import` — Izin(data_murid, kelola) — file yang sama → `{ dibuat, akun_wali_dibuat, gagal[] }`; baris valid disimpan dalam satu transaksi. Rincian kolom dan aturan baris di `docs/kontrak-api-fitur-baru.md`
 - Wali di detail murid: `wali: [{ id, nama, email (null untuk wali), username, no_hp, hubungan, is_kontak_utama, tertaut_at }]`
 - `PATCH /murid/{id}/wali/{wali_murid_id}` — SA — `{ hubungan?, is_kontak_utama? }` (minimal satu) → detail murid. Tepat satu kontak utama per murid: `is_kontak_utama: true` memindahkan kontak utama ke wali ini; `false` untuk kontak utama ditolak (422 `BUSINESS_RULE`), pilih wali lain sebagai kontak utama
 - `DELETE /murid/{id}/wali/{wali_murid_id}` — SA — lepas tautan
@@ -563,25 +623,25 @@ Untuk W: `"email": null`, `"username": "TA20260001"` (NIS anak), `wajib_ganti_pa
 - `GET /wali/anak` — W
 
 ### Keuangan
-- `GET|POST /jenis-tagihan`, `PUT|DELETE /jenis-tagihan/{id}` — SA (GET: K)
-- `GET|POST /keringanan`, `PUT|DELETE /keringanan/{id}` — K
-- `GET /tagihan` — K, G(scoped, read-only), W(anak sendiri) — filter status, periode (YYYY-MM), kelas_id, murid_id, jenis_tagihan_id
-- `GET /tagihan/{id}` — K, G(scoped), W(anak sendiri) — termasuk riwayat pembayaran + rekening sekolah
-- `POST /tagihan` — K — tagihan sekali: `{ jenis_tagihan_id, murid_ids?: [], kelas_id?: , jatuh_tempo }` → `{ dibuat, dilewati }`. Murid yang sudah punya tagihan jenis itu (selain `dibatalkan`) dilewati
+- `GET|POST /jenis-tagihan`, `PUT|DELETE /jenis-tagihan/{id}` — SA (GET: Izin(keuangan, lihat)); perubahan dicatat di log aktivitas `jenis_tagihan`
+- `GET|POST /keringanan`, `PUT|DELETE /keringanan/{id}` — K (GET: Izin(keuangan, lihat)); perubahan dicatat di log aktivitas `keringanan`
+- `GET /tagihan` — Izin(keuangan, lihat) semua, G(scoped, read-only), W(anak sendiri) — filter status, periode (YYYY-MM), kelas_id, murid_id, jenis_tagihan_id
+- `GET /tagihan/{id}` — Izin(keuangan, lihat), G(scoped), W(anak sendiri) — termasuk riwayat pembayaran + rekening sekolah
+- `POST /tagihan` — K — dicatat di log aktivitas `tagihan` (event `dibuat_sekali`) — tagihan sekali: `{ jenis_tagihan_id, murid_ids?: [], kelas_id?: , jatuh_tempo }` → `{ dibuat, dilewati }`. Murid yang sudah punya tagihan jenis itu (selain `dibatalkan`) dilewati
 - `PUT /tagihan/{id}` — K — `{ jatuh_tempo?, potongan?, catatan? }`, boleh sebagian. `total = nominal - potongan` dihitung ulang; potongan maksimal nominal (total 0 → langsung `lunas`); jatuh tempo yang diubah tidak boleh sebelum hari ini, dan tagihan `terlambat` yang jatuh temponya dimundurkan kembali `belum_bayar`. Ditolak (422 `BUSINESS_RULE`) kalau tagihan `lunas`, `dibatalkan`, atau ada pembayaran `menunggu`
 - `POST /tagihan/generate` — SA — `{ periode: "YYYY-MM" }` → `{ dibuat, dilewati }` (idempoten; murid yang sudah punya tagihan jenis itu di periode itu dilewati, termasuk yang `dibatalkan`)
 - `PATCH /tagihan/{id}/batalkan` — SA — `{ alasan }`
 - `POST /tagihan/{id}/aktifkan` — SA — tagihan `dibatalkan` kembali ke `belum_bayar`, atau `terlambat` kalau jatuh temponya sudah lewat → tagihan. Ditolak (422 `BUSINESS_RULE`) kalau tagihan tidak berstatus `dibatalkan` atau murid sudah punya tagihan aktif lain untuk jenis dan periode yang sama (misalnya tagihan sekali pengganti). Tidak ada notifikasi ke wali
 - `POST /tagihan/{id}/pembayaran` — W (multipart: bukti wajib, tanggal_bayar, bank_pengirim, nama_pengirim) / K (`metode` tunai atau transfer, tanggal_bayar → langsung diterima; untuk transfer bukti, bank_pengirim, nama_pengirim opsional)
-- `GET /pembayaran` — K, W(sendiri) — filter status, metode, tanggal
-- `GET /pembayaran/{id}` — K, W(sendiri)
+- `GET /pembayaran` — Izin(keuangan, lihat), W(sendiri) — filter status, metode, tanggal
+- `GET /pembayaran/{id}` — Izin(keuangan, lihat), W(sendiri)
 - `POST /pembayaran/{id}/terima` — K
 - `POST /pembayaran/{id}/tolak` — K — `{ alasan }`
-- `GET /pembayaran/{id}/bukti` — K, W(sendiri) — file (stream)
-- `GET /pembayaran/{id}/kwitansi` — K, W(sendiri) — PDF (hanya status diterima)
-- `GET /laporan/keuangan?dari=&sampai=&kelas_id=` — K — ringkasan + per jenis + per bulan
-- `GET /laporan/keuangan/export?dari=&sampai=` — K — file .xlsx
-- `GET /laporan/tunggakan?kelas_id=` — K — daftar murid menunggak + total
+- `GET /pembayaran/{id}/bukti` — Izin(keuangan, lihat), W(sendiri) — file (stream)
+- `GET /pembayaran/{id}/kwitansi` — Izin(keuangan, lihat), W(sendiri) — PDF (hanya status diterima)
+- `GET /laporan/keuangan?dari=&sampai=&kelas_id=` — Izin(keuangan, lihat) — ringkasan + per jenis + per bulan
+- `GET /laporan/keuangan/export?dari=&sampai=` — Izin(keuangan, lihat) — file .xlsx
+- `GET /laporan/tunggakan?kelas_id=` — Izin(keuangan, lihat) — daftar murid menunggak + total
 
 ### Akademik & komunikasi
 - `GET /kegiatan?filter[kelas_id]=` — SA, G(scoped), W(kelas anak)
@@ -602,26 +662,26 @@ Untuk W: `"email": null`, `"username": "TA20260001"` (NIS anak), `wajib_ganti_pa
 - `POST /rapor/{id}/revisi` — SA — `{ catatan }`
 - `POST /rapor/{id}/tarik` — SA — `{ catatan }` — rapor `terbit` kembali ke `revisi` (`terbit_at` dikosongkan, wali tidak bisa melihatnya lagi), notifikasi `rapor_revisi` ke guru pembuat. Status lain ditolak (422 `BUSINESS_RULE`)
 - `GET /rapor/{id}/pdf` — SA, G(scoped), W(hanya terbit)
-- `GET /pengumuman` — semua — feed relevan untuk user (SA: semua)
+- `GET /pengumuman` — semua — feed relevan untuk user (SA dan Izin(pengumuman, lihat): semua, termasuk draft). Wali yang semua anaknya tidak aktif tidak melihat pengumuman target `semua` dan `wali_murid`
 - `GET /pengumuman/{id}` — sama
-- `POST /pengumuman` — SA (target apa pun), G (target `kelas` yang diampu / `murid` di kelasnya) — `{ judul, isi, target, kelas_ids?, murid_ids?, is_publik?, is_pinned?, publish: bool }`
-- `PUT|DELETE /pengumuman/{id}` — penulis, SA
+- `POST /pengumuman` — SA dan Izin(pengumuman, kelola) (target apa pun), G lain (target `kelas` yang diampu / `murid` di kelasnya) — `{ judul, isi, target, kelas_ids?, murid_ids?, is_publik?, is_pinned?, publish: bool }`
+- `PUT|DELETE /pengumuman/{id}` — penulis, SA, Izin(pengumuman, kelola)
 - `GET /agenda?bulan=YYYY-MM` — semua. `POST|PUT|DELETE` — SA
 - `GET /notifikasi` — semua. `GET /notifikasi/belum-dibaca` → `{ jumlah }`. `POST /notifikasi/{id}/baca`. `POST /notifikasi/baca-semua`
 
-**Bentuk notifikasi:** `{ id, jenis, judul, pesan, url, dibaca_at, created_at }`. `url` adalah path halaman FE di area penerima: `/dashboard/...` untuk wali murid, `/mudarris/...` untuk guru dan Kepala Sekolah (misal `/dashboard/tagihan/12` dan `/mudarris/tagihan/12`). Jenis: `tagihan_baru`, `tagihan_tertunda` (ke Kepsek: generate terjadwal dilewati karena bulan di luar tahun ajaran aktif), `pengingat_tagihan`, `tagihan_terlambat`, `pembayaran_masuk`, `pembayaran_diterima`, `pembayaran_ditolak`, `rapor_diajukan`, `rapor_revisi` (juga saat rapor terbit ditarik), `rapor_terbit`, `pengumuman_baru`, `pendaftaran_baru`, `pendaftaran_diproses`, `anak_tertaut`, `absensi_tercatat` (ke peserta setelah absen sendiri berhasil, termasuk izin, sakit, dan pulang lebih awal; `url` `/mudarris/absensi/riwayat`), `absensi_dikoreksi` (ke peserta saat Kepala Sekolah mengoreksi atau mencatat absensinya, kecuali Kepala Sekolah mengubah absensinya sendiri; `url` `/mudarris/absensi/riwayat?bulan=YYYY-MM`).
+**Bentuk notifikasi:** `{ id, jenis, judul, pesan, url, dibaca_at, created_at }`. `url` adalah path halaman FE di area penerima: `/dashboard/...` untuk wali murid, `/mudarris/...` untuk guru dan Kepala Sekolah (misal `/dashboard/tagihan/12` dan `/mudarris/tagihan/12`). Jenis: `tagihan_baru`, `tagihan_tertunda` (ke Kepsek: generate terjadwal dilewati karena bulan di luar tahun ajaran aktif), `pengingat_tagihan`, `tagihan_terlambat`, `pembayaran_masuk`, `pembayaran_diterima`, `pembayaran_ditolak`, `rapor_diajukan`, `rapor_revisi` (juga saat rapor terbit ditarik), `rapor_terbit`, `pengumuman_baru`, `pendaftaran_baru`, `pendaftaran_diproses`, `anak_tertaut`, `absensi_tercatat` (ke peserta setelah absen sendiri berhasil, termasuk izin, sakit, dan pulang lebih awal; `url` `/mudarris/absensi/riwayat`), `absensi_dikoreksi` (ke peserta saat Kepala Sekolah atau Izin(laporan_absensi, kelola) mengoreksi atau mencatat absensinya, kecuali Kepala Sekolah mengubah absensinya sendiri; judul menyebut pengoreksinya; `url` `/mudarris/absensi/riwayat?bulan=YYYY-MM`).
 
 ### Absensi
 - Peserta absensi = G (akun aktif) dan SA. W ditolak 403 `FORBIDDEN` di semua endpoint absensi.
 - `GET /absensi/hari-ini` — SA, G — `{ tanggal, waktu_server, hari_kerja, tanggal_libur, tanggal_mulai, lokasi: { latitude, longitude } | null, radius_meter, batas_akurasi_meter, masuk: { buka, batas_terlambat, tutup, terbuka, absensi }, pulang: { buka, tutup, terbuka, absensi, boleh_lebih_awal } }`. `hari_kerja` false kalau hari itu di luar `absensi.hari_kerja` atau termasuk tanggal libur (`tanggal_libur` true). `terbuka` = jam server sedang di dalam jam jenis itu pada hari kerja yang tidak sebelum `tanggal_mulai` (`absensi.tanggal_mulai`, bisa `null`). `absensi` = absensi milik pengguna untuk jenis itu hari ini, atau `null`. `pulang.boleh_lebih_awal` true kalau hari kerja, tidak sebelum `tanggal_mulai`, jam pulang belum buka, absen masuk hari ini `hadir` atau `terlambat`, dan belum absen pulang
 - `POST /absensi` — SA, G — multipart `{ jenis: masuk|pulang, status?: izin|sakit, latitude?, longitude?, akurasi? (meter), keterangan?, foto }` → 201, data absensi. Foto jpeg/png/webp maks 2 MB. Waktu dan tanggal selalu dari jam server. `latitude`, `longitude`, dan `akurasi` wajib kecuali `status` `izin`/`sakit`. `status` hanya untuk jenis `masuk` dan hanya `izin` atau `sakit` (dikirim untuk jenis `pulang` atau nilai lain → 422 `VALIDATION_ERROR`); kosong untuk absen masuk biasa. `keterangan` maks 500, wajib untuk izin dan sakit, opsional untuk absen lain kecuali pulang lebih awal. Ditolak 422 `BUSINESS_RULE` dengan pesan sebabnya kalau: lokasi sekolah belum diatur (tidak berlaku untuk izin dan sakit), hari ini sebelum `absensi.tanggal_mulai`, bukan hari kerja, tanggal libur, di luar jam jenis itu (kecuali pulang lebih awal), sudah absen jenis itu hari ini, absen pulang tanpa absen masuk `hadir` atau `terlambat` (absen masuk `tidak_hadir` dianggap belum absen; hari `izin` atau `sakit` tidak ada absen pulang), akurasi melebihi `absensi.batas_akurasi_meter`, atau jarak melebihi `absensi.radius_meter`. Status absen masuk biasa `terlambat` kalau jam server melewati `batas_terlambat` (dibandingkan per menit), selain itu `hadir`. **Izin dan sakit**: jenis `masuk` dengan `status` `izin`/`sakit` di dalam jam absen masuk; lokasi tidak diminta dan tidak diperiksa (koordinat, akurasi, dan jarak disimpan null walau dikirim); foto dan `keterangan` wajib; disimpan dengan status itu dan `waktu` jam server. **Pulang lebih awal** (tanpa persetujuan): absen pulang sebelum `jam_pulang.buka` (dibandingkan per menit) diterima kalau `keterangan` diisi dan absen masuk hari itu `hadir` atau `terlambat`; lokasi dan foto tetap diperiksa; barisnya `pulang_awal` true. Sebelum jam pulang buka tanpa `keterangan` → 422 `BUSINESS_RULE` dengan pesan untuk menulis alasan pulang lebih awal. Setelah jam pulang buka `keterangan` opsional dan `pulang_awal` false. Setiap absen yang berhasil mengirim notifikasi `absensi_tercatat` ke peserta. Rate limit 10/menit per user
-- `GET /absensi?bulan=YYYY-MM&jumlah_bulan=1|2|3&user_id=` — SA, G — riwayat satu peserta dalam `jumlah_bulan` bulan (bawaan 1) yang berakhir di `bulan` (default bulan berjalan), terbaru dulu, tanpa paginasi; `jumlah_bulan` lain → 422 `VALIDATION_ERROR`. G hanya miliknya (`user_id` peserta lain → 403 `FORBIDDEN`); SA boleh mengirim `user_id` peserta mana pun, default dirinya
-- `GET /absensi/{id}/foto` — pemilik, SA — file foto (stream, JPEG). Guru lain → 404 `NOT_FOUND`. Absensi tanpa foto (tidak hadir, atau foto sudah dihapus setelah masa simpan) → 404
-- `PATCH /absensi/{id}/koreksi` — SA — `{ status: hadir|terlambat|tidak_hadir|izin|sakit, catatan }` (catatan wajib) → data absensi dengan `catatan_koreksi`, `dikoreksi_oleh`, `dikoreksi_at`. Hanya untuk absen masuk; absen pulang atau status yang sama → 422 `BUSINESS_RULE`. Peserta mendapat notifikasi `absensi_dikoreksi`, kecuali Kepala Sekolah mengoreksi absensinya sendiri
-- `POST /absensi/koreksi` — SA — `{ user_id, tanggal, jenis?: masuk|pulang, status?: hadir|terlambat|izin|sakit, catatan }` (`jenis` bawaan `masuk`; `status` wajib untuk jenis `masuk` dan tidak boleh dikirim untuk jenis `pulang`, keduanya 422 `VALIDATION_ERROR`; catatan wajib) → 201, data absensi jenis itu dengan `waktu`, koordinat, akurasi, jarak, dan `keterangan` null, `ada_foto` false, `pulang_awal` false, `status` null untuk jenis `pulang`, serta `catatan_koreksi`, `dikoreksi_oleh`, `dikoreksi_at` terisi. Untuk peserta yang belum punya absensi jenis itu di tanggal tersebut, misalnya lupa absen masuk padahal masuk atau lupa absen pulang; jam tidak diperiksa. Ditolak 422 `BUSINESS_RULE` dengan pesan sebabnya kalau: akun bukan peserta absensi (guru nonaktif, wali murid), tanggal setelah hari ini, tanggal sebelum `absensi.tanggal_mulai`, bukan hari kerja, tanggal libur, untuk jenis `pulang` belum ada absen masuk `hadir` atau `terlambat` di tanggal itu (termasuk kalau absen masuknya `tidak_hadir`, `izin`, atau `sakit`; untuk `tidak_hadir` pesannya mengarahkan untuk mencatat atau mengoreksi absen masuk dulu), atau absensi jenis itu di tanggal itu sudah ada (absen masuk diubah lewat `PATCH /absensi/{id}/koreksi`). Dicatat di log aktivitas seperti koreksi biasa (dengan jenis, status sebelum `null`), dan peserta mendapat notifikasi `absensi_dikoreksi` kecuali Kepala Sekolah mencatat absensinya sendiri. Scheduler tidak menandai peserta yang absen masuknya dicatat di sini sebagai tidak hadir, dan baris ini tidak dihapus kalau tanggalnya kemudian ditambahkan ke tanggal libur. Setelah absensi hari ini dicatat di sini, peserta tidak bisa absen jenis itu sendiri hari itu; setelah absen masuk dicatat, peserta tetap bisa absen pulang di jam pulang. Hari dengan absen pulang yang dicatat di sini tidak dihitung `tidak_absen_pulang` di rekap
-- `GET /absensi/harian?tanggal=YYYY-MM-DD` — SA — absensi semua peserta di satu tanggal (default hari ini; tanggal setelah hari ini → 422 `VALIDATION_ERROR`) → `{ tanggal, hari_kerja, tanggal_libur, tanggal_mulai, peserta: [{ user: { id, nama, jabatan }, masuk: Absensi | null, pulang: Absensi | null }] }`, urut nama. `hari_kerja`, `tanggal_libur`, dan `tanggal_mulai` sama artinya dengan di `GET /absensi/hari-ini`. Peserta sama dengan rekap: guru dan Kepala Sekolah yang aktif, ditambah akun nonaktif yang punya absensi di tanggal itu
-- `GET /absensi/rekap?bulan=YYYY-MM&jumlah_bulan=1|2|3` — SA — rentang `jumlah_bulan` bulan (bawaan 1) yang berakhir di `bulan` (default bulan berjalan), misalnya `bulan=2026-10&jumlah_bulan=3` = Agustus sampai Oktober 2026; `jumlah_bulan` lain → 422 `VALIDATION_ERROR` → `[{ user: { id, nama, jabatan }, hadir, terlambat, izin, sakit, tidak_hadir, tidak_absen_pulang }]` untuk guru dan Kepala Sekolah yang aktif, ditambah akun nonaktif yang punya absensi di rentang itu. `tidak_absen_pulang` = hari dengan absen masuk `hadir`/`terlambat` tanpa absen pulang, dihitung setelah jam pulang hari itu tutup
-- `GET /absensi/rekap/export?bulan=YYYY-MM&jumlah_bulan=1|2|3` — SA — file .csv dengan isi yang sama (kolom Nama, Jabatan, Hadir, Terlambat, Izin, Sakit, Tidak Hadir, Tidak Absen Pulang), nama file `rekap-absensi-YYYY-MM.csv` untuk satu bulan atau `rekap-absensi-YYYY-MM-sampai-YYYY-MM.csv` untuk beberapa bulan
+- `GET /absensi?bulan=YYYY-MM&jumlah_bulan=1|2|3&user_id=` — SA, G — riwayat satu peserta dalam `jumlah_bulan` bulan (bawaan 1) yang berakhir di `bulan` (default bulan berjalan), terbaru dulu, tanpa paginasi; `jumlah_bulan` lain → 422 `VALIDATION_ERROR`. G tanpa izin hanya miliknya (`user_id` peserta lain → 403 `FORBIDDEN`); SA dan Izin(laporan_absensi, lihat) boleh mengirim `user_id` peserta mana pun, default dirinya
+- `GET /absensi/{id}/foto` — pemilik, SA, Izin(laporan_absensi, lihat) — file foto (stream, JPEG). Guru lain → 404 `NOT_FOUND`. Absensi tanpa foto (tidak hadir, atau foto sudah dihapus setelah masa simpan) → 404
+- `PATCH /absensi/{id}/koreksi` — Izin(laporan_absensi, kelola), tidak untuk absensinya sendiri kecuali SA (422 `BUSINESS_RULE`) — `{ status: hadir|terlambat|tidak_hadir|izin|sakit, catatan }` (catatan wajib) → data absensi dengan `catatan_koreksi`, `dikoreksi_oleh`, `dikoreksi_at`. Hanya untuk absen masuk; absen pulang atau status yang sama → 422 `BUSINESS_RULE`. Peserta mendapat notifikasi `absensi_dikoreksi`, kecuali Kepala Sekolah mengoreksi absensinya sendiri
+- `POST /absensi/koreksi` — Izin(laporan_absensi, kelola), tidak untuk absensinya sendiri kecuali SA (422 `BUSINESS_RULE`) — `{ user_id, tanggal, jenis?: masuk|pulang, status?: hadir|terlambat|izin|sakit, catatan }` (`jenis` bawaan `masuk`; `status` wajib untuk jenis `masuk` dan tidak boleh dikirim untuk jenis `pulang`, keduanya 422 `VALIDATION_ERROR`; catatan wajib) → 201, data absensi jenis itu dengan `waktu`, koordinat, akurasi, jarak, dan `keterangan` null, `ada_foto` false, `pulang_awal` false, `status` null untuk jenis `pulang`, serta `catatan_koreksi`, `dikoreksi_oleh`, `dikoreksi_at` terisi. Untuk peserta yang belum punya absensi jenis itu di tanggal tersebut, misalnya lupa absen masuk padahal masuk atau lupa absen pulang; jam tidak diperiksa. Ditolak 422 `BUSINESS_RULE` dengan pesan sebabnya kalau: akun bukan peserta absensi (guru nonaktif, wali murid), tanggal setelah hari ini, tanggal sebelum `absensi.tanggal_mulai`, bukan hari kerja, tanggal libur, untuk jenis `pulang` belum ada absen masuk `hadir` atau `terlambat` di tanggal itu (termasuk kalau absen masuknya `tidak_hadir`, `izin`, atau `sakit`; untuk `tidak_hadir` pesannya mengarahkan untuk mencatat atau mengoreksi absen masuk dulu), atau absensi jenis itu di tanggal itu sudah ada (absen masuk diubah lewat `PATCH /absensi/{id}/koreksi`). Dicatat di log aktivitas seperti koreksi biasa (dengan jenis, status sebelum `null`), dan peserta mendapat notifikasi `absensi_dikoreksi` kecuali Kepala Sekolah mencatat absensinya sendiri. Scheduler tidak menandai peserta yang absen masuknya dicatat di sini sebagai tidak hadir, dan baris ini tidak dihapus kalau tanggalnya kemudian ditambahkan ke tanggal libur. Setelah absensi hari ini dicatat di sini, peserta tidak bisa absen jenis itu sendiri hari itu; setelah absen masuk dicatat, peserta tetap bisa absen pulang di jam pulang. Hari dengan absen pulang yang dicatat di sini tidak dihitung `tidak_absen_pulang` di rekap
+- `GET /absensi/harian?tanggal=YYYY-MM-DD` — Izin(laporan_absensi, lihat) — absensi semua peserta di satu tanggal (default hari ini; tanggal setelah hari ini → 422 `VALIDATION_ERROR`) → `{ tanggal, hari_kerja, tanggal_libur, tanggal_mulai, peserta: [{ user: { id, nama, jabatan }, masuk: Absensi | null, pulang: Absensi | null }] }`, urut nama. `hari_kerja`, `tanggal_libur`, dan `tanggal_mulai` sama artinya dengan di `GET /absensi/hari-ini`. Peserta sama dengan rekap: guru dan Kepala Sekolah yang aktif, ditambah akun nonaktif yang punya absensi di tanggal itu
+- `GET /absensi/rekap?bulan=YYYY-MM&jumlah_bulan=1|2|3` — Izin(laporan_absensi, lihat) — rentang `jumlah_bulan` bulan (bawaan 1) yang berakhir di `bulan` (default bulan berjalan), misalnya `bulan=2026-10&jumlah_bulan=3` = Agustus sampai Oktober 2026; `jumlah_bulan` lain → 422 `VALIDATION_ERROR` → `[{ user: { id, nama, jabatan }, hadir, terlambat, izin, sakit, tidak_hadir, tidak_absen_pulang }]` untuk guru dan Kepala Sekolah yang aktif, ditambah akun nonaktif yang punya absensi di rentang itu. `tidak_absen_pulang` = hari dengan absen masuk `hadir`/`terlambat` tanpa absen pulang, dihitung setelah jam pulang hari itu tutup
+- `GET /absensi/rekap/export?bulan=YYYY-MM&jumlah_bulan=1|2|3` — Izin(laporan_absensi, lihat) — file .csv dengan isi yang sama (kolom Nama, Jabatan, Hadir, Terlambat, Izin, Sakit, Tidak Hadir, Tidak Absen Pulang), nama file `rekap-absensi-YYYY-MM.csv` untuk satu bulan atau `rekap-absensi-YYYY-MM-sampai-YYYY-MM.csv` untuk beberapa bulan
 - Pengaturan absensi dibaca dan diubah SA lewat `GET /pengaturan?grup=absensi` dan `PUT /pengaturan`. Tanggal yang baru ditambahkan ke `absensi.tanggal_libur` menghapus absensi `tidak_hadir` buatan scheduler yang belum dikoreksi pada tanggal itu (jumlahnya dicatat di log aktivitas)
 
 **Bentuk absensi:** `{ id, user_id, tanggal, jenis, status, waktu, latitude, longitude, akurasi_meter, jarak_meter, ada_foto, keterangan, pulang_awal, catatan_koreksi, dikoreksi_oleh: { id, nama } | null, dikoreksi_at }`. `status` null untuk absen pulang; `waktu`, koordinat, akurasi, dan jarak null untuk `tidak_hadir` dari scheduler dan absensi (masuk atau pulang) yang dicatat lewat `POST /absensi/koreksi`; izin dan sakit punya `waktu` dan foto, tetapi koordinat, akurasi, dan jarak null. `keterangan` = alasan dari peserta, null kalau tidak diisi. `pulang_awal` true hanya untuk absen pulang sebelum jam pulang buka. Foto diambil lewat `GET /absensi/{id}/foto` kalau `ada_foto`.
@@ -636,15 +696,15 @@ Untuk W: `"email": null`, `"username": "TA20260001"` (NIS anak), `wajib_ganti_pa
 - `POST /pendaftaran/{id}/tolak` — SA — `{ alasan }`
 
 ### CMS & pengaturan
-- `GET /pengaturan?grup=` — SA (K boleh baca grup keuangan). `grup`: `profil` | `landing` | `keuangan` | `ppdb` | `beranda` | `absensi`
-- `PUT /pengaturan` — SA — `{ items: { "profil.visi": "…", "landing.program": [ … ] } }` (validasi per kunci, termasuk `beranda.info_wali` dan grup `absensi`: jam masuk harus berurutan buka, batas terlambat, tutup, dan jam pulang tutup setelah buka). `ppdb.dibuka = true` ditolak kalau `ppdb.tahun_ajaran_id` kosong atau tahun ajarannya tidak ada
-- `POST /pengaturan/upload` — SA — gambar → `{ path, url }`
+- `GET /pengaturan?grup=` — SA; grup `profil`, `landing`, `beranda`: Izin(konten_website, lihat); grup `keuangan`: Izin(keuangan, lihat); tanpa `grup`, grup `ppdb` dan `absensi`: hanya SA (guru → 403 `FORBIDDEN`). `grup`: `profil` | `landing` | `keuangan` | `ppdb` | `beranda` | `absensi`
+- `PUT /pengaturan` — SA; guru dengan Izin(konten_website, kelola) hanya untuk kunci grup `profil`, `landing`, `beranda` (satu kunci grup lain menolak seluruh permintaan dengan 403 `FORBIDDEN`) — `{ items: { "profil.visi": "…", "landing.program": [ … ] } }` (validasi per kunci, termasuk `beranda.info_wali` dan grup `absensi`: jam masuk harus berurutan buka, batas terlambat, tutup, dan jam pulang tutup setelah buka). `ppdb.dibuka = true` ditolak kalau `ppdb.tahun_ajaran_id` kosong atau tahun ajarannya tidak ada
+- `POST /pengaturan/upload` — Izin(konten_website, kelola) — gambar → `{ path, url }`
 - Field gambar di pengaturan disimpan sebagai path. Di respons `GET /pengaturan` dan `GET /public/profil`, setiap field gambar mendapat pasangan `*_url`: kunci `profil.logo` disertai kunci `profil.logo_url`; `landing.hero` → `{ judul, subjudul, gambar, gambar_url, cta_teks }`; `landing.fasilitas[]` → `{ nama, deskripsi, gambar, gambar_url }`. Saat `PUT /pengaturan`, field `*_url` diabaikan. Di respons, `landing.hero` dan item `landing.program`/`landing.fasilitas`/`landing.keunggulan` selalu memuat semua field-nya; field opsional yang belum diisi bernilai `null`.
-- `GET|POST /galeri-album`, `PUT|DELETE /galeri-album/{id}` — SA. `GET /galeri-album` berisi `cover_url` dan `jumlah_foto` tanpa daftar foto
-- `GET /galeri-album/{id}` — SA — album + semua foto (termasuk album yang belum publik)
-- `POST /galeri-album/{id}/foto` — SA — `foto[]`
-- `PUT|DELETE /galeri-foto/{id}` — SA
-- `GET /log-aktivitas` — SA — filter user, jenis, tanggal
+- `GET|POST /galeri-album`, `PUT|DELETE /galeri-album/{id}` — Izin(konten_website, lihat) untuk GET, Izin(konten_website, kelola) untuk lainnya. `GET /galeri-album` berisi `cover_url` dan `jumlah_foto` tanpa daftar foto
+- `GET /galeri-album/{id}` — Izin(konten_website, lihat) — album + semua foto (termasuk album yang belum publik)
+- `POST /galeri-album/{id}/foto` — Izin(konten_website, kelola) — `foto[]`
+- `PUT|DELETE /galeri-foto/{id}` — Izin(konten_website, kelola)
+- `GET /log-aktivitas` — SA — filter user, jenis (`akun`, `guru`, `izin`, `wali`, `murid`, `jenis_tagihan`, `keringanan`, `tagihan`, `pembayaran`, `rapor`, `ppdb`, `pengaturan`, `absensi`), tanggal
 
 ---
 
@@ -705,16 +765,16 @@ src/
 - **Masuk dengan Google (guru dan Kepala Sekolah):** `/mudarris/login` memuat Google Identity Services lewat `next/script` dan menampilkan tombol resmi Google (`renderButton`, mode popup) dengan `NEXT_PUBLIC_GOOGLE_CLIENT_ID`. `credential` (ID token) dari callback dikirim ke `POST /api/auth/staff/google`; FE tidak membaca atau mengirim email sendiri, verifikasi sepenuhnya di BE. Tipe GIS ditulis minimal di `src/types/google-identity.d.ts` tanpa `any`. Halaman berisi satu form dalam kolom selebar maksimal 400 px (batas lebar tombol Google): kotak pesan, form email + password Kepala Sekolah (lihat password, "Lupa password?", tombol Masuk, keterangan bahwa password khusus Kepala Sekolah), pemisah "atau", tombol Google selebar kolom (lebar diukur dengan ResizeObserver, 200–400 px, dirender ulang saat berubah), lalu keterangan bahwa guru masuk dengan akun Google yang didaftarkan Kepala Sekolah. Tidak ada toggle; `?cara=password` dari tautan lama diabaikan. Selama salah satu cara masuk diproses, cara lain tidak bisa dipakai. Penanganan: 422 (token tidak sah, email tidak terdaftar, akun Google berbeda) → pesan backend di kotak pesan di atas form (dipakai bersama login password); `ACCOUNT_INACTIVE` → pesan backend; 429 → hitung mundur, tombol Google disembunyikan selama hitungan; 503 → pesan backend; jendela Google ditutup atau tidak terbuka (dipantau dari fokus halaman, karena GIS tidak memberi tahu) → petunjuk; skrip Google gagal dimuat atau Client ID kosong → pesan, Kepala Sekolah tetap bisa memakai password.
 - Semua request data dari browser lewat `/api/proxy/[...path]` yang menambahkan `Authorization: Bearer` dari cookie dan meneruskan method, query, body (termasuk multipart) dan **stream file** (PDF, bukti, export Excel) apa adanya. Respons 401 dari BE → hapus cookie, FE redirect ke halaman login sesuai role (`/login` untuk wali, `/mudarris/login` untuk guru dan Kepala Sekolah).
 - Server Component yang butuh data boleh fetch langsung ke BE dengan token dari `cookies()`.
-- Route guard (middleware/proxy Next.js sesuai versi): `/dashboard/*` tanpa `tk_token` → `/login?next=...`, `/mudarris/*` (selain `/mudarris/login`, `/mudarris/lupa-password`, `/mudarris/reset-password`) tanpa `tk_token` → `/mudarris/login?next=...`. Sudah login buka `/login` atau `/mudarris/login` → beranda role (`/dashboard` untuk wali, `/mudarris` untuk guru dan Kepala Sekolah). Guru/Kepala Sekolah yang membuka `/dashboard/*` diarahkan ke path yang sama di `/mudarris/*` (tautan lama); wali yang membuka `/mudarris/*` diarahkan ke `/dashboard` dengan pesan akses ditolak. Layout tiap area memeriksa role dari `GET /auth/me`. Di dalam `/mudarris`, halaman khusus Kepala Sekolah atau petugas keuangan dicek di halamannya (redirect ke `/mudarris` + toast "Anda tidak punya akses ke halaman itu."). **Otorisasi sebenarnya tetap di BE**; FE hanya menyembunyikan menu & mencegah salah arah.
+- Route guard (middleware/proxy Next.js sesuai versi): `/dashboard/*` tanpa `tk_token` → `/login?next=...`, `/mudarris/*` (selain `/mudarris/login`, `/mudarris/lupa-password`, `/mudarris/reset-password`) tanpa `tk_token` → `/mudarris/login?next=...`. Sudah login buka `/login` atau `/mudarris/login` → beranda role (`/dashboard` untuk wali, `/mudarris` untuk guru dan Kepala Sekolah). Guru/Kepala Sekolah yang membuka `/dashboard/*` diarahkan ke path yang sama di `/mudarris/*` (tautan lama); wali yang membuka `/mudarris/*` diarahkan ke `/dashboard` dengan pesan akses ditolak. Layout tiap area memeriksa role dari `GET /auth/me`. Di dalam `/mudarris`, halaman khusus Kepala Sekolah atau yang butuh izin modul (A2.13) dicek di halamannya (redirect ke `/mudarris` + toast "Anda tidak punya akses ke halaman itu."). **Otorisasi sebenarnya tetap di BE**; FE hanya menyembunyikan menu & mencegah salah arah.
 - Penanganan kode error login: `ACCOUNT_INACTIVE` → pesan hubungi sekolah. Login password: 401/422 → satu pesan gagal login di atas form (tidak menyebut isian mana yang salah). 429 → hitung mundur dari header `Retry-After`, tombol Masuk nonaktif selama hitungan. Tombol Masuk juga nonaktif selama request berjalan.
 - **Ganti password wajib (wali):** kalau `user.wajib_ganti_password = true` (dari respons login atau `GET /auth/me`), semua halaman dashboard diarahkan ke `/dashboard/ganti-password` (tanpa menu, hanya form ganti password dan tombol Keluar). Respons API `PASSWORD_WAJIB_DIGANTI` di mana pun juga mengarah ke halaman itu. Setelah berhasil, sesi diambil ulang lalu wali diteruskan ke onboarding (kalau `profil_lengkap = false`) atau beranda.
-- Sesi user di React Query (`['me']` dari `GET /auth/me`), dengan hook `useSession()` → `{ user, role, isSuperAdmin, isGuru, isWali, bisaKelolaKeuangan, beranda }` (`beranda` = `/dashboard` atau `/mudarris`).
+- Sesi user di React Query (`['me']` dari `GET /auth/me`), dengan hook `useSession()` → `{ user, role, isSuperAdmin, isGuru, isWali, izin, beranda }` (`beranda` = `/dashboard` atau `/mudarris`; `izin` = `user.izin`, izin efektif per modul dari `GET /auth/me`). Cek izin selalu lewat `punyaIzin(sesi, modul, level)` di `lib/auth/role.ts` (SA selalu lolos, `kelola` mencakup `lihat`). Izin tidak di-cache di FE selain query `['me']`; setiap 403 `FORBIDDEN` meng-invalidate `['me']` supaya menu dan tombol langsung mengikuti izin terbaru.
 - Wali: jika `profil_lengkap = false` (dan password sudah diganti) → paksa ke `/dashboard/onboarding`. Onboarding mengirim `PUT /wali/profil` dengan `nama` dan `no_hp` wajib di setiap permintaan. Jika belum punya anak (tautan dilepas Kepala Sekolah) → beranda menampilkan empty state "Tambah Anak" / "Daftar PPDB".
 - **Anak aktif** (wali dengan >1 anak): `AnakSwitcher` di topbar, pilihan disimpan di cookie `tk_anak` dan dikirim sebagai `murid_id` ke endpoint terkait.
 
 ## B4. Peta route & akses
 
-`SA` = super admin, `G` = guru, `K` = petugas keuangan (SA atau guru `bisa_kelola_keuangan`), `W` = wali murid.
+`SA` = super admin, `G` = guru, `K` = petugas keuangan (SA atau guru dengan izin `keuangan` `kelola`), `W` = wali murid. `Izin(modul, level)` = SA atau guru dengan izin itu (A2.13); guru dengan izin `lihat` saja membuka halaman yang sama dalam mode baca (tombol aksi disembunyikan, form CMS dinonaktifkan).
 
 **Publik:** `/`, `/pengumuman`, `/pengumuman/[slug]`, `/galeri`, `/galeri/[slug]`, `/ppdb` (info), `/ppdb/daftar` (form pendaftaran multi-step tanpa login, hasilnya kode pendaftaran), `/ppdb/status` (cek status dengan kode + tanggal lahir anak), `/login` (khusus wali murid: NIS anak + password tanpa pilihan role; keterangan "Username adalah NIS anak. Password awal adalah tanggal lahir anak (DDMMYYYY)."), `/mudarris/login` (guru dan Kepala Sekolah: satu form, email + password Kepala Sekolah dengan lupa password di atas, pemisah "atau", lalu tombol Masuk dengan Google selebar form; tanpa tautan ke login wali; tidak ditautkan mencolok dari landing atau `/login`, hanya tautan kecil di footer), `/mudarris/lupa-password` (hanya Kepala Sekolah), `/mudarris/reset-password` (tautan dari email). Alamat yang tidak dikenal di `/dashboard` dan `/mudarris` membalas status HTTP 404 di dalam kerangka area masing-masing untuk pengguna yang sudah masuk.
 
@@ -727,38 +787,41 @@ src/
 | `/dashboard/onboarding` | | | ✓ | Lengkapi profil wali (nama, no HP wajib; alamat, pekerjaan, NIK) |
 | `/dashboard/anak` | | | ✓ | Kartu anak + form Tambah Anak (NIS + tanggal lahir + hubungan) |
 | `/mudarris/kelas`, `/[id]` | ✓ | ✓ scoped | | Daftar kelas, detail + murid + penempatan (SA) |
-| `/mudarris/murid`, `/[id]` | ✓ | ✓ scoped | | Tabel murid, detail (profil, kelas, wali, tagihan, rapor). SA: CRUD, unduh/cetak kartu akun wali (PDF; pesan backend kalau ditolak), ubah hubungan & kontak utama wali, lepas tautan |
-| `/mudarris/guru`, `/baru`, `/[id]` | ✓ | | | Tab "Aktif" / "Nonaktif"; tambah guru dengan nama + email Google (tanpa password); ubah data, aktif/nonaktifkan (tanpa hapus), izin keuangan, tampil di landing; tombol "Reset tautan Google" dengan dialog konfirmasi, hanya untuk guru dengan `terhubung_google` |
+| `/mudarris/murid`, `/[id]` | ✓ | ✓ scoped | | Tabel murid (filter status, badge status), detail (profil, kelas, wali, tagihan, rapor, riwayat status). Izin(data_murid, lihat): semua murid. Izin(data_murid, kelola): CRUD, Ubah Status (satu murid, terpilih massal, atau Luluskan Kelas), unduh/cetak kartu akun wali (PDF; pesan backend kalau ditolak). SA: ubah hubungan & kontak utama wali, lepas tautan |
+| `/mudarris/murid/import` | ✓ | Izin(data_murid, kelola) | | Wizard 3 langkah: unduh template, unggah .xlsx/.csv (maks 2 MB, 500 baris), pratinjau per baris valid/bermasalah dengan alasan, impor baris valid; hasil + unduh CSV baris gagal |
+| `/mudarris/alumni` | ✓ | Izin(data_murid, lihat) | | Murid berstatus lulus: filter tahun lulus + cari nama/NIS/NISN; tombol Import Data Alumni untuk Izin(data_murid, kelola) |
+| `/mudarris/guru`, `/baru`, `/[id]` | ✓ | | | Tab "Aktif" / "Nonaktif"; tambah guru dengan nama + email Google (tanpa password); ubah data, aktif/nonaktifkan (tanpa hapus), tampil di landing; ringkasan hak akses dengan tautan ke Hak Akses Guru; tombol "Reset tautan Google" dengan dialog konfirmasi, hanya untuk guru dengan `terhubung_google` |
+| `/mudarris/hak-akses` | ✓ | | | Hak Akses Guru: tabel guru aktif dengan izin per modul, dialog atur izin (tidak ada / lihat / kelola per modul) dan terapkan preset |
 | `/mudarris/wali-murid`, `/[id]` | ✓ | | | Daftar wali (cari nama/NIS/no HP) + anak tertaut; detail: ubah data wali, aktif/nonaktif, reset password ke password awal |
 | `/mudarris/tahun-ajaran` | ✓ | | | CRUD + aktifkan + wizard kenaikan kelas |
 | `/dashboard/tagihan`, `/[id]` (W); `/mudarris/tagihan`, `/[id]` (SA, G) | ✓ | ✓ read-only | ✓ | K: tabel semua tagihan + filter + buat tagihan sekali + generate manual + ubah jatuh tempo/potongan/catatan; SA: batalkan dan aktifkan kembali. G: status kelasnya. W: kartu tagihan anak aktif, detail + rekening sekolah + form upload bukti |
-| `/dashboard/pembayaran` (W); `/mudarris/pembayaran` (SA, G) | K | | ✓ | K: antrean verifikasi (preview bukti besar, terima/tolak dengan alasan) + catat tunai + riwayat. W: riwayat + unduh kwitansi |
+| `/dashboard/pembayaran` (W); `/mudarris/pembayaran` (SA, G) | ✓ | Izin(keuangan, lihat) | ✓ | Izin lihat: antrean dan riwayat tanpa tombol aksi. K: antrean verifikasi (preview bukti besar, terima/tolak dengan alasan) + catat tunai + riwayat. W: riwayat + unduh kwitansi |
 | `/mudarris/keuangan/jenis-tagihan` | ✓ | | | CRUD |
-| `/mudarris/keuangan/keringanan` | K | | | CRUD |
-| `/mudarris/keuangan/laporan` | K | | | Filter rentang tanggal, ringkasan, grafik per bulan & per jenis, export Excel |
-| `/mudarris/keuangan/tunggakan` | K | | | Daftar penunggak + tombol "Kirim pengumuman" (prefill target murid) |
+| `/mudarris/keuangan/keringanan` | ✓ | Izin(keuangan, lihat) | | CRUD untuk K, daftar saja untuk izin lihat |
+| `/mudarris/keuangan/laporan` | ✓ | Izin(keuangan, lihat) | | Filter rentang tanggal, ringkasan, grafik per bulan & per jenis, export Excel |
+| `/mudarris/keuangan/tunggakan` | ✓ | Izin(keuangan, lihat) | | Daftar penunggak + tombol "Kirim pengumuman" (prefill target murid) |
 | `/dashboard/kegiatan`, `/[id]` (W); `/mudarris/kegiatan`, `/baru`, `/[id]` (SA, G) | ✓ | ✓ | ✓ lihat | Feed kegiatan (kartu foto), form dengan multi-upload, detail dengan galeri + lightbox |
 | `/dashboard/rapor`, `/[id]` (W); `/mudarris/rapor`, `/[id]` (SA, G) | ✓ | ✓ | ✓ terbit | G: pilih kelas & semester → daftar murid + status rapor → editor. SA: tab "Menunggu Review" → terbitkan / minta revisi. W: daftar rapor terbit + unduh PDF |
-| `/dashboard/pengumuman`, `/[id]` (W); `/mudarris/pengumuman`, `/baru`, `/[id]` (SA, G) | ✓ | ✓ | ✓ lihat | Feed; form Tiptap + pemilih target (kelas/murid, dibatasi untuk guru) + publik/pin/draft |
+| `/dashboard/pengumuman`, `/[id]` (W); `/mudarris/pengumuman`, `/baru`, `/[id]` (SA, G) | ✓ | ✓ | ✓ lihat | Feed; form Tiptap + pemilih target (kelas/murid dibatasi untuk guru; Izin(pengumuman, kelola) membuka semua target) + publik/pin/draft. Wali yang anaknya sudah tidak aktif tidak menerima target semua/wali murid |
 | `/dashboard/agenda` (W); `/mudarris/agenda` (SA, G) | ✓ kelola | ✓ | ✓ | Kalender bulanan + daftar; SA bisa tambah/edit |
 | `/dashboard/ppdb`, `/daftar`, `/[id]` (W); `/mudarris/ppdb`, `/[id]` (SA, G) | ✓ | | ✓ | W: daftar pendaftarannya + form multi-step (`/daftar`, sama dengan form publik) untuk kakak/adik. SA: tabel pendaftar, detail dokumen, verifikasi/terima (pilih kelas)/tolak |
-| `/mudarris/website` | ✓ | | | **CMS landing page** (B7) |
-| `/mudarris/website/galeri` | ✓ | | | Album & foto |
-| `/mudarris/pengaturan` | ✓ | | | Tab: Rekening, Tagihan (jatuh tempo, pengingat), PPDB, Beranda Wali (banner `beranda.info_wali`), Elemen Penilaian |
+| `/mudarris/website` | ✓ | Izin(konten_website, lihat) | | **CMS landing page** (B7); izin lihat = mode baca |
+| `/mudarris/website/galeri` | ✓ | Izin(konten_website, lihat) | | Album & foto; tambah/ubah/hapus untuk izin kelola |
+| `/mudarris/pengaturan` | ✓ | Izin(konten_website, lihat) | | Tab: Rekening, Tagihan (jatuh tempo, pengingat), PPDB, Beranda Wali (banner `beranda.info_wali`), Elemen Penilaian. Guru hanya melihat tab Beranda Wali (ubah dengan izin kelola) |
 | `/mudarris/log-aktivitas` | ✓ | | | Tabel log + filter |
 | `/mudarris/absensi` | ✓ | ✓ | | Kartu status hari ini, tombol Absen Masuk / Absen Pulang sesuai jam, Izin atau Sakit, Pulang Lebih Awal, alur lokasi + swafoto (B9) |
 | `/mudarris/absensi/riwayat` | ✓ | ✓ | | Riwayat absensi pribadi per bulan dengan foto |
-| `/mudarris/absensi/rekap` | ✓ | | | Tab Harian (`?tanggal=`): semua peserta di satu tanggal dengan jam, foto, koreksi status, Catat Absen Masuk untuk yang belum absen, dan Catat Absen Pulang untuk yang belum absen pulang. Tab Bulanan: rekap 1, 2, atau 3 bulan per peserta (`?rentang=`), detail per hari dengan foto, koreksi status dengan catatan, Catat Absen Pulang, unduh CSV |
+| `/mudarris/absensi/rekap` | ✓ | Izin(laporan_absensi, lihat) | | Koreksi dan catat absen untuk izin kelola, tidak berlaku untuk absensi sendiri. Tab Harian (`?tanggal=`): semua peserta di satu tanggal dengan jam, foto, koreksi status, Catat Absen Masuk untuk yang belum absen, dan Catat Absen Pulang untuk yang belum absen pulang. Tab Bulanan: rekap 1, 2, atau 3 bulan per peserta (`?rentang=`), detail per hari dengan foto, koreksi status dengan catatan, Catat Absen Pulang, unduh CSV |
 | `/mudarris/pengaturan/absensi` | ✓ | | | Peta lokasi sekolah + radius, input lat/lng, batas akurasi, jam masuk dan pulang, tanggal mulai absensi, hari kerja, tanggal libur, masa simpan foto |
 | `/dashboard/notifikasi` (W); `/mudarris/notifikasi` (SA, G) | ✓ | ✓ | ✓ | Semua notifikasi, tandai dibaca |
 | `/dashboard/profil` (W); `/mudarris/profil` (SA, G) | ✓ | ✓ | ✓ | Edit profil, avatar, ganti password (SA dan W; G melihat keterangan akun Google karena tidak punya password); W juga alamat, pekerjaan, NIK |
 
-Menu sidebar dibangun dari 1 konfigurasi (`lib/navigation.ts`) berisi `roles` dan `requiresKeuangan`, dikelompokkan: Utama, Akademik, Keuangan, Sekolah, Website & Pengaturan.
+Menu sidebar dibangun dari 1 konfigurasi (`lib/navigation.ts`) berisi `roles` dan `izin` (`[modul, level]`, menu tampil untuk guru yang punya izin itu), dikelompokkan: Utama, Akademik, Keuangan, Sekolah, Website & Pengaturan.
 
 ## B5. Beranda dashboard per role (dari `GET /dashboard`)
 
 - **SA:** kartu statistik (murid aktif, guru aktif, kelas, wali), kartu keuangan bulan ini (tagihan, terbayar, belum, % lunas dengan progress), grafik pemasukan 12 bulan, **panel "Perlu Tindakan"** (pembayaran menunggu verifikasi, rapor menunggu review, pendaftar PPDB baru — masing-masing klik ke halaman terkait), pengumuman terbaru, agenda mendatang.
-- **G:** sapaan + kelas yang diampu (kartu dengan jumlah murid), progres rapor (bar per status), kegiatan terakhir, pengumuman, agenda, ringkasan lunas/belum kelasnya. Jika guru `bisa_kelola_keuangan`, tampilkan juga kartu pembayaran menunggu verifikasi.
+- **G:** sapaan + kelas yang diampu (kartu dengan jumlah murid), progres rapor (bar per status), kegiatan terakhir, pengumuman, agenda, ringkasan lunas/belum kelasnya. Jika guru punya izin `keuangan` `kelola`, tampilkan juga kartu pembayaran menunggu verifikasi.
 - **W:** kartu anak aktif (foto, nama panggilan, kelas), **kartu tagihan paling menonjol** (total belum dibayar + tombol "Bayar Sekarang"; merah jika terlambat), kegiatan kelas terbaru (foto), pengumuman, agenda, rapor terbaru.
 
 ## B6. Integrasi API & mode mock
@@ -766,12 +829,12 @@ Menu sidebar dibangun dari 1 konfigurasi (`lib/navigation.ts`) berisi `roles` da
 - Client: `openapi-fetch` dengan `paths` dari `src/types/api.d.ts`, baseUrl `/api/proxy`. Script `npm run gen:api` = `openapi-typescript ${BE_REPO_PATH_OR_URL}/api.json -o src/types/api.d.ts`.
 - **Sebelum `api.json` tersedia:** tulis tipe manual di `src/types/domain.ts` persis sesuai A7, dan aktifkan mode mock `NEXT_PUBLIC_USE_MOCK=true` (data contoh di `src/mocks/` dengan bentuk respons A7, termasuk pagination & error). Setiap hook API harus bisa jalan di mode mock dan mode asli **tanpa mengubah komponen**. Catat di `dokumentasi.md` endpoint mana yang masih mock. Setelah `api.json` ada, generate tipe dan sesuaikan `domain.ts` agar merujuk ke tipe hasil generate.
 - Query key terpusat (`lib/api/query-keys.ts`), invalidasi yang benar setelah mutasi (misal terima pembayaran → invalidate tagihan, pembayaran, dashboard).
-- Error handling terpusat: `VALIDATION_ERROR` → petakan `errors` ke field react-hook-form; `PASSWORD_WAJIB_DIGANTI` → `/dashboard/ganti-password` (B3); error lain → toast `message`. 403/404 → halaman "Tidak ditemukan / tidak punya akses" yang ramah.
+- Error handling terpusat: `VALIDATION_ERROR` → petakan `errors` ke field react-hook-form; `PASSWORD_WAJIB_DIGANTI` → `/dashboard/ganti-password` (B3); error lain → toast `message`. 403 `FORBIDDEN` saat memuat data → `GalatMuat` menampilkan pesan backend (izin yang perlu diminta) dan tautan ke beranda, lalu sesi diambil ulang. 403/404 halaman → halaman "Tidak ditemukan / tidak punya akses" yang ramah.
 - Unggahan multipart (PPDB, bukti transfer, foto) dikirim lewat `openapi-fetch` dengan `bodySerializer` yang membentuk `FormData`. `gen:api` mengubah field `format: binary` menjadi `Blob` supaya `File` bisa dipakai di body tanpa cast.
 - Badge notifikasi: polling `GET /notifikasi/belum-dibaca` tiap 60 detik (hanya saat tab aktif).
 - File private: tampilkan dari `*_url` yang dikirim BE (sudah signed). Unduhan PDF/Excel lewat `/api/proxy/...` dengan nama file yang rapi.
 
-## B7. CMS landing page (hanya Super Admin)
+## B7. CMS landing page (Super Admin dan guru dengan izin `konten_website`)
 
 Halaman `/dashboard/website` dengan tab:
 1. **Profil Sekolah** — nama, NPSN, alamat, telepon, email, embed Google Maps, logo (upload), visi, misi (list dinamis tambah/hapus/urutkan), sejarah & sambutan kepala sekolah (Tiptap).
@@ -813,7 +876,7 @@ Landing page berisi: navbar, hero, sambutan kepala sekolah, visi-misi, program, 
 - Pulang lebih awal: kalau `pulang.boleh_lebih_awal`, di bawah keterangan jam pulang muncul tombol Pulang Lebih Awal. Alurnya sama dengan absen pulang (lokasi dan foto) ditambah alasan wajib. Absen pulang dengan `pulang_awal` ditandai "Lebih awal" di kartu status dan "Pulang lebih awal" beserta alasannya di riwayat dan rekap.
 - Keterangan dari peserta (`keterangan`) tampil di kartu harian, terpisah dari catatan koreksi Kepala Sekolah. Koreksi Status dan Catat Absen Masuk menawarkan status Izin dan Sakit; tab Harian menghitung Izin dan Sakit; tab Bulanan menampilkan kolom Izin dan Sakit dan bisa memilih rentang 1, 2, atau 3 bulan yang berakhir di bulan terpilih (`jumlah_bulan`), termasuk detail per hari dan Unduh CSV.
 - Notifikasi `absensi_tercatat` dan `absensi_dikoreksi` memakai ikon dan nada sendiri di daftar notifikasi; tautannya membuka riwayat absensi.
-- Menu: "Absensi" (SA, G) di grup Utama, "Rekap Absensi" (SA) di grup Sekolah, "Pengaturan Absensi" (SA) di grup Website & Pengaturan.
+- Menu: "Absensi" (SA, G) di grup Utama, "Rekap Absensi" (SA dan guru dengan Izin(laporan_absensi, lihat)) di grup Sekolah, "Pengaturan Absensi" (SA, tidak bisa didelegasikan) di grup Website & Pengaturan.
 
 ---
 

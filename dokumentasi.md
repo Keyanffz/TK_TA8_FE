@@ -26,6 +26,7 @@ Website publik dan dashboard sistem informasi TK Tarbiyathul Athfal 8 (TK Muslim
 | Perapian sesuai Bagian C untuk revisi hari ini (branch `fe/rapikan-slop`) | Selesai, di-merge (PR #12) |
 | Flowchart A6 absensi (branch `fe/flowchart-a6`) | Selesai, di-merge (PR #13) |
 | Catat Absen Pulang untuk guru yang lupa absen pulang (branch `fe/absensi-pulang`) | Selesai, diuji di browser, di-merge (PR #8; backend PR #10) |
+| Hak akses guru, status murid, alumni, import murid (branch `fe/hak-akses-status-murid`) | Selesai, menunggu review dan uji tampilan oleh pemilik repo; belum di-commit (lihat "Keputusan hak akses guru dan status murid") |
 
 Mode mock tidak dipakai: `api.json` final dari backend sudah tersedia sejak Fase 1, jadi semua request memakai backend asli dan tipe hasil generate. Tidak ada endpoint mock.
 
@@ -367,6 +368,20 @@ Pengecekan nomor 24–30: `npm run lint`, `npm run typecheck`, `npm run build`, 
 
 Uji di browser (Chrome headless lewat skrip di luar repo, viewport HP 390 px, backend lokal): absen masuk sah dengan lokasi dan kamera tiruan (201, status terlambat pukul 08:39), Ambil Ulang, penolakan di luar area (peringatan di browser dan pesan backend 857 m), izin lokasi ditolak, kamera tidak tersedia lalu foto 3000×4000 lewat input file, riwayat, rekap dengan detail dan dialog koreksi (catatan wajib), pengaturan (ketuk peta, geser penanda, input manual, simpan, jam tidak urut ditolak di form), dan guru yang membuka rekap atau pengaturan diarahkan ke beranda. Uji ini menemukan tombol Ambil Foto yang aktif sebelum kamera siap (nomor 4). Yang belum diuji: HP sungguhan (GPS, kamera depan, Safari iOS, dialog izin asli), unduh CSV dari tombol di browser (endpoint-nya diuji lewat curl), dan absen pulang sampai tersimpan dari browser.
 
+## Keputusan hak akses guru dan status murid
+
+Kontrak lengkap ada di `docs/kontrak-api-fitur-baru.md` (salinan dari backend). Desain di A2.13, A2.14, A6, dan A7.
+
+- **Sumber izin**: `user.izin` dari `GET /auth/me` (izin efektif per modul, `null` kalau tidak punya). `useSession()` tidak lagi punya `bisaKelolaKeuangan`; semua cek lewat `punyaIzin(sesi, modul, level)` di `src/lib/auth/role.ts`. SA selalu lolos, `kelola` mencakup `lihat`.
+- **Menu**: `ItemMenu.izin` berisi `[modul, level]`. Item tampil kalau role ada di `roles`, atau user guru dengan izin itu. Menu baru: Alumni (grup Akademik) dan Hak Akses Guru (grup Sekolah, SA).
+- **Penjaga halaman**: setiap halaman yang butuh izin memanggil `wajibAkses((sesi) => punyaIzin(...))` di server, jadi guru tanpa izin yang membuka alamat langsung diarahkan ke `/mudarris` dengan toast. Halaman yang bisa dibuka dengan `lihat` menyembunyikan tombol aksi atau menonaktifkan form (`<fieldset disabled>` di CMS).
+- **Izin dicabut di tengah sesi**: backend langsung membalas 403 `FORBIDDEN` dengan pesan izin yang perlu diminta. `providers.tsx` meng-invalidate `['me']` pada setiap `FORBIDDEN`, sehingga menu dan tombol menyesuaikan tanpa muat ulang. `GalatMuat` menampilkan pesan backend dengan tautan ke beranda.
+- **Hak Akses Guru**: satu halaman SA berisi tabel guru aktif dan dialog per guru. Dialog menampilkan setiap modul dengan pilihan Tidak ada / Lihat / Kelola dan tombol preset. Simpan mengirim seluruh isian (`PUT /guru/{id}/izin`); preset langsung diterapkan (`POST /guru/{id}/izin/preset`). Daftar modul dan preset dibaca dari `GET /izin`, tidak ditulis ulang di FE selain label.
+- **Status murid**: Ubah Status memakai satu dialog untuk satu murid, murid terpilih, dan Luluskan Kelas. Isian menyesuaikan status (tahun lulus wajib untuk lulus, sekolah tujuan untuk pindah). Pesan hasil dari backend ditampilkan apa adanya.
+- **Import murid**: wizard tanpa state di server. File yang sama dikirim dua kali (pratinjau lalu simpan) dan diperiksa ulang oleh backend. Laporan baris gagal dibuat di browser sebagai CSV (kolom template + `alasan`, BOM UTF-8) sehingga bisa diperbaiki lalu diunggah ulang.
+- **Wali dengan anak tidak aktif**: pemilih anak dan kartu anak menampilkan badge Lulus/Pindah/Keluar dari `user.wali_murid.anak[].status`. Data anak tetap bisa dibuka untuk tagihan lama dan rapor.
+- **Belum diuji di browser**: semua perubahan ini. Pemilik repo memeriksa tampilan sendiri.
+
 ## Temuan kontrak Fase 6
 
 - Sudah diperbaiki backend (dipakai di Fase 8): `PUT /kegiatan/{id}` sekarang `PerbaruiKegiatanRequest` (JSON, tanpa `kelas_id` dan `foto`), dan `PUT /murid/{id}` memakai `PerbaruiMuridRequest` dengan `status` wajib. Pembuangan `kelas_id` lewat `bodySerializer` sudah dihapus.
@@ -494,24 +509,27 @@ Andika hanya punya bobot 400 dan 700, jadi `font-semibold` tampil sebagai 700.
 | `/dashboard/ppdb` (W); `/mudarris/ppdb` (SA, G) | SA, W | SA: ringkasan status PPDB + tabel pendaftar per status. W: pendaftaran miliknya + tombol daftar |
 | `/dashboard/ppdb/daftar` | W | Form yang sama dengan form publik (`POST /pendaftaran`), nomor HP dan alamat terisi dari profil |
 | `/dashboard/ppdb/[id]` (W); `/mudarris/ppdb/[id]` (SA, G) | SA, W (miliknya) | Detail + dokumen; SA: verifikasi, terima (pilih kelas), tolak |
-| `/mudarris/website` | SA | CMS lima tab (`?tab=`), Lihat Pratinjau, penjaga perubahan belum disimpan |
-| `/mudarris/website/galeri`, `/[id]` | SA | Album galeri; detail album dengan kelola foto |
+| `/mudarris/website` | SA, G (`konten_website`; `lihat` = form nonaktif) | CMS lima tab (`?tab=`), Lihat Pratinjau, penjaga perubahan belum disimpan |
+| `/mudarris/website/galeri`, `/[id]` | SA, G (`konten_website`; kelola album dan foto untuk `kelola`) | Album galeri; detail album dengan kelola foto |
 | `/mudarris/log-aktivitas` | SA | Tabel log + saringan jenis dan tanggal |
 | `/dashboard/notifikasi` (W); `/mudarris/notifikasi` (SA, G) | SA, G, W | Semua notifikasi berpaginasi (`?page=`), saring belum dibaca (`?belum=true`), tandai semua dibaca |
 | `/dashboard/profil` (W); `/mudarris/profil` (SA, G) | SA, G, W | Nama, nomor HP, foto profil, ganti password (SA, W; guru melihat keterangan akun Google); wali juga alamat, pekerjaan, NIK (username NIS ditampilkan, tidak bisa diubah) |
-| `/mudarris/guru`, `/mudarris/guru/baru`, `/mudarris/guru/[id]` | SA | Daftar Aktif/Nonaktif; tambah guru dengan email Google (tanpa password); ubah data, foto, izin keuangan, tampil di landing, aktif/nonaktif (tanpa hapus); status akun Google dan Reset tautan Google |
+| `/mudarris/guru`, `/mudarris/guru/baru`, `/mudarris/guru/[id]` | SA | Daftar Aktif/Nonaktif dengan badge izin; tambah guru dengan email Google (tanpa password); ubah data, foto, tampil di landing, aktif/nonaktif (tanpa hapus); ringkasan hak akses + tautan ke Hak Akses Guru; status akun Google dan Reset tautan Google |
+| `/mudarris/hak-akses` | SA | Hak Akses Guru: tabel guru aktif dan izinnya per modul, dialog atur izin per modul (tidak ada / lihat / kelola) dan terapkan preset |
 | `/mudarris/tahun-ajaran`, `/mudarris/tahun-ajaran/kenaikan` | SA | Tambah/ubah/aktifkan/hapus; wizard kenaikan kelas |
 | `/mudarris/kelas`, `/mudarris/kelas/[id]` | SA, G (kelas diampu, tanpa aksi) | Kartu kelas per tahun ajaran; detail + murid; SA tambah/ubah/hapus kelas, tempatkan dan keluarkan murid |
-| `/mudarris/murid`, `/mudarris/murid/baru`, `/mudarris/murid/[id]`, `/mudarris/murid/[id]/ubah` | SA, G (murid kelasnya, lihat saja) | Tabel + saringan; detail, kartu akun, wali tertaut (ubah hubungan, kontak utama, lepas); tambah/ubah/hapus (SA) |
+| `/mudarris/murid`, `/mudarris/murid/baru`, `/mudarris/murid/[id]`, `/mudarris/murid/[id]/ubah` | SA, G (murid kelasnya, lihat saja; semua murid dengan izin `data_murid`) | Tabel + saringan status; detail, riwayat status, kartu akun, wali tertaut (ubah hubungan, kontak utama, lepas: SA). Izin `data_murid` `kelola`: tambah/ubah/hapus, Ubah Status satu murid, pilih beberapa murid lalu ubah status, Luluskan Kelas, Import Murid |
+| `/mudarris/murid/import` | SA, G (`data_murid` `kelola`) | Wizard: unduh template, unggah .xlsx/.csv, pratinjau per baris, impor baris valid, unduh CSV baris gagal |
+| `/mudarris/alumni` | SA, G (`data_murid` `lihat`) | Murid lulus, saringan tahun lulus + cari; tombol Import Data Alumni untuk izin `kelola` |
 | `/mudarris/wali-murid`, `/mudarris/wali-murid/[id]` | SA | Daftar wali; ubah data, aktif/nonaktif, reset password, anak tertaut |
-| `/mudarris/pengaturan` | SA | Tab Rekening, Tagihan, PPDB, Beranda Wali, Elemen Penilaian (`?tab=`) |
+| `/mudarris/pengaturan` | SA, G (`konten_website`, hanya tab Beranda Wali) | Tab Rekening, Tagihan, PPDB, Beranda Wali, Elemen Penilaian (`?tab=`) |
 | `/dashboard/tagihan` (W); `/mudarris/tagihan` (SA, G) | SA, G (kelasnya, lihat saja), W | W: kartu tagihan anak aktif. K: tabel + saringan, tagihan sekali bayar; SA juga generate bulanan |
 | `/dashboard/tagihan/[id]` (W); `/mudarris/tagihan/[id]` (SA, G) | SA, G, W | Detail, riwayat pembayaran, kwitansi. W: rekening sekolah + unggah bukti. K: catat pembayaran, ubah, terima/tolak. SA: batalkan, aktifkan kembali |
-| `/dashboard/pembayaran` (W); `/mudarris/pembayaran` (SA, G) | K, W | K: antrean verifikasi + semua pembayaran dengan saringan. W: riwayat + kwitansi |
+| `/dashboard/pembayaran` (W); `/mudarris/pembayaran` (SA, G) | SA, G (`keuangan` `lihat`, tanpa aksi), W | K: antrean verifikasi + semua pembayaran dengan saringan. W: riwayat + kwitansi |
 | `/mudarris/keuangan/jenis-tagihan` | SA | Jenis tagihan per tahun ajaran |
-| `/mudarris/keuangan/keringanan` | K | Keringanan persen/rupiah per murid dan jenis tagihan |
-| `/mudarris/keuangan/laporan` | K | Ringkasan, grafik per bulan, tabel per bulan dan per jenis, unduh Excel |
-| `/mudarris/keuangan/tunggakan` | K | Murid dengan tagihan terlambat dan kontak walinya; tombol Kirim Pengumuman |
+| `/mudarris/keuangan/keringanan` | SA, G (`keuangan` `lihat`; ubah untuk K) | Keringanan persen/rupiah per murid dan jenis tagihan |
+| `/mudarris/keuangan/laporan` | SA, G (`keuangan` `lihat`) | Ringkasan, grafik per bulan, tabel per bulan dan per jenis, unduh Excel |
+| `/mudarris/keuangan/tunggakan` | SA, G (`keuangan` `lihat`) | Murid dengan tagihan terlambat dan kontak walinya; tombol Kirim Pengumuman |
 | `/dashboard/kegiatan` (W); `/mudarris/kegiatan` (SA, G) | SA, G, W (lihat) | SA/G: feed + saringan kelas + cari, tombol Catat Kegiatan. W: feed kelas anak aktif |
 | `/mudarris/kegiatan/baru` | SA, G | Form kegiatan + unggah foto (maks 10); `?kelas=` memilih kelas awal |
 | `/dashboard/kegiatan/[id]` (W); `/mudarris/kegiatan/[id]` (SA, G) | SA, G, W | Detail + galeri + lightbox; pembuat/SA: ubah, hapus, kelola foto (keterangan, urutan, hapus, tambah) |
@@ -523,12 +541,12 @@ Andika hanya punya bobot 400 dan 700, jadi `font-semibold` tampil sebagai 700.
 | `/dashboard/agenda` (W); `/mudarris/agenda` (SA, G) | SA (kelola), G, W | Kalender bulanan + daftar (`?bulan=`, `?hari=`); SA tambah/ubah/hapus |
 | `/mudarris/absensi` | SA, G | Status hari ini, tombol Absen Masuk / Absen Pulang, Izin atau Sakit, Pulang Lebih Awal, alur lokasi + swafoto, lima hari terakhir |
 | `/mudarris/absensi/riwayat` | SA, G | Riwayat pribadi per bulan (`?bulan=`) dengan foto |
-| `/mudarris/absensi/rekap` | SA | Tab Harian (bawaan, `?tanggal=`): semua peserta di satu tanggal, koreksi status, Catat Absen Masuk, Catat Absen Pulang. Tab Bulanan (`?tab=bulanan`): rekap per peserta untuk 1–3 bulan (`?bulan=`, `?rentang=`), detail per hari (`?peserta=`), koreksi status, Catat Absen Pulang, unduh CSV |
+| `/mudarris/absensi/rekap` | SA, G (`laporan_absensi` `lihat`; koreksi untuk `kelola`, kecuali absensi sendiri) | Tab Harian (bawaan, `?tanggal=`): semua peserta di satu tanggal, koreksi status, Catat Absen Masuk, Catat Absen Pulang. Tab Bulanan (`?tab=bulanan`): rekap per peserta untuk 1–3 bulan (`?bulan=`, `?rentang=`), detail per hari (`?peserta=`), koreksi status, Catat Absen Pulang, unduh CSV |
 | `/mudarris/pengaturan/absensi` | SA | Peta lokasi sekolah, radius, batas akurasi, jam, tanggal mulai, hari kerja, tanggal libur, masa simpan foto |
 | `/dashboard/*`, `/mudarris/*` lain | | 404 di dalam kerangka area masing-masing (`[...lainnya]`), status HTTP 404 |
 | `/api/auth/staff/google`, `/api/auth/staff/login`, `/api/auth/wali/login`, `/api/auth/logout`, `/api/auth/sesi-habis` | route handler | BFF sesi |
 | `/api/proxy/[...path]` | route handler | Proxy ke backend |
-| `/api/revalidate` | route handler (SA) | Buang cache data publik per tag setelah konten website disimpan |
+| `/api/revalidate` | route handler (SA, G dengan `konten_website` atau `pengumuman` `kelola`) | Buang cache data publik per tag setelah konten website disimpan |
 
 Route lain mengikuti B4 dan ditambahkan per fase. `/api/auth/me` tidak dibuat (disetujui di Fase 0): sesi dibaca lewat `/api/proxy/auth/me`. `/api/revalidate` (disetujui di Fase 0) dibuat di Fase 7 bersama penyimpanan CMS, memakai tag di `TAG_PUBLIK` (`src/lib/constants/sekolah.ts`).
 
@@ -558,6 +576,36 @@ Tempat deploy belum ditentukan. Syarat yang sudah pasti:
 6. **Masuk dengan Google**: `NEXT_PUBLIC_GOOGLE_CLIENT_ID` diisi sebelum `npm run build`, dan origin FE produksi (misalnya `https://tkta8.sch.id`) didaftarkan di Authorized JavaScript origins Client ID itu di Google Cloud Console. Backend memakai Client ID yang sama di `GOOGLE_CLIENT_ID`.
 
 ## Changelog
+
+### Hak akses guru, status murid, alumni, import murid (branch `fe/hak-akses-status-murid`)
+
+Diminta pemilik repo bersama perubahan backend di branch `be/hak-akses-status-murid`. Keputusan di "Keputusan hak akses guru dan status murid".
+
+File baru:
+- `docs/kontrak-api-fitur-baru.md` (salinan kontrak backend)
+- `src/lib/api/izin.ts`
+- `src/components/features/hak-akses/{daftar-hak-akses, dialog-izin-guru}.tsx`, `src/app/mudarris/(halaman)/hak-akses/page.tsx`
+- `src/components/features/murid/{dialog-ubah-status, riwayat-status, luluskan-kelas, daftar-alumni}.tsx`, `src/app/mudarris/(halaman)/alumni/page.tsx`
+- `src/components/features/murid/import/{wizard-import, tabel-pratinjau, hasil-import}.tsx`, `src/app/mudarris/(halaman)/murid/import/page.tsx`
+
+File yang diubah:
+- Tipe dan sesi: `src/types/api.d.ts` (`npm run gen:api`), `src/types/domain.ts`, `src/lib/auth/role.ts`, `src/lib/navigation.ts`, `src/lib/api/query-keys.ts`, `src/lib/constants/label.ts`, `src/components/providers.tsx`, `src/components/shared/galat-muat.tsx`, `src/app/api/revalidate/route.ts`
+- Guru: `src/components/features/guru/{daftar-guru, detail-guru, form-guru}.tsx`, `src/app/mudarris/(halaman)/guru/page.tsx`
+- Murid: `src/lib/api/murid.ts`, `src/components/features/murid/{daftar-murid, detail-murid, form-murid}.tsx`, `src/app/mudarris/(halaman)/murid/{page, baru/page, [id]/page, [id]/ubah/page}.tsx`, `src/components/features/ppdb/penanda-langkah.tsx` (prop `label`)
+- Keuangan: `src/app/mudarris/(halaman)/{tagihan/page, tagihan/[id]/page, pembayaran/page, keuangan/keringanan/page, keuangan/laporan/page, keuangan/tunggakan/page}.tsx`, `src/components/features/tagihan/detail-tagihan.tsx`, `src/components/features/pembayaran/{pembayaran-sekolah, antrean-verifikasi}.tsx`, `src/components/features/keuangan/daftar-keringanan.tsx`
+- Pengumuman: `src/lib/api/pengumuman.ts`, `src/components/features/pengumuman/{form-pengumuman, detail-pengumuman, pengumuman-baru}.tsx`, `src/app/mudarris/(halaman)/pengumuman/{page, baru/page}.tsx`
+- Website dan pengaturan: `src/app/mudarris/(halaman)/{website/page, website/galeri/page, website/galeri/[id]/page, pengaturan/page}.tsx`, `src/components/features/website/halaman-website.tsx`, `src/components/features/galeri-sekolah/detail-album.tsx`, `src/components/features/pengaturan/halaman-pengaturan.tsx`, `src/lib/api/pengaturan-dashboard.ts`
+- Absensi: `src/app/mudarris/(halaman)/absensi/{page, rekap/page}.tsx`, `src/components/features/absensi/{halaman-absensi, rekap-absensi, rekap-harian, dialog-koreksi-absensi}.tsx`
+- Wali: `src/components/layout/dashboard/anak-switcher.tsx`, `src/components/features/wali/daftar-anak.tsx`
+- Log aktivitas: `src/components/features/log-aktivitas/tabel-log-aktivitas.tsx` (jenis `izin`, `murid`, `jenis_tagihan`, `keringanan`, `absensi`)
+- `PROMPT_FE_TK.md`: Bagian A disalin dari backend (A2.13, A2.14, A6, A7 baru), Bagian B3, B4, B5, B6, B7, B9 menyesuaikan izin
+- `dokumentasi.md`
+
+`next.config.ts` (izin origin `*.trycloudflare.com`) sudah berubah sebelum pekerjaan ini dan tidak disentuh.
+
+Hasil pengecekan: `npm run typecheck`, `npm run lint`, `npm run build`, dan `npm run check:slop` tanpa temuan. Belum diuji di browser.
+
+Pemeriksaan ulang 19 Oktober terhadap perintah awal: dialog Ubah Status memuat daftar kelas hanya saat dialog Luluskan Kelas dibuka (sebelumnya setiap dialog Ubah Status, termasuk di detail murid, ikut memuat daftar kelas), dengan keterangan saat memuat dan pesan kalau gagal; `BodyUbahStatusMassal` tidak lagi diekspor karena hanya dipakai di `src/lib/api/murid.ts`. Setelahnya `npm run typecheck`, `npm run lint`, `npm run build`, dan `npm run check:slop` tanpa temuan; test backend (1087), Pint, PHPStan, dan `check:slop` backend juga dijalankan ulang tanpa temuan.
 
 ### Redirect `/api/auth/sesi-habis` relatif (branch `fe/sesi-habis-relatif`)
 
