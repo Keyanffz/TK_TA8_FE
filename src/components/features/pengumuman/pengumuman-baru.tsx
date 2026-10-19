@@ -5,6 +5,7 @@ import { GalatMuat } from "@/components/shared/galat-muat";
 import { KotakPesan } from "@/components/shared/kotak-pesan";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useLaporanTunggakan } from "@/lib/api/laporan";
+import { punyaIzin } from "@/lib/auth/role";
 import { useSession } from "@/lib/auth/use-session";
 import { formatRupiah } from "@/lib/format";
 
@@ -18,18 +19,19 @@ const ISI_TUNGGAKAN =
 
 /**
  * Pengumuman untuk wali murid yang menunggak (B4, tombol "Kirim pengumuman" di halaman Tunggakan).
- * Murid diambil dari laporan tunggakan dengan saringan kelas yang sama; guru petugas keuangan hanya
+ * Murid diambil dari laporan tunggakan dengan saringan kelas yang sama; guru tanpa izin kelola pengumuman hanya
  * boleh menyasar murid di kelas yang dia ampu, jadi murid kelas lain tidak ikut dipilih.
  */
 function PengumumanTunggakan({ kelasId }: { kelasId: number | null }) {
-  const { user, isSuperAdmin } = useSession();
+  const sesi = useSession();
+  const bebasTarget = punyaIzin(sesi, "pengumuman", "kelola");
   const tunggakan = useLaporanTunggakan(kelasId);
 
   if (tunggakan.isPending) return <Skeleton aria-label="Memuat daftar tunggakan" className="h-96 rounded-xl" />;
   if (tunggakan.isError) return <GalatMuat error={tunggakan.error} onCobaLagi={() => void tunggakan.refetch()} />;
 
-  const kelasDiampu = new Set((user?.guru?.kelas_diampu ?? []).map((kelas) => kelas.id));
-  const murid = tunggakan.data.murid.filter((item) => isSuperAdmin || (item.kelas !== null && kelasDiampu.has(item.kelas.id)));
+  const kelasDiampu = new Set((sesi.user?.guru?.kelas_diampu ?? []).map((kelas) => kelas.id));
+  const murid = tunggakan.data.murid.filter((item) => bebasTarget || (item.kelas !== null && kelasDiampu.has(item.kelas.id)));
   const dilewati = tunggakan.data.murid.length - murid.length;
 
   return (
@@ -54,7 +56,7 @@ function PengumumanTunggakan({ kelasId }: { kelasId: number | null }) {
 }
 
 export function PengumumanBaru({ dariTunggakan, kelasId }: { dariTunggakan: boolean; kelasId: number | null }) {
-  const { isSuperAdmin } = useSession();
+  const bebasTarget = punyaIzin(useSession(), "pengumuman", "kelola");
   if (dariTunggakan) return <PengumumanTunggakan kelasId={kelasId} />;
-  return <FormPengumuman id={null} sudahTerbit={false} awal={isSuperAdmin ? KOSONG : { ...KOSONG, target: "kelas" }} />;
+  return <FormPengumuman id={null} sudahTerbit={false} awal={bebasTarget ? KOSONG : { ...KOSONG, target: "kelas" }} />;
 }

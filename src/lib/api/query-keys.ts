@@ -30,7 +30,9 @@ export const queryKeys = {
     semua: ["murid"] as const,
     daftar: (filter: object) => ["murid", "daftar", filter] as const,
     detail: (id: number) => ["murid", "detail", id] as const,
+    tahunLulus: ["murid", "tahun-lulus"] as const,
   },
+  izin: ["izin"] as const,
   waliMurid: {
     semua: ["wali-murid"] as const,
     daftar: (filter: object) => ["wali-murid", "daftar", filter] as const,

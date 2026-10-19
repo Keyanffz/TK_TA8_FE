@@ -12,20 +12,21 @@ import { StatusBadge } from "@/components/shared/status-badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useDetailPengumuman, useHapusPengumuman } from "@/lib/api/pengumuman";
+import { punyaIzin } from "@/lib/auth/role";
 import { useSession } from "@/lib/auth/use-session";
 import { formatTanggalWaktu } from "@/lib/format";
 import { sasaranPengumuman } from "@/lib/pengumuman";
 
 export function DetailPengumuman({ id }: { id: number }) {
   const router = useRouter();
-  const { user, isSuperAdmin } = useSession();
+  const sesi = useSession();
   const { data: pengumuman, isPending, isError, error, refetch } = useDetailPengumuman(id);
   const hapus = useHapusPengumuman();
 
   if (isPending) return <Skeleton aria-label="Memuat pengumuman" className="h-80 rounded-xl" />;
   if (isError) return <GalatMuat error={error} onCobaLagi={() => void refetch()} />;
 
-  const bolehKelola = isSuperAdmin || user?.id === pengumuman.penulis.id;
+  const bolehKelola = punyaIzin(sesi, "pengumuman", "kelola") || sesi.user?.id === pengumuman.penulis.id;
 
   return (
     <article className="flex flex-col gap-5 rounded-xl border border-border bg-card p-5 shadow-sm sm:p-8">

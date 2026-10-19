@@ -135,7 +135,14 @@ export function DialogKoreksiAbsensi(props: DialogKoreksiAbsensiProps) {
   );
 }
 
+/**
+ * Siapa yang boleh mengoreksi di rekap: Kepala Sekolah (termasuk absensinya sendiri) dan guru berizin kelola laporan
+ * absensi, kecuali untuk absensinya sendiri (`kecualiUserId`), sama dengan aturan backend (A2.13).
+ */
+export type HakKoreksi = { boleh: boolean; kecualiUserId: number | null };
+
 type AksiKoreksiHarianProps = {
+  hak: HakKoreksi;
   nama: string;
   userId: number;
   tanggal: string;
@@ -145,8 +152,9 @@ type AksiKoreksiHarianProps = {
   bolehCatat: boolean;
 };
 
-/** Tombol Kepala Sekolah untuk satu peserta di satu hari: koreksi status masuk, atau catat absen yang terlupa. */
-export function AksiKoreksiHarian({ nama, userId, tanggal, masuk, pulang, bolehCatat }: AksiKoreksiHarianProps) {
+/** Tombol untuk satu peserta di satu hari: koreksi status masuk, atau catat absen yang terlupa. */
+export function AksiKoreksiHarian({ hak, nama, userId, tanggal, masuk, pulang, bolehCatat }: AksiKoreksiHarianProps) {
+  if (!hak.boleh || userId === hak.kecualiUserId) return null;
   const sudahMasuk = masuk?.status === "hadir" || masuk?.status === "terlambat";
   const catatMasuk = masuk === null && bolehCatat;
   const catatPulang = sudahMasuk && pulang === null && bolehCatat;

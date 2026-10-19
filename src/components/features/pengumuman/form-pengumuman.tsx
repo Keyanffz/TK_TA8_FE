@@ -16,6 +16,7 @@ import { Field, FieldDescription, FieldGroup, FieldLabel } from "@/components/ui
 import { Switch } from "@/components/ui/switch";
 import { ApiError, pesanError, terapkanErrorValidasi } from "@/lib/api/errors";
 import { useSimpanPengumuman } from "@/lib/api/pengumuman";
+import { punyaIzin } from "@/lib/auth/role";
 import { useSession } from "@/lib/auth/use-session";
 import { teksDariHtml } from "@/lib/html";
 import type { Pengumuman, TargetPengumuman } from "@/types/domain";
@@ -65,7 +66,7 @@ type FormPengumumanProps = {
 
 export function FormPengumuman({ id, awal, sudahTerbit }: FormPengumumanProps) {
   const router = useRouter();
-  const { isSuperAdmin } = useSession();
+  const bebasTarget = punyaIzin(useSession(), "pengumuman", "kelola");
   const simpan = useSimpanPengumuman(id);
   const form = useForm<NilaiPengumuman>({ resolver: zodResolver(skema), defaultValues: awal });
   const { errors, isSubmitting } = form.formState;
@@ -80,7 +81,7 @@ export function FormPengumuman({ id, awal, sudahTerbit }: FormPengumumanProps) {
           target: nilai.target,
           ...(nilai.target === "kelas" ? { kelas_ids: nilai.kelas_ids } : {}),
           ...(nilai.target === "murid" ? { murid_ids: nilai.murid.map((murid) => murid.id) } : {}),
-          is_publik: isSuperAdmin && nilai.target === "semua" ? nilai.is_publik : false,
+          is_publik: bebasTarget && nilai.target === "semua" ? nilai.is_publik : false,
           is_pinned: nilai.is_pinned,
           publish,
         });
@@ -112,7 +113,7 @@ export function FormPengumuman({ id, awal, sudahTerbit }: FormPengumumanProps) {
           render={({ field }) => (
             <KolomRadio<TargetPengumuman>
               label="Dikirim ke"
-              opsi={isSuperAdmin ? OPSI_SEMUA : OPSI_GURU}
+              opsi={bebasTarget ? OPSI_SEMUA : OPSI_GURU}
               nilai={field.value}
               onUbah={field.onChange}
               error={errors.target?.message}
@@ -146,7 +147,7 @@ export function FormPengumuman({ id, awal, sudahTerbit }: FormPengumumanProps) {
             </Field>
           )}
         />
-        {isSuperAdmin && target === "semua" ? (
+        {bebasTarget && target === "semua" ? (
           <Controller
             control={form.control}
             name="is_publik"

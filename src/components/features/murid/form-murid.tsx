@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Controller, useForm, useWatch, type DefaultValues } from "react-hook-form";
+import { Controller, useForm, type DefaultValues } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 
@@ -12,40 +12,31 @@ import { ZonaUnggah } from "@/components/shared/zona-unggah";
 import { Button } from "@/components/ui/button";
 import { FieldGroup } from "@/components/ui/field";
 import { pesanError, terapkanErrorValidasi } from "@/lib/api/errors";
-import type { BodyMurid, BodyUbahMurid } from "@/lib/api/murid";
-import { AGAMA, LABEL_STATUS_MURID, OPSI_JENIS_KELAMIN } from "@/lib/constants/label";
+import type { BodyMurid } from "@/lib/api/murid";
+import { AGAMA, OPSI_JENIS_KELAMIN } from "@/lib/constants/label";
 import { hariIniJakarta } from "@/lib/tanggal";
 import type { Murid } from "@/types/domain";
 
-const STATUS_MURID = ["aktif", "lulus", "pindah", "keluar"] as const;
-
-const skemaMurid = z
-  .object({
-    nama_lengkap: z.string().trim().min(1, "Nama lengkap wajib diisi.").max(255, "Nama terlalu panjang."),
-    nama_panggilan: z.string().trim().min(1, "Nama panggilan wajib diisi.").max(50, "Maksimal 50 karakter."),
-    jenis_kelamin: z.enum(["L", "P"], { error: "Pilih jenis kelamin." }),
-    tempat_lahir: z.string().trim().min(1, "Tempat lahir wajib diisi.").max(100, "Maksimal 100 karakter."),
-    tanggal_lahir: z.string().min(1, "Tanggal lahir wajib diisi."),
-    agama: z.string().min(1, "Pilih agama."),
-    alamat: z.string().trim().min(1, "Alamat wajib diisi.").max(500, "Maksimal 500 karakter."),
-    nik: z.string().trim().regex(/^(\d{16})?$/, "NIK berisi 16 angka. Boleh dikosongkan."),
-    nisn: z.string().trim().regex(/^(\d{10})?$/, "NISN berisi 10 angka. Boleh dikosongkan."),
-    anak_ke: z.string().regex(/^(\d{1,2})?$/, "Isi dengan angka."),
-    catatan_khusus: z.string().trim().max(1000, "Maksimal 1000 karakter."),
-    tanggal_masuk: z.string().min(1, "Tanggal masuk wajib diisi."),
-    status: z.enum(STATUS_MURID),
-    tanggal_keluar: z.string(),
-    foto: z.array(z.custom<File>((nilai) => nilai instanceof File)).max(1),
-  })
-  .refine((nilai) => nilai.status === "aktif" || nilai.tanggal_keluar !== "", {
-    path: ["tanggal_keluar"],
-    message: "Isi tanggal keluar untuk murid yang lulus, pindah, atau keluar.",
-  });
+const skemaMurid = z.object({
+  nama_lengkap: z.string().trim().min(1, "Nama lengkap wajib diisi.").max(255, "Nama terlalu panjang."),
+  nama_panggilan: z.string().trim().min(1, "Nama panggilan wajib diisi.").max(50, "Maksimal 50 karakter."),
+  jenis_kelamin: z.enum(["L", "P"], { error: "Pilih jenis kelamin." }),
+  tempat_lahir: z.string().trim().min(1, "Tempat lahir wajib diisi.").max(100, "Maksimal 100 karakter."),
+  tanggal_lahir: z.string().min(1, "Tanggal lahir wajib diisi."),
+  agama: z.string().min(1, "Pilih agama."),
+  alamat: z.string().trim().min(1, "Alamat wajib diisi.").max(500, "Maksimal 500 karakter."),
+  nik: z.string().trim().regex(/^(\d{16})?$/, "NIK berisi 16 angka. Boleh dikosongkan."),
+  nisn: z.string().trim().regex(/^(\d{10})?$/, "NISN berisi 10 angka. Boleh dikosongkan."),
+  anak_ke: z.string().regex(/^(\d{1,2})?$/, "Isi dengan angka."),
+  catatan_khusus: z.string().trim().max(1000, "Maksimal 1000 karakter."),
+  tanggal_masuk: z.string().min(1, "Tanggal masuk wajib diisi."),
+  foto: z.array(z.custom<File>((nilai) => nilai instanceof File)).max(1),
+});
 
 type NilaiMurid = z.infer<typeof skemaMurid>;
 const FIELD = [
   "nama_lengkap", "nama_panggilan", "jenis_kelamin", "tempat_lahir", "tanggal_lahir", "agama", "alamat", "nik", "nisn",
-  "anak_ke", "catatan_khusus", "tanggal_masuk", "status", "tanggal_keluar", "foto",
+  "anak_ke", "catatan_khusus", "tanggal_masuk", "foto",
 ] as const;
 
 function nilaiAwal(murid: Murid | null): DefaultValues<NilaiMurid> {
@@ -62,34 +53,25 @@ function nilaiAwal(murid: Murid | null): DefaultValues<NilaiMurid> {
     anak_ke: murid?.anak_ke ? String(murid.anak_ke) : "",
     catatan_khusus: murid?.catatan_khusus ?? "",
     tanggal_masuk: murid?.tanggal_masuk ?? hariIniJakarta(),
-    status: murid?.status ?? "aktif",
-    tanggal_keluar: murid?.tanggal_keluar ?? "",
     foto: [],
   };
 }
 
-// Isian kosong dikirim "" (backend mengubahnya jadi null). Murid baru selalu aktif, jadi backend menolak
-// status dan tanggal_keluar di POST; di PUT status wajib dan tanggal_keluar hanya untuk murid yang tidak aktif.
-function keBody({ foto, status, tanggal_keluar, anak_ke, ...nilai }: NilaiMurid) {
-  const tambah: BodyMurid = { ...nilai, anak_ke: anak_ke === "" ? null : Number(anak_ke), foto: foto[0] ?? null };
-  const ubah: BodyUbahMurid = { ...tambah, status, tanggal_keluar: status === "aktif" ? null : tanggal_keluar };
-  return { tambah, ubah };
+// Isian kosong dikirim "" (backend mengubahnya jadi null). Status murid tidak diubah di sini, tetapi lewat
+// dialog Ubah Status, supaya setiap perubahan tercatat di riwayat status.
+function keBody({ foto, anak_ke, ...nilai }: NilaiMurid): BodyMurid {
+  return { ...nilai, anak_ke: anak_ke === "" ? null : Number(anak_ke), foto: foto[0] ?? null };
 }
 
-type FormMuridProps =
-  | { murid: null; kirim: (body: BodyMurid) => Promise<unknown>; labelSimpan: string }
-  | { murid: Murid; kirim: (body: BodyUbahMurid) => Promise<unknown>; labelSimpan: string };
+type FormMuridProps = { murid: Murid | null; kirim: (body: BodyMurid) => Promise<unknown>; labelSimpan: string };
 
-export function FormMurid(props: FormMuridProps) {
-  const { murid, labelSimpan } = props;
+export function FormMurid({ murid, kirim, labelSimpan }: FormMuridProps) {
   const form = useForm<NilaiMurid>({ resolver: zodResolver(skemaMurid), defaultValues: nilaiAwal(murid) });
   const { errors, isSubmitting } = form.formState;
-  const status = useWatch({ control: form.control, name: "status" });
 
   const simpan = form.handleSubmit(async (nilai) => {
     try {
-      const body = keBody(nilai);
-      await (props.murid === null ? props.kirim(body.tambah) : props.kirim(body.ubah));
+      await kirim(keBody(nilai));
       form.reset({ ...nilai, foto: [] });
     } catch (error) {
       if (!terapkanErrorValidasi(error, form.setError, FIELD)) toast.error(pesanError(error));
@@ -142,18 +124,6 @@ export function FormMurid(props: FormMuridProps) {
         />
         <div className="grid gap-4 sm:grid-cols-2">
           <KolomTeks label="Tanggal masuk" type="date" error={errors.tanggal_masuk?.message} {...form.register("tanggal_masuk")} />
-          {murid ? (
-            <KolomPilih label="Status" error={errors.status?.message} {...form.register("status")}>
-              {STATUS_MURID.map((nilai) => (
-                <option key={nilai} value={nilai}>
-                  {LABEL_STATUS_MURID[nilai]}
-                </option>
-              ))}
-            </KolomPilih>
-          ) : null}
-          {murid && status !== "aktif" ? (
-            <KolomTeks label="Tanggal keluar" type="date" error={errors.tanggal_keluar?.message} {...form.register("tanggal_keluar")} />
-          ) : null}
         </div>
         <Controller
           control={form.control}

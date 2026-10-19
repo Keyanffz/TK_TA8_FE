@@ -3,13 +3,14 @@ import type { Metadata } from "next";
 import { PengumumanBaru } from "@/components/features/pengumuman/pengumuman-baru";
 import { KepalaHalaman } from "@/components/shared/kepala-halaman";
 import { wajibAkses } from "@/lib/auth/akses";
+import { punyaIzin, statusSesi } from "@/lib/auth/role";
 
 export const metadata: Metadata = { title: "Tulis Pengumuman" };
 
 export default async function PengumumanBaruPage({ searchParams }: PageProps<"/mudarris/pengumuman/baru">) {
   const user = await wajibAkses((sesi) => sesi.isSuperAdmin || sesi.isGuru);
   const { dari, kelas } = await searchParams;
-  const dariTunggakan = dari === "tunggakan" && user.permissions.kelola_keuangan;
+  const dariTunggakan = dari === "tunggakan" && punyaIzin(statusSesi(user), "keuangan");
   const kelasId = Number(kelas);
 
   return (

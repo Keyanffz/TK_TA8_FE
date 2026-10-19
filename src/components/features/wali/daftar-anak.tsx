@@ -9,15 +9,17 @@ import { EmptyState } from "@/components/shared/empty-state";
 import { GalatMuat } from "@/components/shared/galat-muat";
 import { Muncul } from "@/components/shared/muncul";
 import { GAYA_MASKER_PERISAI } from "@/components/shared/ornamen/perisai";
+import { StatusBadge } from "@/components/shared/status-badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAnakWali } from "@/lib/api/wali";
-import { LABEL_HUBUNGAN, LABEL_JENIS_KELAMIN } from "@/lib/constants/label";
+import { LABEL_HUBUNGAN, LABEL_JENIS_KELAMIN, LABEL_STATUS_MURID } from "@/lib/constants/label";
+import { NADA_STATUS_MURID } from "@/lib/constants/status";
 import { formatTanggal } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 export function DaftarAnak() {
-  const { anakAktif, pilih } = useAnakAktif();
+  const { anakAktif, daftarAnak, pilih } = useAnakAktif();
   const { data, isPending, isError, error, refetch } = useAnakWali();
 
   if (isPending) return <Skeleton aria-label="Memuat data anak" className="h-44 rounded-xl" />;
@@ -40,6 +42,7 @@ export function DaftarAnak() {
     <Muncul as="ul" efek="pop" className="grid gap-4 sm:grid-cols-2">
       {data.map((anak) => {
         const aktif = anak.id === anakAktif?.id;
+        const status = daftarAnak.find((item) => item.id === anak.id)?.status ?? "aktif";
         return (
           <li
             key={anak.id}
@@ -58,9 +61,15 @@ export function DaftarAnak() {
               <div className="min-w-0">
                 <p className="font-heading text-lg leading-tight font-extrabold">{anak.nama_panggilan}</p>
                 <p className="text-sm text-muted-foreground">{anak.nama_lengkap}</p>
-                <p className="mt-1 inline-flex rounded-full bg-highlight px-2.5 py-0.5 text-xs font-bold text-highlight-foreground">
-                  {anak.kelas?.nama ?? "Belum ada kelas"}
-                </p>
+                {status === "aktif" ? (
+                  <p className="mt-1 inline-flex rounded-full bg-highlight px-2.5 py-0.5 text-xs font-bold text-highlight-foreground">
+                    {anak.kelas?.nama ?? "Belum ada kelas"}
+                  </p>
+                ) : (
+                  <StatusBadge nada={NADA_STATUS_MURID[status]} className="mt-1">
+                    {LABEL_STATUS_MURID[status]}
+                  </StatusBadge>
+                )}
               </div>
             </div>
             <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-2 text-sm">

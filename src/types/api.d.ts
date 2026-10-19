@@ -80,7 +80,8 @@ export interface paths {
          *     untuk absen masuk dan tidak boleh dikirim untuk absen pulang; waktu, lokasi, dan foto kosong. Ditolak 422
          *     `BUSINESS_RULE` kalau akun bukan peserta absensi, tanggal setelah hari ini atau sebelum tanggal mulai absensi,
          *     bukan hari kerja, tanggal libur, absen jenis itu sudah ada (absen masuk dikoreksi lewat
-         *     `PATCH /absensi/{id}/koreksi`), atau untuk absen pulang, belum ada absen masuk hadir atau terlambat
+         *     `PATCH /absensi/{id}/koreksi`), untuk absen pulang belum ada absen masuk hadir atau terlambat, atau guru
+         *     mencatat absensinya sendiri
          */
         post: operations["absensi.koreksiBaru"];
         delete?: never;
@@ -102,7 +103,10 @@ export interface paths {
         delete?: never;
         options?: never;
         head?: never;
-        /** Mengoreksi status absen masuk dengan catatan wajib. Pengoreksi dan waktunya tersimpan di absensi itu */
+        /**
+         * Mengoreksi status absen masuk dengan catatan wajib. Pengoreksi dan waktunya tersimpan di absensi itu. Pemegang
+         *     izin kelola laporan absensi tidak bisa mengoreksi absensinya sendiri (422 `BUSINESS_RULE`)
+         */
         patch: operations["absensi.koreksi"];
         trace?: never;
     };
@@ -139,8 +143,8 @@ export interface paths {
         };
         /**
          * Riwayat absensi satu peserta dalam 1–3 bulan (`jumlah_bulan` bulan yang berakhir di `bulan`), terbaru dulu,
-         *     tanpa paginasi. Guru hanya melihat riwayatnya sendiri; Kepala Sekolah bisa membuka riwayat peserta lain lewat
-         *     `user_id`
+         *     tanpa paginasi. Guru hanya melihat riwayatnya sendiri; Kepala Sekolah dan pemegang izin lihat laporan absensi
+         *     bisa membuka riwayat peserta lain lewat `user_id`
          */
         get: operations["absensi.index"];
         put?: never;
@@ -168,7 +172,8 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Foto absensi. Hanya pemilik absensi dan Kepala Sekolah; guru lain dibalas 404. Absensi tanpa foto
+         * Foto absensi. Hanya pemilik absensi, Kepala Sekolah, dan pemegang izin lihat laporan absensi; guru lain dibalas
+         *     404. Absensi tanpa foto
          *     (tidak hadir, atau foto sudah melewati masa simpan) juga 404
          */
         get: operations["absensi.foto"];
@@ -507,7 +512,7 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Daftar guru (tanpa profil guru milik Kepala Sekolah)
+         * Daftar guru (tanpa profil guru milik Kepala Sekolah) beserta izin modulnya
          * @description Filter `filter[status]` = `aktif` | `nonaktif`. Urutan `sort` = `nama` | `created_at`
          *     (awali `-` untuk menurun). `search` mencari nama, email, NIP, dan NUPTK.
          */
@@ -535,7 +540,7 @@ export interface paths {
         /** Detail guru, termasuk profil guru milik Kepala Sekolah */
         get: operations["guru.show"];
         /**
-         * Mengubah data guru, termasuk izin kelola keuangan dan tampil di landing page
+         * Mengubah data guru, termasuk tampil di landing page. Izin modul diubah lewat `PUT /guru/{id}/izin`
          * @description Mengganti `email` melepas akun Google yang sebelumnya terikat, jadi guru masuk dengan akun Google email baru.
          */
         put: operations["guru.update"];
@@ -599,6 +604,131 @@ export interface paths {
         get: operations["health"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/murid/import/template": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Template .xlsx: sheet Murid berisi judul kolom, sheet Petunjuk berisi aturan setiap kolom. Kolom NISN, NIK, dan
+         *     tanggal berformat teks
+         */
+        get: operations["importMurid.template"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/murid/import/pratinjau": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Memeriksa setiap baris file tanpa menyimpan apa pun. `nomor` = nomor baris di spreadsheet (judul kolom di baris
+         *     1). `data` berisi isi baris setelah dirapikan (tanggal menjadi YYYY-MM-DD, status kosong menjadi `aktif`).
+         *     Kolom wajib yang tidak ada, file kosong, file tidak terbaca, atau lebih dari 500 baris ditolak 422
+         *     `VALIDATION_ERROR` di field `file`
+         */
+        post: operations["importMurid.pratinjau"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/murid/import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Memeriksa ulang file yang sama, lalu menyimpan semua baris valid dalam satu transaksi; baris invalid dilewati
+         *     dan dikembalikan di `gagal` dengan bentuk yang sama seperti pratinjau. Murid aktif dibuatkan akun wali otomatis
+         *     (username NIS, password awal tanggal lahir DDMMYYYY, wajib diganti) dan ditempatkan di `kelas` kalau diisi.
+         *     Murid lulus, pindah, dan keluar disimpan tanpa akun wali dan tidak ikut generate tagihan. Dicatat di log
+         *     aktivitas `murid` (event `diimpor`)
+         */
+        post: operations["importMurid.simpan"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/izin": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Modul, level, dan preset izin yang bisa diberikan ke guru. `kelola` selalu mencakup `lihat`. Manajemen guru,
+         *     manajemen izin, dan pengaturan absensi tidak termasuk karena tetap khusus Kepala Sekolah
+         */
+        get: operations["izinGuru.index"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/guru/{id}/izin": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Mengganti seluruh izin satu guru. Berlaku di request guru berikutnya tanpa perlu masuk ulang. Ditolak 422
+         *     `BUSINESS_RULE` untuk profil guru milik Kepala Sekolah. Dicatat di log aktivitas `izin` (event `diubah`)
+         */
+        put: operations["izinGuru.update"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/guru/{id}/izin/preset": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Mengganti seluruh izin guru dengan isi preset; setelah itu izin masih bisa disesuaikan lewat
+         *     `PUT /guru/{id}/izin`. Dicatat di log aktivitas `izin` (event `preset_diterapkan`)
+         */
+        post: operations["izinGuru.preset"];
         delete?: never;
         options?: never;
         head?: never;
@@ -901,6 +1031,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/murid/{id}/wali/{wali_murid_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Melepas tautan wali murid dari murid ini */
+        delete: operations["murid.lepasWali"];
+        options?: never;
+        head?: never;
+        /**
+         * Mengubah hubungan (`ayah` | `ibu` | `wali`) atau kontak utama wali yang tertaut. Menjadikan wali ini kontak
+         *     utama melepas status itu dari wali lain; kontak utama tidak bisa dilepas tanpa memilih penggantinya
+         */
+        patch: operations["murid.ubahWali"];
+        trace?: never;
+    };
     "/murid": {
         parameters: {
             query?: never;
@@ -909,10 +1060,11 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Daftar murid. Kepala Sekolah melihat semua murid, guru hanya murid di kelas yang dia ampu pada tahun
-         *     ajaran aktif, wali murid hanya anaknya sendiri
-         * @description Filter `filter[kelas_id]`, `filter[status]`, `filter[tingkat]` (tingkat kelas di tahun ajaran aktif).
-         *     `search` mencari nama lengkap, nama panggilan, NIS, dan NISN. Urutan `sort` = `nama` | `nis` | `created_at`.
+         * Daftar murid. Kepala Sekolah dan pemegang izin lihat data murid melihat semua murid, guru lain hanya murid di
+         *     kelas yang dia ampu pada tahun ajaran aktif, wali murid hanya anaknya sendiri
+         * @description Filter `filter[kelas_id]`, `filter[status]`, `filter[tingkat]` (tingkat kelas di tahun ajaran aktif),
+         *     `filter[tahun_lulus]` (daftar alumni bersama `filter[status]=lulus`). `search` mencari nama lengkap, nama
+         *     panggilan, NIS, dan NISN. Urutan `sort` = `nama` | `nis` | `created_at` | `tahun_lulus`.
          */
         get: operations["murid.index"];
         put?: never;
@@ -936,10 +1088,11 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Detail murid beserta kelas di tahun ajaran aktif dan wali yang tertaut */
+        /** Detail murid beserta kelas di tahun ajaran aktif, wali yang tertaut, dan riwayat status (terbaru dulu) */
         get: operations["murid.show"];
         /**
-         * Mengubah data murid, termasuk status (lulus, pindah, keluar) dan tanggal keluarnya
+         * Mengubah data murid. Status diubah lewat `PATCH /murid/{id}/status`; `status` dan `tanggal_keluar` di sini
+         *     ditolak 422 `VALIDATION_ERROR`
          * @description Kalau `tanggal_lahir` berubah dan akun wali otomatis murid ini belum pernah dipakai (password awal belum
          *     diganti), password awalnya ikut diganti ke tanggal lahir baru (DDMMYYYY).
          */
@@ -974,27 +1127,6 @@ export interface paths {
         options?: never;
         head?: never;
         patch?: never;
-        trace?: never;
-    };
-    "/murid/{id}/wali/{wali_murid_id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /** Melepas tautan wali murid dari murid ini */
-        delete: operations["murid.lepasWali"];
-        options?: never;
-        head?: never;
-        /**
-         * Mengubah hubungan (`ayah` | `ibu` | `wali`) atau kontak utama wali yang tertaut. Menjadikan wali ini kontak
-         *     utama melepas status itu dari wali lain; kontak utama tidak bisa dilepas tanpa memilih penggantinya
-         */
-        patch: operations["murid.ubahWali"];
         trace?: never;
     };
     "/notifikasi": {
@@ -1391,34 +1523,10 @@ export interface paths {
         /**
          * Kenaikan kelas massal dari tahun ajaran aktif ke tahun ajaran tujuan, dalam satu transaksi
          * @description Murid `naik`/`tinggal` wajib punya `kelas_tujuan_id` di tahun ajaran tujuan; murid `lulus` tanpa kelas
-         *     tujuan dan statusnya menjadi lulus.
+         *     tujuan, statusnya menjadi lulus dengan tahun lulus = tahun akhir tahun ajaran aktif, dan tercatat di riwayat
+         *     status murid.
          */
         post: operations["penempatanMurid.kenaikan"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/pengaturan": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Pengaturan sebagai objek datar berkunci lengkap (`"profil.visi": …`), bisa dibatasi per `grup`
-         *     (`profil` | `landing` | `keuangan` | `ppdb` | `beranda` | `absensi`). Field gambar disertai pasangan `*_url`. Guru berizin
-         *     keuangan hanya boleh membaca `grup=keuangan`
-         */
-        get: operations["pengaturan.index"];
-        /**
-         * Menyimpan sebagian pengaturan `{ items: { kunci: nilai } }`. Kunci yang tidak dikirim tidak berubah;
-         *     field `*_url` diabaikan. `ppdb.dibuka = true` ditolak kalau `ppdb.tahun_ajaran_id` belum diisi
-         */
-        put: operations["pengaturan.update"];
-        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -1439,6 +1547,34 @@ export interface paths {
          *     `PUT /pengaturan`
          */
         post: operations["pengaturan.upload"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/pengaturan": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Pengaturan sebagai objek datar berkunci lengkap (`"profil.visi": …`), bisa dibatasi per `grup`
+         *     (`profil` | `landing` | `keuangan` | `ppdb` | `beranda` | `absensi`). Field gambar disertai pasangan `*_url`
+         * @description Tanpa `grup` hanya untuk Kepala Sekolah. Guru: grup `profil`, `landing`, `beranda` dengan izin lihat konten
+         *     website; grup `keuangan` dengan izin lihat keuangan; grup `ppdb` dan `absensi` ditolak 403.
+         */
+        get: operations["pengaturan.index"];
+        /**
+         * Menyimpan sebagian pengaturan `{ items: { kunci: nilai } }`. Kunci yang tidak dikirim tidak berubah;
+         *     field `*_url` diabaikan. `ppdb.dibuka = true` ditolak kalau `ppdb.tahun_ajaran_id` belum diisi
+         * @description Guru dengan izin kelola konten website hanya boleh mengirim kunci grup `profil`, `landing`, dan `beranda`;
+         *     kunci grup lain (rekening dan aturan tagihan, PPDB, absensi) membuat seluruh permintaan ditolak 403.
+         */
+        put: operations["pengaturan.update"];
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -1884,6 +2020,69 @@ export interface paths {
         put?: never;
         /** Mengatur password baru dengan token dari email. Semua sesi login lama dicabut */
         post: operations["resetPassword.reset"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/murid/tahun-lulus": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Tahun lulus yang punya alumni, terbaru dulu, untuk pilihan saringan daftar alumni
+         *     (`GET /murid?filter[status]=lulus&filter[tahun_lulus]=`)
+         */
+        get: operations["statusMurid.tahunLulus"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/murid/{id}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Mengubah status satu murid dan mencatatnya di `riwayat_status`. Lulus, pindah, dan keluar menutup penempatan
+         *     kelas di tahun ajaran aktif dan menghentikan tagihan bulanan berikutnya; tagihan lama tetap tercatat. Kembali
+         *     aktif membuka lagi penempatannya (ditolak 422 `BUSINESS_RULE` kalau kelasnya penuh). Status yang sama, tanggal
+         *     sebelum tanggal masuk, atau tahun lulus sebelum tahun masuk juga ditolak 422 `BUSINESS_RULE`
+         */
+        patch: operations["statusMurid.ubah"];
+        trace?: never;
+    };
+    "/murid/status-massal": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Mengubah status banyak murid sekaligus dalam satu transaksi: murid terpilih (`murid_ids`) atau semua murid aktif
+         *     satu kelas (`kelas_id`, misalnya meluluskan TK B1 dengan `status: lulus` dan `tahun_lulus`). Murid yang statusnya
+         *     sudah sama dilewati. Satu murid yang melanggar aturan membatalkan seluruh perubahan (422 `BUSINESS_RULE`)
+         */
+        post: operations["statusMurid.massal"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2400,7 +2599,14 @@ export interface components {
             pendidikan_terakhir: string | null;
             jabatan: string;
             foto_url: string | null;
-            bisa_kelola_keuangan: boolean;
+            /** @description Izin per modul (A2.13); null = tidak punya izin. Profil Kepala Sekolah selalu `kelola` semua modul. */
+            izin: {
+                keuangan: components["schemas"]["LevelIzin"] | null;
+                konten_website: components["schemas"]["LevelIzin"] | null;
+                laporan_absensi: components["schemas"]["LevelIzin"] | null;
+                data_murid: components["schemas"]["LevelIzin"] | null;
+                pengumuman: components["schemas"]["LevelIzin"] | null;
+            };
             tampil_di_landing: boolean;
             /** @description Sudah pernah masuk dengan Google (akun Google terikat). Nilai `sub` Google tidak dikirim. */
             terhubung_google: boolean;
@@ -2412,6 +2618,18 @@ export interface components {
          * @enum {string}
          */
         Hubungan: "ayah" | "ibu" | "wali";
+        /**
+         * ImportMuridRequest
+         * @description `POST /murid/import/pratinjau` dan `POST /murid/import` (multipart): file .xlsx atau .csv dari template, maksimal
+         *     2 MB. CSV boleh memakai pemisah koma atau titik koma.
+         */
+        ImportMuridRequest: {
+            /**
+             * Format: binary
+             * @description Maximum file size: 2048 kilobytes.
+             */
+            file: Blob;
+        };
         /**
          * IsiRaporRequest
          * @description `PUT /rapor/{id}`. Elemen yang tidak dikirim di `detail` tidak berubah.
@@ -2628,6 +2846,11 @@ export interface components {
             pekerjaan?: string | null;
             nik?: string | null;
         };
+        /**
+         * LevelIzin
+         * @enum {string}
+         */
+        LevelIzin: "lihat" | "kelola";
         /** LogAktivitasResource */
         LogAktivitasResource: {
             id: number;
@@ -2680,6 +2903,12 @@ export interface components {
          * @enum {string}
          */
         MetodeBayar: "transfer" | "tunai";
+        /**
+         * ModulIzin
+         * @description Bagian pekerjaan Kepala Sekolah yang bisa diserahkan ke guru (A2.13). Manajemen guru, manajemen izin, dan pengaturan absensi sengaja tidak ada di sini karena tetap khusus Kepala Sekolah.
+         * @enum {string}
+         */
+        ModulIzin: "keuangan" | "konten_website" | "laporan_absensi" | "data_murid" | "pengumuman";
         /** MuridDetailResource */
         MuridDetailResource: {
             id: number;
@@ -2698,7 +2927,14 @@ export interface components {
             catatan_khusus: string | null;
             status: components["schemas"]["StatusMurid"];
             tanggal_masuk: string;
+            /** @description Tanggal lulus, pindah, atau keluar; null untuk murid aktif dan alumni lama yang tanggalnya tidak diketahui. */
             tanggal_keluar: string | null;
+            /** @description Hanya untuk murid berstatus lulus. */
+            tahun_lulus: number | null;
+            /** @description Hanya untuk murid berstatus pindah. */
+            sekolah_tujuan: string | null;
+            /** @description Keterangan perubahan status terakhir; null untuk murid aktif. */
+            keterangan_status: string | null;
             kelas: {
                 id: number;
                 nama: string;
@@ -2716,6 +2952,22 @@ export interface components {
                 is_kontak_utama: boolean;
                 /** Format: date-time */
                 tertaut_at: string | null;
+            }[];
+            /** @description Perubahan status, terbaru dulu. `diubah_oleh` null kalau akun pengubahnya sudah dihapus. */
+            riwayat_status: {
+                id: number;
+                status_lama: components["schemas"]["StatusMurid"];
+                status_baru: components["schemas"]["StatusMurid"];
+                tanggal: string;
+                tahun_lulus: number | null;
+                sekolah_tujuan: string | null;
+                keterangan: string | null;
+                diubah_oleh: {
+                    id: number;
+                    nama: string;
+                } | null;
+                /** Format: date-time */
+                created_at: string | null;
             }[];
         };
         /** MuridResource */
@@ -2736,7 +2988,14 @@ export interface components {
             catatan_khusus: string | null;
             status: components["schemas"]["StatusMurid"];
             tanggal_masuk: string;
+            /** @description Tanggal lulus, pindah, atau keluar; null untuk murid aktif dan alumni lama yang tanggalnya tidak diketahui. */
             tanggal_keluar: string | null;
+            /** @description Hanya untuk murid berstatus lulus. */
+            tahun_lulus: number | null;
+            /** @description Hanya untuk murid berstatus pindah. */
+            sekolah_tujuan: string | null;
+            /** @description Keterangan perubahan status terakhir; null untuk murid aktif. */
+            keterangan_status: string | null;
             kelas: {
                 id: number;
                 nama: string;
@@ -2911,12 +3170,12 @@ export interface components {
             /** @description HTML yang sudah disanitasi. */
             isi: string;
             target: components["schemas"]["TargetPengumuman"];
-            /** @description Hanya untuk Kepala Sekolah dan penulis. */
+            /** @description Hanya untuk Kepala Sekolah, pemegang izin lihat pengumuman, dan penulis. */
             kelas?: {
                 id: number;
                 nama: string;
             }[];
-            /** @description Hanya untuk Kepala Sekolah dan penulis. */
+            /** @description Hanya untuk Kepala Sekolah, pemegang izin lihat pengumuman, dan penulis. */
             murid?: {
                 id: number;
                 nama_lengkap: string;
@@ -2968,35 +3227,6 @@ export interface components {
             judul: string;
             deskripsi?: string | null;
         };
-        /**
-         * PerbaruiMuridRequest
-         * @description `PUT /murid/{id}` (multipart jika menyertakan foto): data yang sama dengan `POST /murid` ditambah `status`
-         *     (wajib) dan `tanggal_keluar` (wajib untuk murid yang lulus, pindah, atau keluar; kosong untuk murid aktif).
-         */
-        PerbaruiMuridRequest: {
-            nisn?: string | null;
-            nik?: string | null;
-            nama_lengkap: string;
-            nama_panggilan: string;
-            jenis_kelamin: components["schemas"]["JenisKelamin"];
-            tempat_lahir: string;
-            /** Format: date */
-            tanggal_lahir: string;
-            agama: string;
-            alamat: string;
-            anak_ke?: number | null;
-            catatan_khusus?: string | null;
-            /** Format: date */
-            tanggal_masuk: string;
-            /**
-             * Format: binary
-             * @description Maximum file size: 5120 kilobytes.
-             */
-            foto?: Blob | null;
-            status: components["schemas"]["StatusMurid"];
-            /** Format: date */
-            tanggal_keluar?: string | null;
-        };
         /** PerbaruiProfilRequest */
         PerbaruiProfilRequest: {
             name: string;
@@ -3035,6 +3265,12 @@ export interface components {
          * @enum {string}
          */
         PeriodeTagihan: "bulanan" | "sekali";
+        /**
+         * PresetIzin
+         * @description Kumpulan izin yang sering diberikan bersama. Menerapkan preset mengganti seluruh izin guru dengan isi preset; setelah itu izin per modul masih bisa disesuaikan.
+         * @enum {string}
+         */
+        PresetIzin: "bendahara" | "admin_website" | "admin_absensi" | "tata_usaha";
         /** RaporDetailResource */
         RaporDetailResource: {
             id: number;
@@ -3216,13 +3452,26 @@ export interface components {
             alamat?: string | null;
             pendidikan_terakhir?: string | null;
             jabatan?: string;
-            bisa_kelola_keuangan?: boolean;
             tampil_di_landing?: boolean;
             /**
              * Format: binary
              * @description Maximum file size: 5120 kilobytes.
              */
             foto?: Blob | null;
+        };
+        /**
+         * SimpanIzinGuruRequest
+         * @description `PUT /guru/{id}/izin`: kelima modul wajib dikirim, `null` berarti guru tidak punya izin modul itu. Isian ini
+         *     mengganti seluruh izin guru.
+         */
+        SimpanIzinGuruRequest: {
+            izin: {
+                keuangan: components["schemas"]["LevelIzin"] | null;
+                konten_website: components["schemas"]["LevelIzin"] | null;
+                laporan_absensi: components["schemas"]["LevelIzin"] | null;
+                data_murid: components["schemas"]["LevelIzin"] | null;
+                pengumuman: components["schemas"]["LevelIzin"] | null;
+            };
         };
         /**
          * SimpanJenisTagihanRequest
@@ -3282,9 +3531,9 @@ export interface components {
         };
         /**
          * SimpanMuridRequest
-         * @description `POST /murid` (multipart jika menyertakan foto). NIS dibuat otomatis saat murid dibuat dan tidak bisa
-         *     diubah. Murid baru selalu berstatus aktif, jadi `status` dan `tanggal_keluar` ditolak; keduanya diisi
-         *     lewat `PUT /murid/{id}` (`PerbaruiMuridRequest`).
+         * @description `POST /murid` dan `PUT /murid/{id}` (multipart jika menyertakan foto). NIS dibuat otomatis saat murid dibuat dan
+         *     tidak bisa diubah. Status dan data kelulusan/kepindahan hanya diubah lewat `PATCH /murid/{id}/status`, supaya
+         *     setiap perubahan status tercatat di riwayat.
          */
         SimpanMuridRequest: {
             nisn?: string | null;
@@ -3320,9 +3569,9 @@ export interface components {
         };
         /**
          * SimpanPengumumanRequest
-         * @description `POST /pengumuman` dan `PUT /pengumuman/{id}` (B6.10). Kepala Sekolah bebas memilih target; guru hanya
-         *     `kelas` (kelas yang dia ampu) atau `murid` (murid di kelasnya). `is_publik` hanya untuk target `semua`.
-         *     `publish: false` menyimpan sebagai draft.
+         * @description `POST /pengumuman` dan `PUT /pengumuman/{id}` (B6.10). Kepala Sekolah dan pemegang izin kelola pengumuman bebas
+         *     memilih target; guru lain hanya `kelas` (kelas yang dia ampu) atau `murid` (murid di kelasnya). `is_publik` hanya
+         *     untuk target `semua`. `publish: false` menyimpan sebagai draft.
          */
         SimpanPengumumanRequest: {
             judul: string;
@@ -3489,6 +3738,10 @@ export interface components {
         TempatkanMuridRequest: {
             murid_ids: number[];
         };
+        /** TerapkanPresetIzinRequest */
+        TerapkanPresetIzinRequest: {
+            preset: components["schemas"]["PresetIzin"];
+        };
         /** TerimaPendaftaranRequest */
         TerimaPendaftaranRequest: {
             kelas_id?: number | null;
@@ -3510,6 +3763,34 @@ export interface components {
         UbahStatusAkunRequest: {
             /** @enum {string} */
             status: "aktif" | "nonaktif";
+        };
+        /**
+         * UbahStatusMassalRequest
+         * @description `POST /murid/status-massal`: isian yang sama dengan ubah status satu murid, untuk daftar murid (`murid_ids`) atau
+         *     semua murid aktif satu kelas (`kelas_id`, dipakai untuk meluluskan satu kelas), salah satu saja.
+         */
+        UbahStatusMassalRequest: {
+            status: components["schemas"]["StatusMurid"];
+            /** Format: date */
+            tanggal: string;
+            tahun_lulus?: number | null;
+            sekolah_tujuan?: string | null;
+            keterangan?: string | null;
+            murid_ids?: number[];
+            kelas_id?: number;
+        };
+        /**
+         * UbahStatusMuridRequest
+         * @description `PATCH /murid/{id}/status`. `tanggal` = tanggal lulus, pindah, keluar, atau kembali aktif. `tahun_lulus` wajib
+         *     untuk status lulus; `sekolah_tujuan` hanya untuk status pindah.
+         */
+        UbahStatusMuridRequest: {
+            status: components["schemas"]["StatusMurid"];
+            /** Format: date */
+            tanggal: string;
+            tahun_lulus?: number | null;
+            sekolah_tujuan?: string | null;
+            keterangan?: string | null;
         };
         /**
          * UbahTautanWaliRequest
@@ -3543,7 +3824,6 @@ export interface components {
             avatar_url: string | null;
             guru: {
                 id: number;
-                bisa_kelola_keuangan: boolean;
                 kelas_diampu: {
                     id: number;
                     nama: string;
@@ -3558,12 +3838,22 @@ export interface components {
                 anak: {
                     id: number;
                     nama_panggilan: string;
+                    /** @description Anak yang sudah lulus, pindah, atau keluar tetap tampil untuk tagihan lama dan rapor. */
+                    status: components["schemas"]["StatusMurid"];
                     kelas: string | null;
                     foto_url: string | null;
                 }[];
             } | null;
-            permissions: {
-                kelola_keuangan: boolean;
+            /**
+             * @description Izin efektif per modul (A2.13), dipakai FE untuk menu, penjaga halaman, dan tombol aksi. Kepala Sekolah
+             *     `kelola` semua modul; wali murid null semua.
+             */
+            izin: {
+                keuangan: components["schemas"]["LevelIzin"] | null;
+                konten_website: components["schemas"]["LevelIzin"] | null;
+                laporan_absensi: components["schemas"]["LevelIzin"] | null;
+                data_murid: components["schemas"]["LevelIzin"] | null;
+                pengumuman: components["schemas"]["LevelIzin"] | null;
             };
         };
         /** WaliMuridDetailResource */
@@ -7107,7 +7397,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description BUSINESS_RULE / VALIDATION_ERROR */
+            /** @description VALIDATION_ERROR */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -7117,7 +7407,7 @@ export interface operations {
                         success: boolean;
                         message: string;
                         /** @enum {string} */
-                        code: "BUSINESS_RULE" | "VALIDATION_ERROR";
+                        code: "VALIDATION_ERROR";
                         errors: {
                             [key: string]: string[];
                         };
@@ -7379,6 +7669,626 @@ export interface operations {
                             time: string;
                         };
                         meta: null;
+                    };
+                };
+            };
+        };
+    };
+    "importMurid.template": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Template import murid (.xlsx) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": Blob;
+                };
+            };
+            /** @description UNAUTHENTICATED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "UNAUTHENTICATED";
+                        errors: null;
+                    };
+                };
+            };
+            /** @description FORBIDDEN / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "FORBIDDEN" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        errors: null;
+                    };
+                };
+            };
+            /** @description TOO_MANY_REQUESTS */
+            429: {
+                headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "TOO_MANY_REQUESTS";
+                        errors: null;
+                    };
+                };
+            };
+        };
+    };
+    "importMurid.pratinjau": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["ImportMuridRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        data: {
+                            ringkasan: {
+                                total: number;
+                                valid: number;
+                                invalid: number;
+                            };
+                            baris: {
+                                nomor: number;
+                                data: {
+                                    nama_lengkap: string | null;
+                                    nama_panggilan: string | null;
+                                    nisn: string | null;
+                                    nik: string | null;
+                                    jenis_kelamin: string | null;
+                                    tempat_lahir: string | null;
+                                    tanggal_lahir: string | null;
+                                    agama: string | null;
+                                    alamat: string | null;
+                                    anak_ke: string | null;
+                                    catatan_khusus: string | null;
+                                    tanggal_masuk: string | null;
+                                    status: string;
+                                    tanggal_status: string | null;
+                                    tahun_lulus: string | null;
+                                    sekolah_tujuan: string | null;
+                                    keterangan: string | null;
+                                    kelas: string | null;
+                                };
+                                valid: boolean;
+                                alasan: string[];
+                            }[];
+                        };
+                        meta: null;
+                    };
+                };
+            };
+            /** @description UNAUTHENTICATED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "UNAUTHENTICATED";
+                        errors: null;
+                    };
+                };
+            };
+            /** @description FORBIDDEN / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "FORBIDDEN" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        errors: null;
+                    };
+                };
+            };
+            /** @description VALIDATION_ERROR */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "VALIDATION_ERROR";
+                        errors: {
+                            [key: string]: string[];
+                        };
+                    };
+                };
+            };
+            /** @description TOO_MANY_REQUESTS */
+            429: {
+                headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "TOO_MANY_REQUESTS";
+                        errors: null;
+                    };
+                };
+            };
+        };
+    };
+    "importMurid.simpan": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["ImportMuridRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        data: {
+                            dibuat: number;
+                            akun_wali_dibuat: number;
+                            gagal: {
+                                nomor: number;
+                                data: {
+                                    nama_lengkap: string | null;
+                                    nama_panggilan: string | null;
+                                    nisn: string | null;
+                                    nik: string | null;
+                                    jenis_kelamin: string | null;
+                                    tempat_lahir: string | null;
+                                    tanggal_lahir: string | null;
+                                    agama: string | null;
+                                    alamat: string | null;
+                                    anak_ke: string | null;
+                                    catatan_khusus: string | null;
+                                    tanggal_masuk: string | null;
+                                    status: string;
+                                    tanggal_status: string | null;
+                                    tahun_lulus: string | null;
+                                    sekolah_tujuan: string | null;
+                                    keterangan: string | null;
+                                    kelas: string | null;
+                                };
+                                valid: boolean;
+                                alasan: string[];
+                            }[];
+                        };
+                        meta: null;
+                    };
+                };
+            };
+            /** @description UNAUTHENTICATED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "UNAUTHENTICATED";
+                        errors: null;
+                    };
+                };
+            };
+            /** @description FORBIDDEN / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "FORBIDDEN" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        errors: null;
+                    };
+                };
+            };
+            /** @description VALIDATION_ERROR / BUSINESS_RULE */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "VALIDATION_ERROR" | "BUSINESS_RULE";
+                        errors: {
+                            [key: string]: string[];
+                        };
+                    };
+                };
+            };
+            /** @description TOO_MANY_REQUESTS */
+            429: {
+                headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "TOO_MANY_REQUESTS";
+                        errors: null;
+                    };
+                };
+            };
+        };
+    };
+    "izinGuru.index": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        data: {
+                            modul: {
+                                kode: components["schemas"]["ModulIzin"];
+                                label: string;
+                                deskripsi: string;
+                            }[];
+                            level: {
+                                kode: components["schemas"]["LevelIzin"];
+                                label: string;
+                            }[];
+                            preset: {
+                                kode: components["schemas"]["PresetIzin"];
+                                nama: string;
+                                izin: {
+                                    keuangan: components["schemas"]["LevelIzin"] | null;
+                                    konten_website: components["schemas"]["LevelIzin"] | null;
+                                    laporan_absensi: components["schemas"]["LevelIzin"] | null;
+                                    data_murid: components["schemas"]["LevelIzin"] | null;
+                                    pengumuman: components["schemas"]["LevelIzin"] | null;
+                                };
+                            }[];
+                        };
+                        meta: null;
+                    };
+                };
+            };
+            /** @description UNAUTHENTICATED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "UNAUTHENTICATED";
+                        errors: null;
+                    };
+                };
+            };
+            /** @description FORBIDDEN / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "FORBIDDEN" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        errors: null;
+                    };
+                };
+            };
+            /** @description TOO_MANY_REQUESTS */
+            429: {
+                headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "TOO_MANY_REQUESTS";
+                        errors: null;
+                    };
+                };
+            };
+        };
+    };
+    "izinGuru.update": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SimpanIzinGuruRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        data: components["schemas"]["GuruResource"];
+                        meta: null;
+                    };
+                };
+            };
+            /** @description UNAUTHENTICATED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "UNAUTHENTICATED";
+                        errors: null;
+                    };
+                };
+            };
+            /** @description FORBIDDEN / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "FORBIDDEN" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        errors: null;
+                    };
+                };
+            };
+            /** @description NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "NOT_FOUND";
+                        errors: null;
+                    };
+                };
+            };
+            /** @description BUSINESS_RULE / VALIDATION_ERROR */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "BUSINESS_RULE" | "VALIDATION_ERROR";
+                        errors: {
+                            [key: string]: string[];
+                        };
+                    };
+                };
+            };
+            /** @description TOO_MANY_REQUESTS */
+            429: {
+                headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "TOO_MANY_REQUESTS";
+                        errors: null;
+                    };
+                };
+            };
+        };
+    };
+    "izinGuru.preset": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TerapkanPresetIzinRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        data: components["schemas"]["GuruResource"];
+                        meta: null;
+                    };
+                };
+            };
+            /** @description UNAUTHENTICATED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "UNAUTHENTICATED";
+                        errors: null;
+                    };
+                };
+            };
+            /** @description FORBIDDEN / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "FORBIDDEN" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        errors: null;
+                    };
+                };
+            };
+            /** @description NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "NOT_FOUND";
+                        errors: null;
+                    };
+                };
+            };
+            /** @description BUSINESS_RULE / VALIDATION_ERROR */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "BUSINESS_RULE" | "VALIDATION_ERROR";
+                        errors: {
+                            [key: string]: string[];
+                        };
+                    };
+                };
+            };
+            /** @description TOO_MANY_REQUESTS */
+            429: {
+                headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "TOO_MANY_REQUESTS";
+                        errors: null;
                     };
                 };
             };
@@ -9801,7 +10711,7 @@ export interface operations {
                 page?: number;
                 per_page?: number;
                 "filter[user_id]"?: number;
-                "filter[jenis]"?: "akun" | "guru" | "wali" | "tagihan" | "pembayaran" | "rapor" | "ppdb" | "pengaturan";
+                "filter[jenis]"?: "akun" | "guru" | "izin" | "wali" | "murid" | "jenis_tagihan" | "keringanan" | "tagihan" | "pembayaran" | "rapor" | "ppdb" | "pengaturan" | "absensi";
                 "filter[tanggal]"?: string;
             };
             header?: never;
@@ -9947,16 +10857,216 @@ export interface operations {
             };
         };
     };
+    "murid.lepasWali": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+                wali_murid_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        data: null;
+                        meta: null;
+                    };
+                };
+            };
+            /** @description UNAUTHENTICATED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "UNAUTHENTICATED";
+                        errors: null;
+                    };
+                };
+            };
+            /** @description FORBIDDEN / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "FORBIDDEN" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        errors: null;
+                    };
+                };
+            };
+            /** @description NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "NOT_FOUND";
+                        errors: null;
+                    };
+                };
+            };
+            /** @description TOO_MANY_REQUESTS */
+            429: {
+                headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "TOO_MANY_REQUESTS";
+                        errors: null;
+                    };
+                };
+            };
+        };
+    };
+    "murid.ubahWali": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+                wali_murid_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["UbahTautanWaliRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        data: components["schemas"]["MuridDetailResource"];
+                        meta: null;
+                    };
+                };
+            };
+            /** @description UNAUTHENTICATED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "UNAUTHENTICATED";
+                        errors: null;
+                    };
+                };
+            };
+            /** @description FORBIDDEN / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "FORBIDDEN" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        errors: null;
+                    };
+                };
+            };
+            /** @description NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "NOT_FOUND";
+                        errors: null;
+                    };
+                };
+            };
+            /** @description BUSINESS_RULE / VALIDATION_ERROR */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "BUSINESS_RULE" | "VALIDATION_ERROR";
+                        errors: {
+                            [key: string]: string[];
+                        };
+                    };
+                };
+            };
+            /** @description TOO_MANY_REQUESTS */
+            429: {
+                headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "TOO_MANY_REQUESTS";
+                        errors: null;
+                    };
+                };
+            };
+        };
+    };
     "murid.index": {
         parameters: {
             query?: {
                 page?: number;
                 per_page?: number;
                 search?: string | null;
-                sort?: "nama" | "nis" | "created_at" | "-nama" | "-nis" | "-created_at";
+                sort?: "nama" | "nis" | "created_at" | "tahun_lulus" | "-nama" | "-nis" | "-created_at" | "-tahun_lulus";
                 "filter[kelas_id]"?: number;
                 "filter[status]"?: components["schemas"]["StatusMurid"];
                 "filter[tingkat]"?: components["schemas"]["Tingkat"];
+                "filter[tahun_lulus]"?: number;
             };
             header?: never;
             path?: never;
@@ -10241,7 +11351,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "multipart/form-data": components["schemas"]["PerbaruiMuridRequest"];
+                "multipart/form-data": components["schemas"]["SimpanMuridRequest"];
             };
         };
         responses: {
@@ -10304,7 +11414,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description BUSINESS_RULE / VALIDATION_ERROR */
+            /** @description VALIDATION_ERROR */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -10314,7 +11424,7 @@ export interface operations {
                         success: boolean;
                         message: string;
                         /** @enum {string} */
-                        code: "BUSINESS_RULE" | "VALIDATION_ERROR";
+                        code: "VALIDATION_ERROR";
                         errors: {
                             [key: string]: string[];
                         };
@@ -10520,205 +11630,6 @@ export interface operations {
                         /** @enum {string} */
                         code: "BUSINESS_RULE";
                         errors: null;
-                    };
-                };
-            };
-            /** @description TOO_MANY_REQUESTS */
-            429: {
-                headers: {
-                    /** @description Jumlah detik sampai boleh mencoba lagi. */
-                    "Retry-After": number;
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                        /** @enum {string} */
-                        code: "TOO_MANY_REQUESTS";
-                        errors: null;
-                    };
-                };
-            };
-        };
-    };
-    "murid.lepasWali": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: number;
-                wali_murid_id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                        data: null;
-                        meta: null;
-                    };
-                };
-            };
-            /** @description UNAUTHENTICATED */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                        /** @enum {string} */
-                        code: "UNAUTHENTICATED";
-                        errors: null;
-                    };
-                };
-            };
-            /** @description FORBIDDEN / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                        /** @enum {string} */
-                        code: "FORBIDDEN" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
-                        errors: null;
-                    };
-                };
-            };
-            /** @description NOT_FOUND */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                        /** @enum {string} */
-                        code: "NOT_FOUND";
-                        errors: null;
-                    };
-                };
-            };
-            /** @description TOO_MANY_REQUESTS */
-            429: {
-                headers: {
-                    /** @description Jumlah detik sampai boleh mencoba lagi. */
-                    "Retry-After": number;
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                        /** @enum {string} */
-                        code: "TOO_MANY_REQUESTS";
-                        errors: null;
-                    };
-                };
-            };
-        };
-    };
-    "murid.ubahWali": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: number;
-                wali_murid_id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["UbahTautanWaliRequest"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                        data: components["schemas"]["MuridDetailResource"];
-                        meta: null;
-                    };
-                };
-            };
-            /** @description UNAUTHENTICATED */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                        /** @enum {string} */
-                        code: "UNAUTHENTICATED";
-                        errors: null;
-                    };
-                };
-            };
-            /** @description FORBIDDEN / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                        /** @enum {string} */
-                        code: "FORBIDDEN" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
-                        errors: null;
-                    };
-                };
-            };
-            /** @description NOT_FOUND */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                        /** @enum {string} */
-                        code: "NOT_FOUND";
-                        errors: null;
-                    };
-                };
-            };
-            /** @description BUSINESS_RULE / VALIDATION_ERROR */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                        /** @enum {string} */
-                        code: "BUSINESS_RULE" | "VALIDATION_ERROR";
-                        errors: {
-                            [key: string]: string[];
-                        };
                     };
                 };
             };
@@ -12837,6 +13748,102 @@ export interface operations {
             };
         };
     };
+    "pengaturan.upload": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["UnggahGambarPengaturanRequest"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        /** @constant */
+                        message: "Gambar terunggah.";
+                        data: {
+                            path: string;
+                            url: string;
+                        };
+                        meta: null;
+                    };
+                };
+            };
+            /** @description UNAUTHENTICATED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "UNAUTHENTICATED";
+                        errors: null;
+                    };
+                };
+            };
+            /** @description FORBIDDEN / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "FORBIDDEN" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        errors: null;
+                    };
+                };
+            };
+            /** @description VALIDATION_ERROR */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "VALIDATION_ERROR";
+                        errors: {
+                            [key: string]: string[];
+                        };
+                    };
+                };
+            };
+            /** @description TOO_MANY_REQUESTS */
+            429: {
+                headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "TOO_MANY_REQUESTS";
+                        errors: null;
+                    };
+                };
+            };
+        };
+    };
     "pengaturan.index": {
         parameters: {
             query?: {
@@ -13000,102 +14007,6 @@ export interface operations {
                         message: string;
                         /** @enum {string} */
                         code: "VALIDATION_ERROR" | "BUSINESS_RULE";
-                        errors: {
-                            [key: string]: string[];
-                        };
-                    };
-                };
-            };
-            /** @description TOO_MANY_REQUESTS */
-            429: {
-                headers: {
-                    /** @description Jumlah detik sampai boleh mencoba lagi. */
-                    "Retry-After": number;
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                        /** @enum {string} */
-                        code: "TOO_MANY_REQUESTS";
-                        errors: null;
-                    };
-                };
-            };
-        };
-    };
-    "pengaturan.upload": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "multipart/form-data": components["schemas"]["UnggahGambarPengaturanRequest"];
-            };
-        };
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                        /** @constant */
-                        message: "Gambar terunggah.";
-                        data: {
-                            path: string;
-                            url: string;
-                        };
-                        meta: null;
-                    };
-                };
-            };
-            /** @description UNAUTHENTICATED */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                        /** @enum {string} */
-                        code: "UNAUTHENTICATED";
-                        errors: null;
-                    };
-                };
-            };
-            /** @description FORBIDDEN / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                        /** @enum {string} */
-                        code: "FORBIDDEN" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
-                        errors: null;
-                    };
-                };
-            };
-            /** @description VALIDATION_ERROR */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                        /** @enum {string} */
-                        code: "VALIDATION_ERROR";
                         errors: {
                             [key: string]: string[];
                         };
@@ -15483,6 +16394,296 @@ export interface operations {
                         message: string;
                         /** @enum {string} */
                         code: "VALIDATION_ERROR";
+                        errors: {
+                            [key: string]: string[];
+                        };
+                    };
+                };
+            };
+            /** @description TOO_MANY_REQUESTS */
+            429: {
+                headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "TOO_MANY_REQUESTS";
+                        errors: null;
+                    };
+                };
+            };
+        };
+    };
+    "statusMurid.tahunLulus": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        data: number[];
+                        meta: null;
+                    };
+                };
+            };
+            /** @description UNAUTHENTICATED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "UNAUTHENTICATED";
+                        errors: null;
+                    };
+                };
+            };
+            /** @description FORBIDDEN / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "FORBIDDEN" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        errors: null;
+                    };
+                };
+            };
+            /** @description TOO_MANY_REQUESTS */
+            429: {
+                headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "TOO_MANY_REQUESTS";
+                        errors: null;
+                    };
+                };
+            };
+        };
+    };
+    "statusMurid.ubah": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UbahStatusMuridRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        data: components["schemas"]["MuridDetailResource"];
+                        meta: null;
+                    };
+                };
+            };
+            /** @description UNAUTHENTICATED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "UNAUTHENTICATED";
+                        errors: null;
+                    };
+                };
+            };
+            /** @description FORBIDDEN / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "FORBIDDEN" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        errors: null;
+                    };
+                };
+            };
+            /** @description NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "NOT_FOUND";
+                        errors: null;
+                    };
+                };
+            };
+            /** @description BUSINESS_RULE / VALIDATION_ERROR */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "BUSINESS_RULE" | "VALIDATION_ERROR";
+                        errors: {
+                            [key: string]: string[];
+                        };
+                    };
+                };
+            };
+            /** @description TOO_MANY_REQUESTS */
+            429: {
+                headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "TOO_MANY_REQUESTS";
+                        errors: null;
+                    };
+                };
+            };
+        };
+    };
+    "statusMurid.massal": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UbahStatusMassalRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        data: {
+                            diubah: number;
+                            dilewati: number;
+                        };
+                        meta: null;
+                    };
+                };
+            };
+            /** @description UNAUTHENTICATED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "UNAUTHENTICATED";
+                        errors: null;
+                    };
+                };
+            };
+            /** @description FORBIDDEN / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "FORBIDDEN" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        errors: null;
+                    };
+                };
+            };
+            /** @description NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "NOT_FOUND";
+                        errors: null;
+                    };
+                };
+            };
+            /** @description BUSINESS_RULE / VALIDATION_ERROR */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "BUSINESS_RULE" | "VALIDATION_ERROR";
                         errors: {
                             [key: string]: string[];
                         };

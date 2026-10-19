@@ -12,6 +12,7 @@ import { StatusBadge } from "@/components/shared/status-badge";
 import { TabelData } from "@/components/shared/tabel-data";
 import { buttonVariants } from "@/components/ui/button";
 import { useDaftarGuru } from "@/lib/api/guru";
+import { LABEL_LEVEL_IZIN, LABEL_MODUL_IZIN, MODUL_IZIN } from "@/lib/constants/label";
 import { formatTanggal } from "@/lib/format";
 import type { Guru } from "@/types/domain";
 
@@ -35,7 +36,14 @@ function Identitas({ guru }: { guru: Guru }) {
 function Peran({ guru }: { guru: Guru }) {
   return (
     <div className="flex flex-wrap gap-1">
-      {guru.bisa_kelola_keuangan ? <StatusBadge nada="proses">Petugas keuangan</StatusBadge> : null}
+      {MODUL_IZIN.map((modul) => {
+        const level = guru.izin[modul];
+        return level ? (
+          <StatusBadge key={modul} nada="proses">
+            {LABEL_MODUL_IZIN[modul]}: {LABEL_LEVEL_IZIN[level].toLowerCase()}
+          </StatusBadge>
+        ) : null;
+      })}
       {guru.tampil_di_landing ? <StatusBadge nada="sukses">Di halaman depan</StatusBadge> : null}
     </div>
   );

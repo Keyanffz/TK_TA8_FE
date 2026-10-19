@@ -3,12 +3,13 @@ import type { Metadata } from "next";
 import { UbahMurid } from "@/components/features/murid/ubah-murid";
 import { KepalaHalaman } from "@/components/shared/kepala-halaman";
 import { wajibAkses } from "@/lib/auth/akses";
+import { punyaIzin } from "@/lib/auth/role";
 import { idDariParam } from "@/lib/halaman";
 
 export const metadata: Metadata = { title: "Ubah Data Murid" };
 
 export default async function UbahMuridPage({ params }: PageProps<"/mudarris/murid/[id]/ubah">) {
-  await wajibAkses((sesi) => sesi.isSuperAdmin);
+  await wajibAkses((sesi) => punyaIzin(sesi, "data_murid", "kelola"));
   const id = idDariParam((await params).id);
 
   return (

@@ -3,11 +3,12 @@ import type { Metadata } from "next";
 import { TambahMurid } from "@/components/features/murid/tambah-murid";
 import { KepalaHalaman } from "@/components/shared/kepala-halaman";
 import { wajibAkses } from "@/lib/auth/akses";
+import { punyaIzin } from "@/lib/auth/role";
 
 export const metadata: Metadata = { title: "Tambah Murid" };
 
 export default async function TambahMuridPage() {
-  await wajibAkses((sesi) => sesi.isSuperAdmin);
+  await wajibAkses((sesi) => punyaIzin(sesi, "data_murid", "kelola"));
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-6 sm:px-6 lg:px-8 lg:py-8">

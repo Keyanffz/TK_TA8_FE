@@ -104,10 +104,12 @@ export function pesanErrorPengaturan(error: unknown, kunci: string): [string, st
     .map(([nama, pesan]) => [nama.slice(awalan.length + 1), pesan[0] ?? ""]);
 }
 
-export function usePengaturan<T>(grup: GrupPengaturan, baca: (data: Record<string, unknown>) => T) {
+/** `aktif` false untuk grup yang tidak boleh dibaca pengguna ini (A2.13), supaya tidak memancing 403. */
+export function usePengaturan<T>(grup: GrupPengaturan, baca: (data: Record<string, unknown>) => T, aktif = true) {
   return useQuery({
     queryKey: queryKeys.pengaturan(grup),
     queryFn: async () => baca((await ambilData(api.GET("/pengaturan", { params: { query: { grup } } }))).data),
+    enabled: aktif,
   });
 }
 

@@ -16,6 +16,8 @@ import { PESAN_BELUM_DISIMPAN, usePeringatanBelumDisimpan } from "@/lib/use-peri
 
 const TAB = ["rekening", "tagihan", "ppdb", "beranda", "elemen"] as const;
 type Tab = (typeof TAB)[number];
+/** Guru dengan izin konten website hanya mengurus banner beranda wali; tab lain khusus Kepala Sekolah. */
+const TAB_KONTEN = ["beranda"] as const satisfies readonly Tab[];
 const LABEL_TAB: Record<Tab, string> = { rekening: "Rekening", tagihan: "Tagihan", ppdb: "PPDB", beranda: "Beranda Wali", elemen: "Elemen Penilaian" };
 
 function Muat<T>({ hasil, children }: { hasil: { data: T | undefined; isPending: boolean; isError: boolean; error: unknown; refetch: () => unknown }; children: (data: T) => ReactNode }) {
@@ -24,21 +26,26 @@ function Muat<T>({ hasil, children }: { hasil: { data: T | undefined; isPending:
   return children(hasil.data);
 }
 
+type HalamanPengaturanProps = { kepalaSekolah: boolean; bisaKelolaKonten: boolean };
+
 /** Pengaturan sistem (B4), satu tab per kelompok; tiap tab disimpan sendiri. */
-export function HalamanPengaturan() {
-  const [tab, setTab] = useQueryState("tab", parseAsStringLiteral(TAB).withDefault("rekening"));
+export function HalamanPengaturan({ kepalaSekolah, bisaKelolaKonten }: HalamanPengaturanProps) {
+  const tabTersedia: readonly Tab[] = kepalaSekolah ? TAB : TAB_KONTEN;
+  const tabAwal: Tab = kepalaSekolah ? "rekening" : "beranda";
+  const [tabDiminta, setTab] = useQueryState("tab", parseAsStringLiteral(TAB).withDefault(tabAwal));
+  const tab = tabTersedia.includes(tabDiminta) ? tabDiminta : tabAwal;
   const [kotor, setKotor] = useState(false);
   const ubahKotor = useCallback((nilai: boolean) => setKotor(nilai), []);
-  const keuangan = usePengaturan("keuangan", (mentah) => skemaKeuangan.parse(mentah));
-  const ppdb = usePengaturan("ppdb", (mentah) => skemaPpdb.parse(mentah));
+  const keuangan = usePengaturan("keuangan", (mentah) => skemaKeuangan.parse(mentah), kepalaSekolah);
+  const ppdb = usePengaturan("ppdb", (mentah) => skemaPpdb.parse(mentah), kepalaSekolah);
   usePeringatanBelumDisimpan(kotor);
 
   const pindahTab = (nilai: string) => {
-    const tujuan = TAB.find((item) => item === nilai);
+    const tujuan = tabTersedia.find((item) => item === nilai);
     if (!tujuan || tujuan === tab) return;
     if (kotor && !window.confirm(PESAN_BELUM_DISIMPAN)) return;
     setKotor(false);
-    void setTab(tujuan === "rekening" ? null : tujuan);
+    void setTab(tujuan === tabAwal ? null : tujuan);
   };
 
   return (
@@ -46,7 +53,7 @@ export function HalamanPengaturan() {
     <Tabs value={tab} onValueChange={pindahTab} activationMode="manual" className="gap-5">
       <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
         <TabsList aria-label="Kelompok pengaturan">
-          {TAB.map((nilai) => (
+          {tabTersedia.map((nilai) => (
             <TabsTrigger key={nilai} value={nilai} className="px-4">
               {LABEL_TAB[nilai]}
             </TabsTrigger>
@@ -70,7 +77,9 @@ export function HalamanPengaturan() {
         <p className="mb-5 max-w-prose text-sm text-muted-foreground">
           Pesan singkat dari sekolah yang tampil paling atas di beranda wali murid, misalnya pengingat rapat atau libur.
         </p>
-        <FormInfoWali onUbahKotor={ubahKotor} />
+        <fieldset disabled={!bisaKelolaKonten} className="contents">
+          <FormInfoWali onUbahKotor={ubahKotor} />
+        </fieldset>
       </TabsContent>
       <TabsContent value="elemen">
         <ElemenPenilaianSekolah />

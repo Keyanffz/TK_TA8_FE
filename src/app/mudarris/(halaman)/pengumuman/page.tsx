@@ -6,7 +6,7 @@ import { KepalaHalaman } from "@/components/shared/kepala-halaman";
 import { buttonVariants } from "@/components/ui/button";
 import { wajibSesi } from "@/lib/auth/akses";
 import { BERANDA_STAFF } from "@/lib/auth/path";
-import { statusSesi } from "@/lib/auth/role";
+import { punyaIzin, statusSesi } from "@/lib/auth/role";
 
 export const metadata: Metadata = { title: "Pengumuman" };
 
@@ -18,7 +18,7 @@ export default async function PengumumanMudarrisPage() {
       <KepalaHalaman
         judul="Pengumuman"
         deskripsi={
-          sesi.isSuperAdmin
+          punyaIzin(sesi, "pengumuman")
             ? "Semua pengumuman, termasuk draft. Pengumuman untuk semua penerima bisa ditampilkan di website."
             : "Pengumuman yang Anda terima dan yang Anda tulis untuk kelas Anda."
         }

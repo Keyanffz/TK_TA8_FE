@@ -18,7 +18,8 @@ import { formatRupiah, formatTanggal } from "@/lib/format";
 import { namaTagihan, tagihanTerbuka } from "@/lib/tagihan";
 import { cn } from "@/lib/utils";
 
-export type PeranTagihan = "wali" | "keuangan" | "kepala-sekolah" | "guru";
+/** `keuangan-lihat`: guru dengan izin lihat keuangan (A2.13), melihat semua tagihan tanpa aksi. */
+export type PeranTagihan = "wali" | "keuangan" | "keuangan-lihat" | "kepala-sekolah" | "guru";
 
 function Bagian({ judul, children }: { judul: string; children: ReactNode }) {
   return (
@@ -61,7 +62,7 @@ export function DetailTagihan({ id, peran }: { id: number; peran: PeranTagihan }
               <div>
                 <dt className="text-muted-foreground">Murid</dt>
                 <dd className="font-bold">
-                  {petugas || peran === "guru" ? (
+                  {peran !== "wali" ? (
                     <Link href={`/mudarris/murid/${tagihan.murid.id}`} className="hover:underline">
                       {tagihan.murid.nama_lengkap}
                     </Link>

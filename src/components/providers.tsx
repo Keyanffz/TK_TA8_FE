@@ -32,6 +32,8 @@ export function Providers({ children }: { children: ReactNode }) {
     // PASSWORD_WAJIB_DIGANTI: layout dashboard sudah mengarahkan wali ke halaman
     // ganti password, tetapi layout tidak dirender ulang saat navigasi di browser,
     // jadi penolakan backend ini ditangani juga di sini.
+    // FORBIDDEN bisa berarti izin guru baru saja dicabut Kepala Sekolah; sesi diambil
+    // ulang supaya menu dan tombol aksi ikut berubah tanpa harus masuk ulang.
     const tanganiError = (error: unknown) => {
       if (!(error instanceof ApiError)) return;
       if (error.status === 401) {
@@ -43,6 +45,8 @@ export function Providers({ children }: { children: ReactNode }) {
       } else if (error.code === "PASSWORD_WAJIB_DIGANTI") {
         router.replace(RUTE_GANTI_PASSWORD);
         router.refresh();
+      } else if (error.code === "FORBIDDEN") {
+        void client.invalidateQueries({ queryKey: queryKeys.me });
       }
     };
     const client = new QueryClient({

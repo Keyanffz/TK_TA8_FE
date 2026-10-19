@@ -4,7 +4,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { parseAsString, useQueryState } from "nuqs";
 
 import { KartuAbsensiHarian } from "@/components/features/absensi/daftar-absensi-harian";
-import { AksiKoreksiHarian } from "@/components/features/absensi/dialog-koreksi-absensi";
+import { AksiKoreksiHarian, type HakKoreksi } from "@/components/features/absensi/dialog-koreksi-absensi";
 import { EmptyState } from "@/components/shared/empty-state";
 import { GalatMuat } from "@/components/shared/galat-muat";
 import { KotakPesan } from "@/components/shared/kotak-pesan";
@@ -83,7 +83,7 @@ function Ringkasan({ peserta }: { peserta: AbsensiPerTanggal["peserta"] }) {
 }
 
 /** Absensi semua guru dan Kepala Sekolah di satu tanggal, untuk dicek dan dikoreksi Kepala Sekolah. */
-export function RekapHarian() {
+export function RekapHarian({ hak }: { hak: HakKoreksi }) {
   const { tanggal, hariIni, setTanggal } = useTanggalDipilih();
   const { data, isPending, isError, error, refetch, isPlaceholderData } = useAbsensiHarian(tanggal);
 
@@ -119,7 +119,7 @@ export function RekapHarian() {
                   masuk={masuk}
                   pulang={pulang}
                   labelTanpaMasuk={pesanTanpaAbsen ? undefined : "Belum absen"}
-                  aksi={<AksiKoreksiHarian nama={user.nama} userId={user.id} tanggal={data.tanggal} masuk={masuk} pulang={pulang} bolehCatat={!pesanTanpaAbsen} />}
+                  aksi={<AksiKoreksiHarian hak={hak} nama={user.nama} userId={user.id} tanggal={data.tanggal} masuk={masuk} pulang={pulang} bolehCatat={!pesanTanpaAbsen} />}
                 />
               ))}
             </ul>

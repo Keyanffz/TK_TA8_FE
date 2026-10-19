@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { toast } from "sonner";
 
 import { FormGuru } from "@/components/features/guru/form-guru";
@@ -11,7 +12,7 @@ import { StatusBadge } from "@/components/shared/status-badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useDetailGuru, useResetGoogleGuru, useUbahGuru, useUbahStatusGuru } from "@/lib/api/guru";
-import { LABEL_STATUS_AKUN } from "@/lib/constants/label";
+import { LABEL_LEVEL_IZIN, LABEL_MODUL_IZIN, LABEL_STATUS_AKUN, MODUL_IZIN } from "@/lib/constants/label";
 import { NADA_STATUS_AKUN } from "@/lib/constants/status";
 import { formatTanggal, formatTanggalWaktu } from "@/lib/format";
 import type { Guru } from "@/types/domain";
@@ -80,7 +81,7 @@ export function DetailGuru({ id }: { id: number }) {
           {LABEL_STATUS_AKUN[guru.user.status]}
         </StatusBadge>
         {guru.user.role === "super_admin" ? (
-          <KotakPesan nada="proses">Profil guru milik Kepala Sekolah. Status akun dan izin keuangan tidak bisa diubah.</KotakPesan>
+          <KotakPesan nada="proses">Profil guru milik Kepala Sekolah. Status akun dan hak aksesnya tidak bisa diubah; Kepala Sekolah selalu punya semua izin.</KotakPesan>
         ) : null}
         <dl className="grid gap-2 text-sm">
           <div>
@@ -95,6 +96,20 @@ export function DetailGuru({ id }: { id: number }) {
             <dt className="text-muted-foreground">Terakhir masuk</dt>
             <dd className="font-bold">{guru.user.last_login_at ? formatTanggalWaktu(guru.user.last_login_at) : "Belum pernah"}</dd>
           </div>
+          {guru.user.role === "super_admin" ? null : (
+            <div>
+              <dt className="text-muted-foreground">Hak akses</dt>
+              <dd className="font-bold">
+                {MODUL_IZIN.flatMap((modul) => {
+                  const level = guru.izin[modul];
+                  return level ? [`${LABEL_MODUL_IZIN[modul]} (${LABEL_LEVEL_IZIN[level].toLowerCase()})`] : [];
+                }).join(", ") || "Tanpa izin tambahan"}
+              </dd>
+              <Link href="/mudarris/hak-akses" className="text-sm font-bold text-primary-strong hover:underline">
+                Atur di Hak Akses Guru
+              </Link>
+            </div>
+          )}
         </dl>
         <AksiStatus guru={guru} />
         <ResetTautanGoogle guru={guru} />

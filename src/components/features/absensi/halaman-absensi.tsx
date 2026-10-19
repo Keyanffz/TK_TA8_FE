@@ -124,7 +124,7 @@ function alurMasihBerlaku(mode: ModeAbsen, langkah: LangkahAbsen, status: Absens
 }
 
 /** Halaman absen guru dan Kepala Sekolah (B4), dirancang untuk dipakai dari HP. */
-export function HalamanAbsensi({ kepalaSekolah }: { kepalaSekolah: boolean }) {
+export function HalamanAbsensi({ kepalaSekolah, bisaLihatRekap }: { kepalaSekolah: boolean; bisaLihatRekap: boolean }) {
   const { data, isPending, isError, error, refetch } = useAbsensiHariIni();
   const [alur, setAlur] = useState<ModeAbsen | null>(null);
 
@@ -166,14 +166,16 @@ export function HalamanAbsensi({ kepalaSekolah }: { kepalaSekolah: boolean }) {
 
       <RiwayatTerbaru hariIni={data.tanggal} />
 
-      {kepalaSekolah ? (
+      {bisaLihatRekap ? (
         <nav aria-label="Halaman absensi lain" className="flex flex-wrap gap-2">
           <Button asChild variant="outline">
             <Link href="/mudarris/absensi/rekap">Rekap Absensi</Link>
           </Button>
-          <Button asChild variant="outline">
-            <Link href="/mudarris/pengaturan/absensi">Pengaturan Absensi</Link>
-          </Button>
+          {kepalaSekolah ? (
+            <Button asChild variant="outline">
+              <Link href="/mudarris/pengaturan/absensi">Pengaturan Absensi</Link>
+            </Button>
+          ) : null}
         </nav>
       ) : null}
     </div>
