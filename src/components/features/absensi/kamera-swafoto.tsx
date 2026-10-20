@@ -148,7 +148,8 @@ export function KameraSwafoto({ foto, onFoto }: { foto: File | null; onFoto: (fo
       ) : (
         <>
           <div className="relative overflow-hidden rounded-lg bg-foreground">
-            {/* Tombol Ambil Foto baru aktif setelah video punya gambar; aliran yang baru dibuka belum punya ukuran. */}
+            {/* Tombol Ambil Foto baru aktif setelah video punya gambar; aliran yang baru dibuka belum punya ukuran.
+                Pratinjau tidak dicerminkan supaya sama dengan foto yang dikirim. */}
             <video
               ref={videoRef}
               autoPlay
@@ -156,7 +157,7 @@ export function KameraSwafoto({ foto, onFoto }: { foto: File | null; onFoto: (fo
               muted
               aria-label="Pratinjau kamera depan"
               onLoadedData={() => setKamera({ tahap: "aktif" })}
-              className="aspect-[3/4] w-full -scale-x-100 object-cover"
+              className="aspect-[3/4] w-full object-cover"
             />
             {kamera.tahap === "menyiapkan" ? (
               <p role="status" className="absolute inset-0 flex items-center justify-center px-6 text-center text-sm text-background">
