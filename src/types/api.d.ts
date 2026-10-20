@@ -4687,13 +4687,13 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Foto absensi (JPEG) */
+            /** @description Foto absensi (WebP; foto yang tersimpan sebelum format WebP dipakai tetap JPEG) */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "image/jpeg": Blob;
+                    "image/webp": Blob;
                 };
             };
             /** @description UNAUTHENTICATED */

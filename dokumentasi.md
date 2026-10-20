@@ -328,7 +328,7 @@ Fitur diminta pemilik repo (branch `fe/absensi`, backend `be/absensi`). Kontrakn
 2. Keterangan kenapa tombol absen tidak muncul disusun `langkahAbsen()` (`src/lib/absensi.ts`) dari `GET /absensi/hari-ini`: `terbuka` dan `hari_kerja` dari backend, sedangkan "belum buka" atau "sudah tutup" dibedakan dengan membandingkan jam di `waktu_server` dengan jam buka. Jam perangkat tidak dipakai.
 3. Lokasi dibaca sekali (`getCurrentPosition`, batas tunggu 20 detik, tanpa cache) dan bisa diulang lewat Perbarui Lokasi; tidak memakai `watchPosition`.
 4. Pratinjau kamera dan foto yang dikirim sama-sama tidak dicerminkan, jadi foto hasil jepretan sama dengan yang terlihat di pratinjau (sebelumnya pratinjau dicerminkan dan foto tampak terbalik setelah diambil). Tombol Ambil Foto baru aktif setelah video punya gambar (`onLoadedData`), karena aliran yang baru dibuka belum punya ukuran. Aliran kamera dihentikan saat foto diambil, alur ditutup, atau halaman ditinggalkan.
-5. Foto dari kamera diambil lewat kanvas (JPEG kualitas 0,85, sisi terpanjang 1280 px). Foto dari input file cadangan dikecilkan `browser-image-compression` ke ukuran dan format yang sama (`kompresFotoAbsensi`).
+5. Foto dari kamera diambil lewat kanvas (JPEG kualitas 0,85, sisi terpanjang 1280 px). Foto dari input file cadangan dikecilkan `browser-image-compression` ke ukuran dan format yang sama (`kompresFotoAbsensi`). Backend mengodekan ulang setiap foto absensi dan menyimpannya sebagai WebP, jadi FE tetap mengunggah JPEG; format unggahan tidak memengaruhi file yang tersimpan.
 6. Lokasi dan kamera butuh secure context. Di alamat `http://` selain `localhost` (misalnya membuka dari HP lewat IP laptop) keduanya tidak tersedia: lokasi menampilkan pesan untuk membuka lewat https, kamera jatuh ke input file.
 7. Foto absensi ditampilkan lewat `/api/proxy/absensi/{id}/foto` dengan komponen pratinjau yang sudah ada (`BuktiTransfer`), bukan signed URL, karena backend hanya melayani pemilik dan Kepala Sekolah. Tidak ada `Permissions-Policy` yang perlu diubah; `next.config.ts` tidak disentuh.
 8. `GET /absensi` mengirim baris masuk dan pulang terpisah; `kelompokkanPerHari()` menggabungkannya per tanggal. Riwayat pribadi dan detail peserta di rekap memakai komponen yang sama (`DaftarAbsensiHarian`).
@@ -576,6 +576,12 @@ Tempat deploy belum ditentukan. Syarat yang sudah pasti:
 6. **Masuk dengan Google**: `NEXT_PUBLIC_GOOGLE_CLIENT_ID` diisi sebelum `npm run build`, dan origin FE produksi (misalnya `https://tkta8.sch.id`) didaftarkan di Authorized JavaScript origins Client ID itu di Google Cloud Console. Backend memakai Client ID yang sama di `GOOGLE_CLIENT_ID`.
 
 ## Changelog
+
+### Foto absensi disimpan sebagai WebP (branch `fe/foto-absensi-webp`)
+
+Diminta pemilik repo bersama perubahan backend di branch `be/foto-absensi-webp`: foto absensi (unggahan jpg, png, atau webp) dikonversi otomatis ke WebP oleh backend, dan `GET /absensi/{id}/foto` membalas `image/webp`. Foto yang tersimpan sebelumnya tetap JPEG sampai terhapus oleh masa simpan foto. Tidak ada perubahan komponen: foto ditampilkan `BuktiTransfer` langsung dari `/api/proxy/absensi/{id}/foto`, dan kamera serta input file cadangan tetap mengunggah JPEG (Keputusan absensi nomor 5).
+
+File yang diubah: `src/types/api.d.ts` (`npm run gen:api`), `PROMPT_FE_TK.md` (A7 `GET /absensi/{id}/foto` sama dengan backend, B9), `dokumentasi.md`.
 
 ### Pratinjau kamera absensi tidak dicerminkan (branch `fe/kamera-tanpa-cermin`)
 
