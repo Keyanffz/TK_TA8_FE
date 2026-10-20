@@ -327,7 +327,7 @@ Fitur diminta pemilik repo (branch `fe/absensi`, backend `be/absensi`). Kontrakn
 1. Alur absen tampil di halaman yang sama (bukan dialog): 1. Lokasi, 2. Foto wajah, lalu tombol Kirim. Lokasi langsung dicari saat alur dibuka supaya sudah terbaca ketika foto selesai diambil. Tombol Kirim aktif setelah lokasi dan foto ada, juga ketika browser menghitung posisi di luar radius atau akurasinya buruk: saat itu hanya tampil peringatan, dan penolakan sebenarnya datang dari backend dengan pesannya sendiri.
 2. Keterangan kenapa tombol absen tidak muncul disusun `langkahAbsen()` (`src/lib/absensi.ts`) dari `GET /absensi/hari-ini`: `terbuka` dan `hari_kerja` dari backend, sedangkan "belum buka" atau "sudah tutup" dibedakan dengan membandingkan jam di `waktu_server` dengan jam buka. Jam perangkat tidak dipakai.
 3. Lokasi dibaca sekali (`getCurrentPosition`, batas tunggu 20 detik, tanpa cache) dan bisa diulang lewat Perbarui Lokasi; tidak memakai `watchPosition`.
-4. Pratinjau kamera dicerminkan seperti kamera depan pada umumnya; foto yang dikirim tidak dicerminkan. Tombol Ambil Foto baru aktif setelah video punya gambar (`onLoadedData`), karena aliran yang baru dibuka belum punya ukuran. Aliran kamera dihentikan saat foto diambil, alur ditutup, atau halaman ditinggalkan.
+4. Pratinjau kamera dan foto yang dikirim sama-sama tidak dicerminkan, jadi foto hasil jepretan sama dengan yang terlihat di pratinjau (sebelumnya pratinjau dicerminkan dan foto tampak terbalik setelah diambil). Tombol Ambil Foto baru aktif setelah video punya gambar (`onLoadedData`), karena aliran yang baru dibuka belum punya ukuran. Aliran kamera dihentikan saat foto diambil, alur ditutup, atau halaman ditinggalkan.
 5. Foto dari kamera diambil lewat kanvas (JPEG kualitas 0,85, sisi terpanjang 1280 px). Foto dari input file cadangan dikecilkan `browser-image-compression` ke ukuran dan format yang sama (`kompresFotoAbsensi`).
 6. Lokasi dan kamera butuh secure context. Di alamat `http://` selain `localhost` (misalnya membuka dari HP lewat IP laptop) keduanya tidak tersedia: lokasi menampilkan pesan untuk membuka lewat https, kamera jatuh ke input file.
 7. Foto absensi ditampilkan lewat `/api/proxy/absensi/{id}/foto` dengan komponen pratinjau yang sudah ada (`BuktiTransfer`), bukan signed URL, karena backend hanya melayani pemilik dan Kepala Sekolah. Tidak ada `Permissions-Policy` yang perlu diubah; `next.config.ts` tidak disentuh.
@@ -576,6 +576,12 @@ Tempat deploy belum ditentukan. Syarat yang sudah pasti:
 6. **Masuk dengan Google**: `NEXT_PUBLIC_GOOGLE_CLIENT_ID` diisi sebelum `npm run build`, dan origin FE produksi (misalnya `https://tkta8.sch.id`) didaftarkan di Authorized JavaScript origins Client ID itu di Google Cloud Console. Backend memakai Client ID yang sama di `GOOGLE_CLIENT_ID`.
 
 ## Changelog
+
+### Pratinjau kamera absensi tidak dicerminkan (branch `fe/kamera-tanpa-cermin`)
+
+Laporan pemilik repo: foto absensi tampak terbalik (seperti cermin) setelah diambil. Penyebabnya pratinjau kamera dibalik horizontal lewat CSS (`-scale-x-100`), sedangkan `tangkapBingkai()` menyalin bingkai video apa adanya, sehingga foto yang dikirim berkebalikan dengan yang terlihat saat membidik. Kelas itu dihapus: pratinjau sekarang sama dengan foto yang dikirim. Foto yang dikirim ke backend tidak berubah (sejak awal tidak dicerminkan). Foto dari input file cadangan (`capture="user"`) tetap mengikuti pengaturan kamera bawaan HP.
+
+File yang diubah: `src/components/features/absensi/kamera-swafoto.tsx`, `dokumentasi.md` (Keputusan absensi nomor 4).
 
 ### Hak akses guru, status murid, alumni, import murid (branch `fe/hak-akses-status-murid`)
 
