@@ -17,6 +17,9 @@ const KODE_ERROR: readonly KodeError[] = [
 const PESAN_SERVER_TIDAK_TERJANGKAU =
   "Server sekolah sedang tidak bisa dihubungi. Coba lagi beberapa saat lagi.";
 
+const PESAN_TIDAK_TERSAMBUNG =
+  "Perangkat Anda sedang tidak tersambung ke internet. Periksa Wi-Fi atau data seluler, lalu coba lagi.";
+
 export class ApiError extends Error {
   readonly status: number;
   readonly code: KodeError;
@@ -113,9 +116,18 @@ export async function errorDariResponse(response: Response): Promise<ApiError> {
   }
 }
 
+/**
+ * navigator.onLine false berarti perangkat pasti tanpa sambungan. Nilai true belum menjamin internet
+ * bisa dibuka, jadi hanya false yang dipakai. Di server (Node.js) navigator.onLine tidak ada.
+ */
+export function sedangOffline(): boolean {
+  return typeof navigator !== "undefined" && navigator.onLine === false;
+}
+
 // Pesan 429 dari backend sudah menyebut lama tunggu, jadi dipakai apa adanya.
 export function pesanError(error: unknown): string {
-  return error instanceof ApiError ? error.message : PESAN_SERVER_TIDAK_TERJANGKAU;
+  if (error instanceof ApiError) return error.message;
+  return sedangOffline() ? PESAN_TIDAK_TERSAMBUNG : PESAN_SERVER_TIDAK_TERJANGKAU;
 }
 
 /**
