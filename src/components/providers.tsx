@@ -6,6 +6,7 @@ import { NuqsAdapter } from "nuqs/adapters/next/app";
 import { useState, type ReactNode } from "react";
 import { Toaster } from "sonner";
 
+import { PantauSambungan } from "@/components/shared/pantau-sambungan";
 import { ApiError } from "@/lib/api/errors";
 import { queryKeys } from "@/lib/api/query-keys";
 import { RUTE_GANTI_PASSWORD } from "@/lib/auth/path";
@@ -64,6 +65,7 @@ export function Providers({ children }: { children: ReactNode }) {
     <QueryClientProvider client={queryClient}>
       <NuqsAdapter>{children}</NuqsAdapter>
       <Toaster position="top-center" richColors closeButton />
+      <PantauSambungan />
     </QueryClientProvider>
   );
 }

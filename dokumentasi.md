@@ -27,6 +27,7 @@ Website publik dan dashboard sistem informasi TK Tarbiyathul Athfal 8 (TK Muslim
 | Flowchart A6 absensi (branch `fe/flowchart-a6`) | Selesai, di-merge (PR #13) |
 | Catat Absen Pulang untuk guru yang lupa absen pulang (branch `fe/absensi-pulang`) | Selesai, diuji di browser, di-merge (PR #8; backend PR #10) |
 | Hak akses guru, status murid, alumni, import murid (branch `fe/hak-akses-status-murid`) | Selesai, menunggu review dan uji tampilan oleh pemilik repo; belum di-commit (lihat "Keputusan hak akses guru dan status murid") |
+| Tampilan error (sambungan, server sekolah, halaman) dan halaman 404 yang disamakan (branch `ccr-b869340b-k7sh7n`) | Selesai, diuji di browser, di-merge (PR #20; lihat "Keputusan tampilan error") |
 
 Mode mock tidak dipakai: `api.json` final dari backend sudah tersedia sejak Fase 1, jadi semua request memakai backend asli dan tipe hasil generate. Tidak ada endpoint mock.
 
@@ -164,7 +165,7 @@ Request dari Server Component ke endpoint publik (landing, ISR) tidak membawa `X
 - Foto murid dan foto kegiatan berupa signed URL yang kedaluwarsa, jadi ditampilkan lewat `next/image` dengan `unoptimized` (`FotoProfil`, `KartuAnak`, `KegiatanRingkas`).
 - Foto profil dikompres di browser (`browser-image-compression`, maks 1 MB dan sisi 1600 px) lalu dikirim sebagai multipart `PUT /auth/profil` lewat `bodySerializer` openapi-fetch.
 - Komponen shadcn `dropdown-menu`, `popover`, `textarea` ditulis manual mengikuti pola shadcn karena `ui.shadcn.com` diblokir kebijakan jaringan container (403).
-- `EmptyState` sekarang memakai ilustrasi perisai logo dengan bintang melayang; `StatusBadge`, `KepalaHalaman` (PageHeader), `GalatMuat`, `HalamanKosong` (404/error di dashboard) ditambahkan sebagai komponen bersama.
+- `EmptyState` sekarang memakai ilustrasi perisai logo dengan bintang melayang; `StatusBadge`, `KepalaHalaman` (PageHeader), `GalatMuat`, `HalamanKosong` (tampilan 404 dan error, sekarang di semua area; lihat "Keputusan tampilan error") ditambahkan sebagai komponen bersama.
 
 ## Keputusan Fase 4
 
@@ -382,6 +383,21 @@ Kontrak lengkap ada di `docs/kontrak-api-fitur-baru.md` (salinan dari backend). 
 - **Wali dengan anak tidak aktif**: pemilih anak dan kartu anak menampilkan badge Lulus/Pindah/Keluar dari `user.wali_murid.anak[].status`. Data anak tetap bisa dibuka untuk tagihan lama dan rapor.
 - **Belum diuji di browser**: semua perubahan ini. Pemilik repo memeriksa tampilan sendiri.
 
+## Keputusan tampilan error
+
+Diminta pemilik repo: tampilan error yang membedakan masalah sambungan internet, server sekolah, dan halaman itu sendiri.
+
+- **Jenis error** ditebak `HalamanGalat` (`src/components/shared/halaman-galat.tsx`) dari yang terlihat di browser, berurutan: perangkat offline (`navigator.onLine === false`) → "Masalah sambungan"; `error.name === "ChunkLoadError"` (file JavaScript halaman gagal diunduh, nama yang sama di webpack dan Turbopack) → "Masalah sambungan" dengan judul "Sebagian halaman gagal diunduh"; ada `error.digest` (error dilempar di server, termasuk data backend yang gagal diambil; di produksi pesannya disembunyikan Next.js) → "Masalah di server sekolah"; selain itu error saat halaman dijalankan di browser → "Masalah di halaman ini". Error dari backend dan dari server Next.js tidak bisa dibedakan di browser, karena keduanya hanya tiba sebagai digest.
+- **Tombol**: Muat Ulang memakai `retry()` untuk error server dan halaman, dan muat ulang penuh (`location.reload()`) untuk masalah sambungan, karena file JavaScript yang gagal diunduh tidak ikut diambil ulang oleh `retry()`. Kembali ke Beranda hanya untuk error halaman di dalam layout (publik ke `/`, dashboard ke beranda sesi). Error di layout tidak memakainya karena beranda memakai layout yang sama.
+- **Saat offline** isi halaman error berganti ke "Perangkat Anda tidak tersambung ke internet", dan halaman dimuat ulang sendiri begitu event `online` datang. Listener `online` dipasang di `subscribe` milik `useSyncExternalStore`, bukan di `useEffect`: render ulang dari event yang sama melepas listener efek sebelum sempat dipanggil (ditemukan saat uji).
+- **Info untuk dilaporkan**: error server menampilkan kode kejadian (digest), sama dengan yang tercatat di log server Next.js. Error halaman punya `<details>` "Detail untuk dilaporkan" berisi nama dan pesan error. Masalah sambungan tanpa detail.
+- **Tampilan**: `HalamanKosong` (`src/components/shared/halaman-kosong.tsx`, bisa dipakai Server dan Client Component) menjadi satu tampilan untuk error dan 404. `HalamanGalat` hanya menentukan isi dan tombolnya. Di dalam layout publik dan dashboard: perisai berputar dengan ikon masalah di tengah dan bintang berkelip, di samping pesan. Dengan prop `penuh` (error di layout `src/app/error.tsx`, `global-error.tsx`, dan 404 root `src/app/not-found.tsx`): satu layar seperti halaman masuk, yaitu panel hijau dengan pola geometri, bintang, dan `OrbitLogo` berisi ikon masalah, di kiri pada desktop dan sebagai pita bertepi gelombang di atas pada HP. Ikon: `WifiOff`, `CloudOff`, `ServerCrash`, `FileExclamationPoint` untuk error, `FileQuestionMark` untuk 404.
+- **404**: keempat halaman (`src/app/not-found.tsx`, `src/app/(public)/not-found.tsx`, `src/app/dashboard/not-found.tsx`, `src/app/mudarris/not-found.tsx`) memakai `HalamanKosong` dengan label "404". Teks dan tujuan tautannya tidak berubah. Tautan beranda diberi ikon rumah, sama dengan tombol Kembali ke Beranda di halaman error dan `GalatMuat`. 404 root tampil satu layar karena alamat di luar layout publik dan dashboard tidak punya navbar atau menu; tiga lainnya tampil di dalam layoutnya.
+- **`global-error.tsx`** (baru) menggantikan root layout kalau layout itu sendiri gagal, jadi menulis `<html>`, `<body>`, `<title>`, `globals.css`, dan kelas font sendiri. Definisi font dipindah dari `layout.tsx` ke `src/app/fonts.ts` (`KELAS_FONT`), sesuai anjuran "font definitions file" di dokumentasi Next.js. Tanpa variabel `--font-andika` dan `--font-baloo`, seluruh deklarasi `font-family` tidak berlaku dan teks tampil serif (ditemukan saat uji).
+- **Pemberitahuan offline** (`PantauSambungan`, dipasang di `Providers`): toast peringatan selama offline (tidak hilang sendiri), lalu "Sambungan internet kembali" saat tersambung lagi. React Query menunda query dan mutation selama offline (`networkMode: "online"`), bukan menganggapnya gagal, jadi tanpa toast ini halaman hanya terlihat memuat terus.
+- **`pesanError()`**: error yang bukan `ApiError` (fetch putus) menampilkan "Perangkat Anda sedang tidak tersambung ke internet. ..." kalau perangkat offline; selain itu tetap "Server sekolah sedang tidak bisa dihubungi. ...". Berlaku untuk toast dan `GalatMuat` di seluruh aplikasi. `sedangOffline()` memeriksa `navigator.onLine === false`, karena di server (Node.js) `navigator.onLine` tidak ada.
+- **Batas**: pindah halaman saat offline tidak menampilkan halaman ini. Next.js 16 mengganti navigasi yang RSC-nya gagal diambil dengan navigasi browser biasa (`client/components/router-reducer/fetch-server-response.js`), jadi yang tampil halaman offline bawaan browser. Penanganan offline Next.js (`experimental.useOffline`) tidak diaktifkan karena masih eksperimental.
+
 ## Temuan kontrak Fase 6
 
 - Sudah diperbaiki backend (dipakai di Fase 8): `PUT /kegiatan/{id}` sekarang `PerbaruiKegiatanRequest` (JSON, tanpa `kelas_id` dan `foto`), dan `PUT /murid/{id}` memakai `PerbaruiMuridRequest` dengan `status` wajib. Pembuangan `kelas_id` lewat `bodySerializer` sudah dihapus.
@@ -458,7 +474,7 @@ Warna status (`src/lib/constants/status.ts`, token `status-*`): sukses `#0A6E04`
 
 ### Font
 
-Judul dan tombol **Baloo 2** (500–800), teks **Andika** (400, 700), keduanya lewat `next/font/google`. Pratinjau tiga kandidat ada di `docs/review/font/` (`index.html` dan screenshot `pasangan-*.png`):
+Judul dan tombol **Baloo 2** (500–800), teks **Andika** (400, 700), keduanya lewat `next/font/google` dan didefinisikan sekali di `src/app/fonts.ts` (dipakai root layout dan `global-error.tsx`). Pratinjau tiga kandidat ada di `docs/review/font/` (`index.html` dan screenshot `pasangan-*.png`):
 
 | Pasangan | Catatan |
 |---|---|
@@ -576,6 +592,42 @@ Tempat deploy belum ditentukan. Syarat yang sudah pasti:
 6. **Masuk dengan Google**: `NEXT_PUBLIC_GOOGLE_CLIENT_ID` diisi sebelum `npm run build`, dan origin FE produksi (misalnya `https://tkta8.sch.id`) didaftarkan di Authorized JavaScript origins Client ID itu di Google Cloud Console. Backend memakai Client ID yang sama di `GOOGLE_CLIENT_ID`.
 
 ## Changelog
+
+### Tampilan error: sambungan, server sekolah, dan halaman (branch `ccr-b869340b-k7sh7n`)
+
+Diminta pemilik repo. Halaman error sebelumnya hanya berisi judul, satu kalimat, dan tombol Muat Ulang di latar polos, dengan teks yang sama untuk semua penyebab. Keputusan ada di "Keputusan tampilan error".
+
+File baru:
+- `src/components/shared/halaman-galat.tsx`, `src/components/shared/pantau-sambungan.tsx`
+- `src/app/global-error.tsx`, `src/app/fonts.ts`
+
+File yang diubah:
+- `src/app/error.tsx`, `src/app/(public)/error.tsx`, `src/app/dashboard/error.tsx` (dipakai juga `/mudarris`): memakai `HalamanGalat`
+- `src/app/layout.tsx`: definisi font dipindah ke `src/app/fonts.ts`, konfigurasinya tidak berubah
+- `src/components/providers.tsx`: memasang `PantauSambungan`
+- `src/lib/api/errors.ts`: `sedangOffline()` dan pesan offline di `pesanError()`
+- `dokumentasi.md`
+
+Hasil pengecekan: `npm run lint`, `npm run typecheck`, `npm run build`, dan `npm run check:slop` tanpa temuan. Uji di browser memakai Chromium headless lewat Playwright di luar repo. Backend asli tidak ada di container, jadi dipakai backend tiruan di luar repo. Halaman uji yang sengaja melempar error dibuat sementara lalu dihapus.
+
+- Dev, 1280 px dan 390 px: backend mati → error layout satu layar "Masalah di server sekolah" dengan kode kejadian. Error browser di `/mudarris`: sidebar tetap ada, "Detail untuk dilaporkan" berisi pesan `TypeError`, dan Kembali ke Beranda ke `/mudarris`. Error server di `/mudarris` tanpa tombol beranda. Error di layout publik dengan navbar dan footer tetap ada. `ChunkLoadError` tiruan → "Sebagian halaman gagal diunduh", dan Muat Ulang memuat ulang dokumen.
+- Offline (`context.setOffline`): toast peringatan muncul dan masih ada setelah 5 detik, lalu diganti "Sambungan internet kembali". Halaman error berganti ke "Perangkat Anda tidak tersambung ke internet" dan dimuat ulang sendiri saat online. Uji pertama gagal, lalu diperbaiki (lihat Keputusan). Login yang permintaannya putus saat offline menampilkan toast pesan offline, bukan "Server sekolah sedang tidak bisa dihubungi".
+- `global-error.tsx`, dipicu `throw` sementara di `Providers` yang sudah dikembalikan: judul tab, latar krem, serta font Baloo 2 dan Andika. Uji pertama menampilkan teks serif, lalu diperbaiki lewat `src/app/fonts.ts`.
+- Build produksi (`next start`): digest tampil dan pesan asli tidak bocor. `/mudarris/notifikasi` dengan backend mati → error layout satu layar; setelah backend hidup, Muat Ulang menampilkan halaman Notifikasi. File JavaScript halaman Absensi diblokir saat pindah dari Notifikasi → `ChunkLoadError` asli → "Sebagian halaman gagal diunduh"; setelah blokir dibuka, Muat Ulang membuka Absensi. Halaman masuk tetap memakai Baloo 2 dan Andika setelah definisi font dipindah.
+- Catatan: di build produksi `/login` tetap tampil walau backend mati, karena profil sekolah diambil dari cache ISR (5 menit).
+- Belum diuji: HP dan browser sungguhan (Safari iOS, Firefox), backend asli, dan pembaca layar.
+- Temuan di luar perubahan ini, belum diubah: `npm ci` gagal dengan npm 10 maupun 11 karena `package-lock.json` tidak memuat `@emnapi/runtime@1.11.3` dan `@emnapi/core@1.11.3`. Dependensi dipasang dengan `npm install`, lalu `package-lock.json` dikembalikan supaya tidak ikut berubah.
+
+Tambahan atas permintaan pemilik repo: halaman 404 disamakan dengan halaman error. Tampilan dari `HalamanGalat` dipindah ke `HalamanKosong` (sekarang dengan prop `label`, `ikon`, `children`, dan `penuh`), lalu dipakai keempat halaman 404.
+
+File yang diubah: `src/components/shared/halaman-kosong.tsx`, `src/components/shared/halaman-galat.tsx`, `src/app/not-found.tsx`, `src/app/(public)/not-found.tsx`, `src/app/dashboard/not-found.tsx`, `src/app/mudarris/not-found.tsx`, `dokumentasi.md`.
+
+Hasil pengecekan: `npm run lint`, `npm run typecheck`, `npm run build`, dan `npm run check:slop` tanpa temuan. Uji di browser (cara yang sama, backend tiruan ditambah balasan 404 untuk pengumuman dan akun wali murid):
+
+- 404 root `/alamat-tidak-ada`, 1280 px dan 390 px: status 404, satu layar dengan panel hijau, tautan Ke Beranda (`/`) dan Lihat Pengumuman. Di build produksi juga membalas 404 dengan isi yang sama.
+- 404 publik `/pengumuman/slug-tidak-ada`, 1280 px dan 390 px: status 404, navbar dan footer tetap ada.
+- 404 `/mudarris/halaman-tidak-ada` (Kepala Sekolah, 1280 px): status 404, sidebar tetap ada, Kembali ke Beranda membuka `/mudarris`. 404 `/dashboard/halaman-tidak-ada` (wali murid, 390 px): status 404, navigasi bawah tetap ada, tautan ke `/dashboard`.
+- Halaman error diuji ulang karena tampilannya dipindah: error layout satu layar dengan kode kejadian, error halaman di `/mudarris` dengan detail dan tautan beranda, error unduhan dengan muat ulang penuh, serta pesan offline dan muat ulang otomatis saat online. Tampilannya sama dengan sebelum dipindah.
 
 ### Pratinjau kamera absensi tidak dicerminkan (branch `fe/kamera-tanpa-cermin`)
 

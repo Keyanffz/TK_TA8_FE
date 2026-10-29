@@ -1,25 +1,9 @@
 import type { Metadata, Viewport } from "next";
-import { Andika, Baloo_2 } from "next/font/google";
 
+import { KELAS_FONT } from "@/app/fonts";
 import { Providers } from "@/components/providers";
 
 import "./globals.css";
-
-// Andika dirancang SIL untuk pembaca pemula (bentuk a dan g seperti tulisan tangan
-// di sekolah, l/I/1 mudah dibedakan). Hanya punya bobot 400 dan 700.
-const andika = Andika({
-  subsets: ["latin"],
-  weight: ["400", "700"],
-  variable: "--font-andika",
-  display: "swap",
-});
-
-const baloo = Baloo_2({
-  subsets: ["latin"],
-  weight: ["500", "600", "700", "800"],
-  variable: "--font-baloo",
-  display: "swap",
-});
 
 // Nilai cadangan. Halaman publik mengganti judul dengan profil.nama_sekolah dari CMS.
 export const metadata: Metadata = {
@@ -36,7 +20,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="id" className={`${andika.variable} ${baloo.variable}`}>
+    <html lang="id" className={KELAS_FONT}>
       <body className="min-h-dvh" suppressHydrationWarning>
         <Providers>{children}</Providers>
       </body>
