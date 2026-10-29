@@ -1,23 +1,29 @@
+import { FileQuestionMark, House } from "lucide-react";
 import Link from "next/link";
 
+import { HalamanKosong } from "@/components/shared/halaman-kosong";
 import { buttonVariants } from "@/components/ui/button";
 
+// Alamat di luar layout publik dan dashboard tidak punya navbar atau menu, jadi tampil satu layar penuh.
 export default function TidakDitemukan() {
   return (
-    <main className="mx-auto flex min-h-dvh max-w-xl flex-col justify-center px-4 py-16">
-      <p className="text-sm font-semibold text-primary-strong">404</p>
-      <h1 className="mt-2 text-xl font-semibold">Halaman tidak ditemukan</h1>
-      <p className="mt-3 text-muted-foreground">
-        Alamat yang dibuka tidak ada, atau datanya sudah tidak ditampilkan untuk umum.
-      </p>
-      <div className="mt-6 flex flex-wrap gap-3">
-        <Link href="/" className={buttonVariants()}>
-          Ke Beranda
-        </Link>
-        <Link href="/pengumuman" className={buttonVariants({ variant: "outline" })}>
-          Lihat Pengumuman
-        </Link>
-      </div>
-    </main>
+    <HalamanKosong
+      penuh
+      label="404"
+      judul="Halaman tidak ditemukan"
+      deskripsi="Alamat yang dibuka tidak ada, atau datanya sudah tidak ditampilkan untuk umum."
+      ikon={FileQuestionMark}
+      aksi={
+        <>
+          <Link href="/" className={buttonVariants()}>
+            <House aria-hidden="true" />
+            Ke Beranda
+          </Link>
+          <Link href="/pengumuman" className={buttonVariants({ variant: "outline" })}>
+            Lihat Pengumuman
+          </Link>
+        </>
+      }
+    />
   );
 }

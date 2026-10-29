@@ -2,13 +2,9 @@
 
 import { CloudOff, FileExclamationPoint, House, RotateCw, ServerCrash, WifiOff, type LucideIcon } from "lucide-react";
 import Link from "next/link";
-import { useSyncExternalStore, type CSSProperties, type ReactNode } from "react";
+import { useSyncExternalStore } from "react";
 
-import { Bintang, TaburanBintang, type PosisiBintang } from "@/components/shared/ornamen/bintang";
-import { OrbitLogo } from "@/components/shared/ornamen/orbit-logo";
-import { BentukPerisai } from "@/components/shared/ornamen/perisai";
-import { PolaGeometri } from "@/components/shared/ornamen/pola-geometri";
-import { TepiBergelombang } from "@/components/shared/ornamen/tepi-bergelombang";
+import { HalamanKosong } from "@/components/shared/halaman-kosong";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { sedangOffline } from "@/lib/api/errors";
 
@@ -44,13 +40,6 @@ const ISI_GALAT: Record<JenisGalat, { label: string; judul: string; deskripsi: s
   },
 };
 
-const BINTANG_PANEL: readonly PosisiBintang[] = [
-  { x: 86, y: 14, ukuran: 14, gerak: "kelip", tunda: 0 },
-  { x: 94, y: 52, ukuran: 11, gerak: "melayang", tunda: 0.7 },
-  { x: 72, y: 74, ukuran: 9, gerak: "kelip", tunda: 1.6 },
-  { x: 52, y: 24, ukuran: 10, gerak: "kelip", tunda: 2.3 },
-];
-
 /**
  * Sumber galat ditebak dari yang terlihat di browser. Galat yang dilempar di server (Server Component,
  * termasuk data backend yang gagal diambil) selalu membawa digest, dan di produksi pesannya disembunyikan
@@ -78,38 +67,6 @@ function pantauSambunganGalat(onUbah: () => void): () => void {
     window.removeEventListener("offline", onUbah);
     window.removeEventListener("online", muatUlang);
   };
-}
-
-/** Perisai logo dengan ikon jenis galat, untuk galat di dalam layout publik atau dashboard. */
-function IlustrasiGalat({ ikon: Ikon }: { ikon: LucideIcon }) {
-  return (
-    <div aria-hidden="true" className="relative size-28 shrink-0">
-      <BentukPerisai className="gerak-putar absolute inset-0 text-primary-soft-strong" style={{ "--durasi": "60s" } as CSSProperties} />
-      <Ikon strokeWidth={1.75} className="absolute top-1/2 left-1/2 size-[40%] -translate-1/2 text-primary-strong" />
-      <Bintang className="gerak-kelip absolute top-0 right-0 size-[22%] text-highlight" />
-    </div>
-  );
-}
-
-/** Satu layar penuh seperti halaman masuk: panel hijau di kiri (desktop) atau di atas (HP), isi di sebelahnya. */
-function KerangkaPenuh({ ikon: Ikon, children }: { ikon: LucideIcon; children: ReactNode }) {
-  return (
-    <div className="grid min-h-dvh grid-rows-[auto_1fr] lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:grid-rows-1">
-      <div className="relative isolate overflow-hidden bg-primary lg:flex lg:items-center lg:justify-center">
-        <PolaGeometri className="-z-10 text-primary-foreground/[0.08]" />
-        <TaburanBintang bintang={BINTANG_PANEL} className="-z-10" />
-        <OrbitLogo className="gerak-masuk mx-4 mt-6 w-28 sm:mx-6 lg:m-10 lg:w-full lg:max-w-72">
-          <div aria-hidden="true" className="flex size-full items-center justify-center">
-            <Ikon strokeWidth={1.75} className="size-[52%] text-primary-strong" />
-          </div>
-        </OrbitLogo>
-        <TepiBergelombang className="mt-2 text-background lg:hidden" />
-      </div>
-      <main className="flex flex-col px-4 py-8 sm:px-6 lg:justify-center lg:px-12 lg:py-16">
-        <div className="max-w-lg">{children}</div>
-      </main>
-    </div>
-  );
 }
 
 /** Kode kejadian (galat server) atau isi galat (galat di browser) untuk dicocokkan dengan log saat dilaporkan. */
@@ -150,33 +107,29 @@ export function HalamanGalat({ error, retry, beranda, penuh = false }: HalamanGa
 
   const muatUlang = jenis === "server" || jenis === "aplikasi" ? retry : () => window.location.reload();
 
-  const isi = (
-    <div>
-      <p className="font-heading text-sm font-bold text-primary-strong">{label}</p>
-      <h1 className="mt-1 text-xl leading-tight font-extrabold">{judul}</h1>
-      <p className="mt-2 text-muted-foreground">{deskripsi}</p>
-      <div className="mt-5 flex flex-wrap gap-2">
-        <Button onClick={muatUlang}>
-          <RotateCw aria-hidden="true" />
-          Muat Ulang
-        </Button>
-        {beranda && jenis === "aplikasi" ? (
-          <Link href={beranda} className={buttonVariants({ variant: "outline" })}>
-            <House aria-hidden="true" />
-            Kembali ke Beranda
-          </Link>
-        ) : null}
-      </div>
-      <DetailGalat jenis={jenis} error={error} />
-    </div>
-  );
-
-  if (penuh) return <KerangkaPenuh ikon={ikon}>{isi}</KerangkaPenuh>;
-
   return (
-    <div className="mx-auto flex max-w-xl flex-col items-start gap-6 px-4 py-16 sm:flex-row sm:items-center">
-      <IlustrasiGalat ikon={ikon} />
-      {isi}
-    </div>
+    <HalamanKosong
+      label={label}
+      judul={judul}
+      deskripsi={deskripsi}
+      ikon={ikon}
+      penuh={penuh}
+      aksi={
+        <>
+          <Button onClick={muatUlang}>
+            <RotateCw aria-hidden="true" />
+            Muat Ulang
+          </Button>
+          {beranda && jenis === "aplikasi" ? (
+            <Link href={beranda} className={buttonVariants({ variant: "outline" })}>
+              <House aria-hidden="true" />
+              Kembali ke Beranda
+            </Link>
+          ) : null}
+        </>
+      }
+    >
+      <DetailGalat jenis={jenis} error={error} />
+    </HalamanKosong>
   );
 }
