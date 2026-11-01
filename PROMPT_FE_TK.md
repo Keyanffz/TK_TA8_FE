@@ -444,7 +444,7 @@ flowchart TD
     C -->|Pulang| C2{Jam pulang terbuka, atau boleh_lebih_awal?}
     C2 -->|Tidak| D
     C2 -->|Jam pulang terbuka| E
-    C2 -->|Sebelum jam pulang buka| E3[Isi alasan pulang lebih awal + lokasi perangkat + swafoto]
+    C2 -->|Sebelum jam pulang buka| E3[Isi alasan pulang lebih awal + lokasi perangkat + foto dari kamera atau galeri]
     E --> F[Kirim jenis, koordinat, akurasi, foto, keterangan opsional]
     E3 --> F
     E2 --> F2[Kirim jenis masuk, status izin atau sakit, keterangan, foto]

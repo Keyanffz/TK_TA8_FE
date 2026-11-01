@@ -26,9 +26,10 @@ Website publik dan dashboard sistem informasi TK Tarbiyathul Athfal 8 (TK Muslim
 | Perapian sesuai Bagian C untuk revisi hari ini (branch `fe/rapikan-slop`) | Selesai, di-merge (PR #12) |
 | Flowchart A6 absensi (branch `fe/flowchart-a6`) | Selesai, di-merge (PR #13) |
 | Catat Absen Pulang untuk guru yang lupa absen pulang (branch `fe/absensi-pulang`) | Selesai, diuji di browser, di-merge (PR #8; backend PR #10) |
-| Hak akses guru, status murid, alumni, import murid (branch `fe/hak-akses-status-murid`) | Selesai, menunggu review dan uji tampilan oleh pemilik repo; belum di-commit (lihat "Keputusan hak akses guru dan status murid") |
+| Hak akses guru, status murid, alumni, import murid (branch `fe/hak-akses-status-murid`) | Selesai, di-merge (PR #17; lihat "Keputusan hak akses guru dan status murid") |
 | Tampilan error (sambungan, server sekolah, halaman) dan halaman 404 yang disamakan (branch `ccr-b869340b-k7sh7n`) | Selesai, diuji di browser, di-merge (PR #20; lihat "Keputusan tampilan error") |
 | Foto absen masuk dan pulang hanya dari kamera dengan tampilan error kamera, galeri untuk izin, sakit, dan pulang lebih awal (branch `claude/modest-clarke-625zwd`) | Selesai, diuji di browser dengan backend tiruan, di-merge ke `main` tanpa PR atas permintaan pemilik repo (lihat "Keputusan absensi" nomor 14–16) |
+| README, `package-lock.json`, dan perapian dokumentasi (branch `claude/modest-clarke-625zwd`) | Selesai, belum di-merge |
 
 Mode mock tidak dipakai: `api.json` final dari backend sudah tersedia sejak Fase 1, jadi semua request memakai backend asli dan tipe hasil generate. Tidak ada endpoint mock.
 
@@ -44,6 +45,7 @@ Mode mock tidak dipakai: `api.json` final dari backend sudah tersedia sejak Fase
 | shadcn (CLI + `shadcn/tailwind.css`) | 4.21.0 | style `radix-nova`, komponen di `src/components/ui` |
 | radix-ui | 1.6.7 | primitive untuk komponen shadcn |
 | cn | 0.4.0 | pengganti clsx + tailwind-merge yang dipakai shadcn 4 |
+| tw-animate-css | 1.4.0 | animasi buka dan tutup komponen shadcn (dialog, sheet, popover), diimpor di `globals.css` |
 | @tanstack/react-query | 5.104.0 | |
 | @tanstack/react-table | 8.21.3 | Bukan 9.x: pola DataTable shadcn masih memakai API v8 |
 | react-hook-form, zod, @hookform/resolvers | 7.89.0, 4.6.5, 5.9.1 | |
@@ -70,6 +72,8 @@ cp .env.example .env.local
 npm run gen:api    # generate src/types/api.d.ts dari api.json backend
 npm run dev        # http://localhost:3000
 ```
+
+Untuk instalasi bersih dengan versi persis dari `package-lock.json` (misalnya di server deploy atau CI), pakai `npm ci`.
 
 Perintah lain:
 
@@ -118,7 +122,7 @@ Request dari Server Component ke endpoint publik (landing, ISR) tidak membawa `X
 ### Route guard
 
 - `src/proxy.ts` (matcher `/dashboard/:path*`, `/mudarris/:path*`, `/login`): wali murid di `/dashboard/*`, guru dan Kepala Sekolah di `/mudarris/*`. Tanpa cookie `tk_token`: `/dashboard/*` → `/login?next=...`, `/mudarris/*` → `/mudarris/login?next=...`; halaman akun (`/mudarris/login`, `/lupa-password`, `/reset-password`) tetap terbuka. Sudah punya cookie buka `/login` atau `/mudarris/login` → beranda sesuai `tk_role`. `tk_role` staff membuka `/dashboard/x` → `/mudarris/x` (tautan notifikasi yang tersimpan sebelum area dipisah, bookmark); `tk_role` wali membuka `/mudarris/*` → `/dashboard?akses=ditolak`. Kedua halaman login `force-dynamic` supaya tidak diambil dari cache browser tanpa melewati proxy. POST ke path yang dicocokkan dibalas 303 ke alamat yang sama sebelum cookie diperiksa. Halaman tidak menerima POST (data dikirim lewat `/api`, dan aplikasi tidak punya Server Action), sedangkan redirect 307 berikutnya akan mengulang POST, misalnya ke `/api/auth/sesi-habis` yang hanya menerima GET. `/api` sengaja tidak dicocokkan karena proxy Next.js membatasi body 10 MB (`proxyClientMaxBodySize`), sedangkan unggahan kegiatan bisa lebih besar.
-- `src/app/dashboard/layout.tsx` (wali) dan `src/app/mudarris/layout.tsx` (guru, Kepala Sekolah) memanggil `ambilSesi()` (`GET /auth/me`, di-cache per request) dan memeriksa role sebenarnya: staff di `/dashboard` → `/mudarris`, wali di `/mudarris` → `/dashboard?akses=ditolak`. Token ditolak (401 atau `ACCOUNT_*`) → `/api/auth/sesi-habis`. Di dalam `/mudarris`, halaman khusus Kepala Sekolah atau petugas keuangan memakai `wajibAkses()` (→ `/mudarris?akses=ditolak`). Urutan wajib wali: `wajib_ganti_password` → semua path selain `/dashboard/ganti-password` diarahkan ke sana; lalu `profil_lengkap = false` → `/dashboard/onboarding`. Kedua halaman itu tampil tanpa menu (`KerangkaTanpaMenu`).
+- `src/app/dashboard/layout.tsx` (wali) dan `src/app/mudarris/layout.tsx` (guru, Kepala Sekolah) memanggil `ambilSesi()` (`GET /auth/me`, di-cache per request) dan memeriksa role sebenarnya: staff di `/dashboard` → `/mudarris`, wali di `/mudarris` → `/dashboard?akses=ditolak`. Token ditolak (401 atau `ACCOUNT_*`) → `/api/auth/sesi-habis`. Di dalam `/mudarris`, halaman khusus Kepala Sekolah atau yang butuh izin modul (A2.13) memakai `wajibAkses()` dengan syaratnya, misalnya `sesi.isSuperAdmin` atau `punyaIzin(sesi, "keuangan")` (→ `/mudarris?akses=ditolak`). Urutan wajib wali: `wajib_ganti_password` → semua path selain `/dashboard/ganti-password` diarahkan ke sana; lalu `profil_lengkap = false` → `/dashboard/onboarding`. Kedua halaman itu tampil tanpa menu (`KerangkaTanpaMenu`).
 - Layout tidak dirender ulang saat navigasi di browser, jadi `Providers` juga menangani `PASSWORD_WAJIB_DIGANTI` dari query/mutation mana pun dengan mengarahkan ke `/dashboard/ganti-password`.
 - Halaman `/dashboard` dan `/mudarris` ada di route group `(halaman)` bersama `loading.tsx`; `[...lainnya]`, `layout.tsx`, `not-found.tsx`, dan `error.tsx` ada di luarnya. Alamat yang tidak dikenal (termasuk `/mudarris/daftar` dan `/mudarris/menunggu-persetujuan` yang sudah dihapus) membalas 404 sungguhan di dalam kerangka untuk pengguna yang sudah masuk, karena respons di bawah loading boundary sudah di-stream sebagai 200 sebelum `notFound()` dipanggil. Tanpa sesi, proxy tetap mengarahkan ke halaman login.
 - Otorisasi sebenarnya tetap di backend.
@@ -128,7 +132,7 @@ Request dari Server Component ke endpoint publik (landing, ISR) tidak membawa `X
 - Browser: `api` (`src/lib/api/client.ts`), openapi-fetch dengan `paths` dari `api.d.ts` dan `baseUrl: "/api/proxy"`. `ambilData()` mengubah hasilnya menjadi data atau melempar `ApiError`.
 - Server Component: `apiServer({ token, revalidate, tags })` (`src/lib/api/server.ts`). Opsi cache Next.js dipasang lewat `fetch` kustom, karena openapi-fetch membungkus request dalam objek `Request` dan opsi `next` di dalamnya tidak terbaca fetch Next.js.
 - React Query: `staleTime` 60 detik (jauh di bawah masa berlaku signed URL 30 menit), tidak mencoba ulang error 4xx. Error 401 di query atau mutation mana pun mengosongkan cache lalu mengarahkan ke halaman login sesuai role sesi (dibaca dari `['me']` sebelum cache dikosongkan) dengan `?next=`.
-- Sesi di React Query dengan key `['me']`, diisi dari server lewat `HydrationBoundary` di layout dashboard. `useSession()` → `{ user, role, isSuperAdmin, isGuru, isWali, bisaKelolaKeuangan, beranda }`; `beranda` (`/dashboard` atau `/mudarris`) dipakai komponen kerangka (sidebar, topbar, menu) untuk membentuk tautan.
+- Sesi di React Query dengan key `['me']`, diisi dari server lewat `HydrationBoundary` di layout dashboard. `useSession()` → `{ user, role, isSuperAdmin, isGuru, isWali, izin, beranda }`; `izin` adalah izin per modul dari `/auth/me` dan diperiksa lewat `punyaIzin(sesi, modul, level)` (`src/lib/auth/role.ts`); `beranda` (`/dashboard` atau `/mudarris`) dipakai komponen kerangka (sidebar, topbar, menu) untuk membentuk tautan.
 - Error terpusat di `src/lib/api/errors.ts`: `ApiError { status, code, message, errors }`, `pesanError()` untuk toast, `terapkanErrorValidasi()` memasang `errors` VALIDATION_ERROR ke field react-hook-form.
 
 ## Keputusan Fase 2
@@ -339,7 +343,7 @@ Fitur diminta pemilik repo (branch `fe/absensi`, backend `be/absensi`). Kontrakn
 11. Mengosongkan latitude dan longitude menyimpan `absensi.lokasi = null` (absen dimatikan). Batas angka di form sama dengan validasi backend; urutan jam diperiksa di browser dan lagi di backend.
 12. Tambahan setelah review (backend menambah `absensi.tanggal_mulai`): input "Tanggal mulai absensi" di bagian Hari kerja dan libur, wajib diisi. Sebelum tanggal itu halaman Absensi menampilkan "Absensi baru berlaku mulai ..." dari `tanggal_mulai` di `GET /absensi/hari-ini`, tanpa tombol absen. Keterangan tanggal libur menyebut bahwa tanggal yang sudah lewat menghapus tanda tidak hadir otomatis pada hari itu (dikerjakan backend saat disimpan; FE tidak meminta konfirmasi).
 13. Menu: "Absensi" (SA, G) di grup Utama, "Rekap Absensi" (SA) di grup Sekolah, "Pengaturan Absensi" (SA) di grup Website & Pengaturan. Riwayat dibuka dari halaman Absensi, tidak punya menu sendiri.
-14. Sumber foto per jenis absen (diminta pemilik repo): absen masuk dan absen pulang hanya dari kamera di halaman. Input file cadangan `capture="user"` dihapus, karena di laptop dan di browser dalam aplikasi lain atribut `capture` diabaikan sehingga foto lama dari penyimpanan bisa dipilih. Izin, sakit, dan pulang lebih awal boleh dari kamera atau galeri (`<input type="file" accept="image/*">` tanpa `capture`) untuk foto surat dokter atau surat izin. Ini tetap pembatasan di tampilan: backend menerima file gambar apa pun dan tidak bisa membedakan asal foto, dan metadata EXIF hilang karena foto dibuat ulang jadi JPEG. Bagian A tidak diubah karena harus sama dengan prompt backend; node E3 flowchart A6 masih menulis "swafoto" untuk pulang lebih awal.
+14. Sumber foto per jenis absen (diminta pemilik repo): absen masuk dan absen pulang hanya dari kamera di halaman. Input file cadangan `capture="user"` dihapus, karena di laptop dan di browser dalam aplikasi lain atribut `capture` diabaikan sehingga foto lama dari penyimpanan bisa dipilih. Izin, sakit, dan pulang lebih awal boleh dari kamera atau galeri (`<input type="file" accept="image/*">` tanpa `capture`) untuk foto surat dokter atau surat izin. Ini tetap pembatasan di tampilan: backend menerima file gambar apa pun dan tidak bisa membedakan asal foto, dan metadata EXIF hilang karena foto dibuat ulang jadi JPEG. Node E3 flowchart A6 (Bagian A) ikut diubah menjadi "foto dari kamera atau galeri"; Bagian A di prompt backend perlu diubah sama supaya tetap identik.
 15. Tampilan error kamera (`TampilanGalatKamera`, `galat-kamera.tsx`) menggantikan alur absen masuk dan pulang di halaman yang sama, bukan alamat baru, supaya Coba Lagi bisa langsung membuka kamera tanpa memuat ulang halaman. Tampilannya `HalamanKosong` seperti halaman 404 dan error, dengan ikon `CameraOff`, judul h2 (`tagJudul`) karena halaman sudah punya h1, dan jarak `px-0 py-6` (`className`) supaya sejajar dengan kartu lain. Sebab dibedakan dari nama `DOMException`: `NotAllowedError`/`SecurityError` = izin ditolak, dengan tombol Muat Ulang karena izin yang diubah di pengaturan situs baru pasti terbaca setelah halaman dimuat ulang (Safari tidak bertanya lagi di halaman yang sama); `NotFoundError`/`OverconstrainedError` = kamera tidak ditemukan; `NotReadableError` = dipakai aplikasi lain, dengan Coba Lagi; tanpa `navigator.mediaDevices` atau bukan secure context = browser tidak bisa membuka kamera; galat lain dan aliran yang tidak menghasilkan gambar dalam 10 detik = gambar kamera tidak muncul, dengan Coba Lagi. Batas 10 detik dihitung sejak browser memberi aliran, jadi lamanya menjawab dialog izin tidak ikut dihitung. Kamera tidak ditemukan dan browser tidak mendukung hanya punya tombol Batal. Di bawah tombol, guru diarahkan menghubungi Kepala Sekolah supaya absennya dicatat (Catat Absen Masuk/Pulang), dan Kepala Sekolah mendapat tautan ke Rekap Absensi untuk mencatat absennya sendiri.
 16. Logika kamera dipindah dari `KameraSwafoto` ke hook `useKamera` (`use-kamera.ts`), sejajar dengan `useLokasi`, supaya `AlurAbsen` bisa mengganti seluruh alur saat kamera gagal; `KameraSwafoto` tinggal menampilkan video, pratinjau, dan tombol galeri. Di alur yang boleh galeri, kamera yang gagal hanya memunculkan `KotakPesan` berjudul sebabnya, dan Pilih dari Galeri menjadi tombol utama. Tombol galeri memakai pola `ZonaUnggah` (label berisi input `sr-only`, cincin fokus lewat `has-focus-visible`). File bertipe selain `image/*` ditolak sebelum dikompres, dengan pesan bahwa surat PDF perlu difoto dulu; tipe kosong dibiarkan sampai kompresi, dan foto yang gagal dibaca browser (file rusak atau format yang tidak dikenali) mendapat pesan untuk memilih foto lain. Selama kompresi tombolnya bertuliskan "Memproses foto..." dan nonaktif. Pratinjau memakai `object-contain` supaya foto surat tampil utuh. Petunjuk di atas foto: Sakit menyebut surat dokter, Izin dan Pulang Lebih Awal menyebut surat izin.
 14. **Revisi setelah uji di HP (branch `fe/absensi-harian`, diminta pemilik repo):** riwayat sulit ditemukan, Kepala Sekolah tidak bisa mengecek absensi semua guru di satu hari, dan guru yang lupa absen padahal masuk tidak bisa diperbaiki kalau belum ada baris absen masuk. Pemilik repo memilih perbaikan oleh Kepala Sekolah, bukan guru mengajukan absen susulan sendiri, karena lokasi hari yang sudah lewat tidak bisa dibuktikan. Backend menambah `GET /absensi/harian` dan `POST /absensi/koreksi` (Bagian A disalin ulang).
@@ -570,19 +574,19 @@ Andika hanya punya bobot 400 dan 700, jadi `font-semibold` tampil sebagai 700.
 
 Route lain mengikuti B4 dan ditambahkan per fase. `/api/auth/me` tidak dibuat (disetujui di Fase 0): sesi dibaca lewat `/api/proxy/auth/me`. `/api/revalidate` (disetujui di Fase 0) dibuat di Fase 7 bersama penyimpanan CMS, memakai tag di `TAG_PUBLIK` (`src/lib/constants/sekolah.ts`).
 
-Menu sidebar untuk semua route B4 sudah ada sejak Fase 3 (`src/lib/navigation.ts`); tautan ke halaman fase berikutnya menampilkan 404 di dalam dashboard sampai halamannya dibuat.
+Menu sidebar dibangun dari satu konfigurasi (`src/lib/navigation.ts`) berisi role dan izin modul tiap menu. Semua route B4 di atas sudah punya halaman.
 
 ## Rencana perbaikan berikutnya
 
 - **File gambar pengaturan yang tidak jadi disimpan (F7-3)**: dikerjakan di backend (branch `be/bersihkan-gambar`). `POST /pengaturan/upload` langsung menyimpan file ke folder `pengaturan/`, sedangkan path-nya baru tercatat saat tab CMS disimpan, jadi gambar yang batal disimpan tertinggal. Perintah `pengaturan:bersihkan-gambar` berjalan harian pukul 02:00 WIB dan menghapus file di folder itu yang tidak dipakai pengaturan mana pun dan terakhir diubah lebih dari sehari lalu; batas sehari menjaga gambar yang masih menunggu disimpan di form yang terbuka. FE tidak berubah.
+- **Lampiran di Pengumuman**: disetujui pemilik repo (sebelumnya saran di bawah). Satu berkas, misalnya surat edaran PDF, diunggah bersama pengumuman. FE belum bisa mengerjakannya sebelum backend menambah unggahan dan data lampiran ke kontrak: kolom `lampiran_path` sudah ada di tabel A4, tetapi belum ada di A7 dan `api.json`. Rancangan kontraknya menunggu persetujuan pemilik repo.
 
 ## Saran dari Claude
 
 Usulan di luar desain saat ini, belum dibuat karena ditunda pemilik repo:
 
-- **Payment gateway**: pembayaran tagihan langsung dari aplikasi (misalnya Midtrans atau Xendit) supaya wali tidak perlu mengunggah bukti transfer dan Kepala Sekolah tidak perlu memverifikasi manual. Belum dibuat karena desain memakai transfer manual dan butuh akun serta biaya dari penyedia.
-- **Push notification (FCM)**: notifikasi langsung ke HP untuk aplikasi Flutter nanti. Belum dibuat karena aplikasi HP belum ada; notifikasi sekarang hanya di dalam web.
-- **Lampiran di Pengumuman**: unggah berkas (misalnya surat edaran PDF) bersama pengumuman. Belum dibuat karena kontrak pengumuman hanya berisi teks.
+- **Payment gateway**: pembayaran tagihan langsung dari aplikasi (misalnya Midtrans atau Xendit) supaya wali tidak perlu mengunggah bukti transfer dan Kepala Sekolah tidak perlu memverifikasi manual. Belum dibuat karena desain memakai transfer manual dan butuh akun serta biaya dari penyedia. Pemilik repo menaruhnya di urutan belakang.
+- **Push notification (FCM)**: notifikasi langsung ke HP untuk aplikasi Flutter nanti. Belum dibuat karena aplikasi HP belum ada; notifikasi sekarang hanya di dalam web. Ditunda sampai aplikasi Flutter dibuat.
 
 ## Deploy
 
@@ -591,11 +595,22 @@ Tempat deploy belum ditentukan. Syarat yang sudah pasti:
 1. **Reverse proxy di depan Next.js wajib**, dan harus menambahkan IP klien ke `X-Forwarded-For` (nginx: `proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;`). Next.js hanya mengisi header ini dari IP socket kalau request belum membawanya. Tanpa reverse proxy, pengunjung bisa mengirim `X-Forwarded-For` palsu yang lalu diteruskan ke backend, dan rate limit per IP bisa diakali. Laravel memakai IP paling kanan yang bukan proxy tepercaya, yaitu IP yang ditambahkan reverse proxy.
 2. **`TRUSTED_PROXIES` di backend** wajib berisi IP server FE (Next.js), ditambah reverse proxy di depan backend kalau ada. Tanpa itu semua pengunjung dihitung sebagai satu IP (IP server FE).
 3. **`BE_API_URL`** harus alamat backend yang bisa dibuka browser (bukan hostname jaringan internal), karena host signed URL file private diambil dari request yang diterima backend.
-4. HTTPS di produksi: cookie sesi memakai flag `Secure` saat `NODE_ENV=production`.
+4. HTTPS di produksi: cookie sesi memakai flag `Secure` saat `NODE_ENV=production`. Absensi juga butuh HTTPS, karena browser hanya membuka kamera dan lokasi di secure context (https atau `localhost`).
 5. Batas body di reverse proxy minimal 55 MB (unggahan kegiatan 10 foto × 5 MB). PHP backend: `upload_max_filesize` minimal `5M` per file dan `post_max_size` minimal `55M`.
 6. **Masuk dengan Google**: `NEXT_PUBLIC_GOOGLE_CLIENT_ID` diisi sebelum `npm run build`, dan origin FE produksi (misalnya `https://tkta8.sch.id`) didaftarkan di Authorized JavaScript origins Client ID itu di Google Cloud Console. Backend memakai Client ID yang sama di `GOOGLE_CLIENT_ID`.
 
 ## Changelog
+
+### README, `package-lock.json`, dan perapian dokumentasi (branch `claude/modest-clarke-625zwd`)
+
+Diminta pemilik repo.
+
+- `README.md`: fitur per peran ditulis ulang sesuai kode (absensi, login Google untuk guru, hak akses guru, status murid, alumni, import; lupa password hanya untuk Kepala Sekolah). Tabel variabel ditambah `NEXT_PUBLIC_GOOGLE_CLIENT_ID`, dan Deploy ditambah syarat HTTPS untuk kamera dan lokasi serta syarat Masuk dengan Google.
+- `package-lock.json`: `npm ci` (npm 10 dan 11) gagal karena `@emnapi/core` dan `@emnapi/runtime` tidak tercatat. Lockfile dibuat ulang dengan `npm install --package-lock-only`; tidak ada versi paket yang berubah. Setelahnya `npm ci` berhasil, dan `npm install` tidak mengubah lockfile lagi.
+- `dokumentasi.md`: status hak akses (sudah di-merge lewat PR #17), `useSession()` (`izin`, bukan `bisaKelolaKeuangan`), `wajibAkses()` dengan izin modul, kalimat menu sidebar, `tw-animate-css` di tabel stack, catatan `npm ci`, HTTPS untuk absensi di Deploy, dan keputusan pemilik repo tentang saran: payment gateway dan push notification di urutan belakang, lampiran pengumuman disetujui dan dipindah ke "Rencana perbaikan berikutnya".
+- `PROMPT_FE_TK.md`: node E3 flowchart A6 menjadi "foto dari kamera atau galeri". Bagian A di prompt backend perlu diubah sama.
+
+Hasil pengecekan: `npm ci`, `npm run lint`, `npm run typecheck`, `npm run build`, dan `npm run check:slop` tanpa temuan.
 
 ### Sumber foto absensi: kamera saja untuk absen masuk dan pulang, galeri untuk izin, sakit, dan pulang lebih awal (branch `claude/modest-clarke-625zwd`)
 
