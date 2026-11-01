@@ -31,7 +31,7 @@ Website publik dan dashboard sistem informasi TK Tarbiyathul Athfal 8 (TK Muslim
 | Foto absen masuk dan pulang hanya dari kamera dengan tampilan error kamera, galeri untuk izin, sakit, dan pulang lebih awal (branch `claude/modest-clarke-625zwd`) | Selesai, diuji di browser dengan backend tiruan, di-merge ke `main` tanpa PR atas permintaan pemilik repo (lihat "Keputusan absensi" nomor 14–16); diuji ulang dengan backend asli di branch `fe/lampiran-pengumuman` |
 | README, `package-lock.json`, dan perapian dokumentasi (branch `claude/modest-clarke-625zwd`) | Selesai, di-merge ke `main` tanpa PR atas permintaan pemilik repo |
 | Lampiran pengumuman (kontrak di branch `claude/modest-clarke-625zwd`, kode di `fe/lampiran-pengumuman`; backend `be/lampiran-pengumuman`) | Selesai, diuji di browser bersama backend asli, di-merge (PR #21; backend PR #17; lihat "Keputusan lampiran pengumuman") |
-| Pesan unggahan yang ditolak PHP dari backend PR #19 (branch `ccr-321f1c6b-kacabx`) | Selesai; kode FE tidak berubah, hanya kutipan pesan di dokumen |
+| Pesan unggahan yang ditolak PHP dari backend PR #19 (branch `ccr-321f1c6b-kacabx`) | Selesai; kode FE tidak berubah, hanya kutipan pesan di dokumen; di-merge (PR #22) |
 
 Mode mock tidak dipakai: `api.json` final dari backend sudah tersedia sejak Fase 1, jadi semua request memakai backend asli dan tipe hasil generate. Tidak ada endpoint mock.
 
@@ -622,7 +622,7 @@ Tempat deploy belum ditentukan. Syarat yang sudah pasti:
 
 ## Changelog
 
-### Pesan unggahan yang ditolak PHP dari backend (branch `ccr-321f1c6b-kacabx`)
+### Pesan unggahan yang ditolak PHP dari backend (branch `ccr-321f1c6b-kacabx`, PR #22)
 
 Backend PR #19 mengganti pesan "Lampiran gagal diunggah." untuk file yang ditolak PHP dengan pesan yang menyebut sebab dan batas server, misalnya "Maaf, lampiran gagal diunggah karena ukurannya lebih dari 2 MB. Pilih file yang lebih kecil.". Kode FE tidak berubah, karena pesan validasi backend sudah ditampilkan apa adanya di kolomnya. Yang diubah hanya kutipan pesan lama di `README.md` (Deploy) dan `dokumentasi.md` ("Keputusan lampiran pengumuman" nomor 4, Deploy nomor 5).
 
