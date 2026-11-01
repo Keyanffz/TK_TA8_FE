@@ -29,7 +29,7 @@ Website publik dan dashboard sistem informasi TK Tarbiyathul Athfal 8 (TK Muslim
 | Hak akses guru, status murid, alumni, import murid (branch `fe/hak-akses-status-murid`) | Selesai, di-merge (PR #17; lihat "Keputusan hak akses guru dan status murid") |
 | Tampilan error (sambungan, server sekolah, halaman) dan halaman 404 yang disamakan (branch `ccr-b869340b-k7sh7n`) | Selesai, diuji di browser, di-merge (PR #20; lihat "Keputusan tampilan error") |
 | Foto absen masuk dan pulang hanya dari kamera dengan tampilan error kamera, galeri untuk izin, sakit, dan pulang lebih awal (branch `claude/modest-clarke-625zwd`) | Selesai, diuji di browser dengan backend tiruan, di-merge ke `main` tanpa PR atas permintaan pemilik repo (lihat "Keputusan absensi" nomor 14–16) |
-| README, `package-lock.json`, dan perapian dokumentasi (branch `claude/modest-clarke-625zwd`) | Selesai, belum di-merge |
+| README, `package-lock.json`, dan perapian dokumentasi (branch `claude/modest-clarke-625zwd`) | Selesai, di-merge ke `main` tanpa PR atas permintaan pemilik repo |
 
 Mode mock tidak dipakai: `api.json` final dari backend sudah tersedia sejak Fase 1, jadi semua request memakai backend asli dan tipe hasil generate. Tidak ada endpoint mock.
 
