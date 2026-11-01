@@ -4,6 +4,7 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tansta
 
 import { ambilData } from "@/lib/api/ambil-data";
 import { api } from "@/lib/api/client";
+import { keFormData } from "@/lib/api/multipart";
 import { queryKeys } from "@/lib/api/query-keys";
 import { segarkanWebsite } from "@/lib/api/website";
 import { punyaIzin } from "@/lib/auth/role";
@@ -51,10 +52,12 @@ function useSegarkanPengumuman() {
 export function useSimpanPengumuman(id: number | null) {
   const segarkan = useSegarkanPengumuman();
   return useMutation({
+    // Selalu multipart, juga tanpa lampiran: api.json hanya mencatat body multipart untuk kedua endpoint ini,
+    // walau backend juga menerima JSON.
     mutationFn: async (body: BodyPengumuman) =>
       id === null
-        ? ambilData(api.POST("/pengumuman", { body }))
-        : ambilData(api.PUT("/pengumuman/{id}", { params: { path: { id } }, body })),
+        ? ambilData(api.POST("/pengumuman", { body, bodySerializer: keFormData }))
+        : ambilData(api.PUT("/pengumuman/{id}", { params: { path: { id } }, body, bodySerializer: keFormData })),
     onSuccess: segarkan,
   });
 }
