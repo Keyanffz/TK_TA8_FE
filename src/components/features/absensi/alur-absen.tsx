@@ -41,6 +41,13 @@ const OPSI_TIDAK_MASUK: readonly OpsiRadio<StatusTidakMasuk>[] = [
 
 const MAKS_KETERANGAN = 500;
 
+/** Petunjuk untuk alur yang fotonya boleh dari galeri, misalnya foto surat. */
+function petunjukFoto(mode: ModeAbsen, tidakMasuk: StatusTidakMasuk): string | null {
+  if (mode === "izin_sakit" && tidakMasuk === "sakit") return "Swafoto, atau foto surat dokter dari galeri kalau ada.";
+  if (mode === "izin_sakit" || mode === "pulang_awal") return "Swafoto, atau foto surat izin dari galeri kalau ada.";
+  return null;
+}
+
 /** Pesan penolakan backend (di luar area, akurasi, di luar jam, hari libur) ditampilkan apa adanya. */
 function pesanGagalAbsen(error: unknown): string {
   if (error instanceof ApiError && error.code === "VALIDATION_ERROR" && error.errors) {
@@ -66,6 +73,8 @@ function susunIsian(mode: ModeAbsen, butuhKeterangan: boolean, { foto, keteranga
 export function AlurAbsen({ mode, status, onTutup }: { mode: ModeAbsen; status: AbsensiHariIni; onTutup: () => void }) {
   const butuhLokasi = mode !== "izin_sakit";
   const butuhKeterangan = mode === "izin_sakit" || mode === "pulang_awal";
+  // Absen masuk dan pulang biasa hanya dari kamera; izin, sakit, dan pulang lebih awal boleh memakai foto surat.
+  const bolehGaleri = mode !== "masuk" && mode !== "pulang";
   const { lokasi, cari } = useLokasi();
   const [foto, setFoto] = useState<File | null>(null);
   const [tidakMasuk, setTidakMasuk] = useState<StatusTidakMasuk>("sakit");
@@ -91,6 +100,7 @@ export function AlurAbsen({ mode, status, onTutup }: { mode: ModeAbsen; status: 
   };
 
   const nomorFoto = butuhKeterangan ? 3 : 2;
+  const petunjuk = petunjukFoto(mode, tidakMasuk);
 
   return (
     <section aria-labelledby="judul-alur-absen" className="flex flex-col gap-5 rounded-xl border border-border bg-card p-4 shadow-sm sm:p-5">
@@ -119,9 +129,9 @@ export function AlurAbsen({ mode, status, onTutup }: { mode: ModeAbsen; status: 
       ) : null}
 
       <div className="flex flex-col gap-3">
-        <h3 className="font-heading font-bold">{nomorFoto}. {mode === "izin_sakit" ? "Foto" : "Foto wajah"}</h3>
-        {mode === "izin_sakit" && tidakMasuk === "sakit" ? <p className="text-sm text-muted-foreground">Swafoto, atau foto surat dokter kalau ada.</p> : null}
-        <KameraSwafoto foto={foto} onFoto={setFoto} />
+        <h3 className="font-heading font-bold">{nomorFoto}. {bolehGaleri ? "Foto" : "Foto wajah"}</h3>
+        {petunjuk ? <p className="text-sm text-muted-foreground">{petunjuk}</p> : null}
+        <KameraSwafoto foto={foto} onFoto={setFoto} bolehGaleri={bolehGaleri} />
       </div>
 
       {galat ? (
