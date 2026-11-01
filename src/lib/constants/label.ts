@@ -3,6 +3,7 @@ import type {
   JenisAgenda,
   JenisDokumen,
   JenisKelamin,
+  JenisLampiran,
   LevelIzin,
   MetodeBayar,
   ModulIzin,
@@ -125,6 +126,12 @@ export const LABEL_TARGET_PENGUMUMAN: Record<TargetPengumuman, string> = {
   wali_murid: "Wali Murid",
   kelas: "Kelas tertentu",
   murid: "Murid tertentu",
+};
+
+// Lampiran gambar selalu disimpan backend sebagai JPEG, jadi cukup disebut "Gambar".
+export const LABEL_JENIS_LAMPIRAN: Record<JenisLampiran, string> = {
+  pdf: "PDF",
+  gambar: "Gambar",
 };
 
 export const LABEL_JENIS_AGENDA: Record<JenisAgenda, string> = {

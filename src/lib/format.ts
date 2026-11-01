@@ -83,6 +83,15 @@ export function rentangTanggal(mulai: string, selesai: string): string {
   return `${formatTanggal(mulai)} – ${formatTanggal(selesai)}`;
 }
 
+const BYTE_PER_KB = 1024;
+const BYTE_PER_MB = 1024 * 1024;
+
+/** 284512 → "278 KB", 1363148 → "1,3 MB" */
+export function formatUkuranFile(byte: number): string {
+  if (byte < BYTE_PER_MB) return `${Math.max(1, Math.round(byte / BYTE_PER_KB)).toLocaleString("id-ID")} KB`;
+  return `${(byte / BYTE_PER_MB).toLocaleString("id-ID", { maximumFractionDigits: 1 })} MB`;
+}
+
 const bulanTahun = new Intl.DateTimeFormat("id-ID", { month: "long", year: "numeric", timeZone: "UTC" });
 
 /** "2026-09" → "September 2026" */

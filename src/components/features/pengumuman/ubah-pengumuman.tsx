@@ -9,5 +9,5 @@ export function UbahPengumuman({ id }: { id: number }) {
   const { data, isPending, isError, error, refetch } = useDetailPengumuman(id);
   if (isPending) return <Skeleton aria-label="Memuat pengumuman" className="h-96 rounded-xl" />;
   if (isError) return <GalatMuat error={error} onCobaLagi={() => void refetch()} />;
-  return <FormPengumuman id={id} sudahTerbit={data.published_at !== null} awal={nilaiDariPengumuman(data)} />;
+  return <FormPengumuman id={id} sudahTerbit={data.published_at !== null} awal={nilaiDariPengumuman(data)} lampiranTersimpan={data.lampiran} />;
 }

@@ -61,7 +61,7 @@ Sistem Informasi Sekolah **TK Tarbiyathul Athfal 8** berbasis web (dan nanti mob
 6. **Petugas keuangan:** super admin, ditambah guru yang diberi izin modul `keuangan` level `kelola` oleh super admin (preset Bendahara, A2.13).
 7. **Tunggakan:** tagihan lewat jatuh tempo otomatis berstatus `terlambat` dan wali dapat notifikasi. Super admin/guru juga bisa membuat pengumuman dengan target `murid` tertentu (misal yang menunggak).
 8. **Rapor perkembangan anak (Kurikulum Merdeka PAUD):** penilaian naratif per elemen. Elemen bisa dikelola super admin (seed awal: Nilai Agama & Budi Pekerti; Jati Diri; Dasar-dasar Literasi, Matematika, Sains, Teknologi, Rekayasa & Seni). Alur: guru draft → ajukan → kepala sekolah terbitkan atau minta revisi (kepala sekolah boleh memperbaiki isi rapor yang sedang diajukan) → wali bisa lihat & unduh PDF. Rapor terbit bisa ditarik kepala sekolah kembali ke revisi dengan catatan.
-9. **Privasi foto anak:** foto kegiatan kelas, bukti bayar, dokumen PPDB, dan foto rapor disimpan di disk **private**, diakses via endpoint terotorisasi / signed URL. Hanya galeri publik & aset landing yang di disk public.
+9. **Privasi foto anak:** foto kegiatan kelas, bukti bayar, dokumen PPDB, foto rapor, dan lampiran pengumuman disimpan di disk **private**, diakses via endpoint terotorisasi / signed URL (lampiran pengumuman publik lewat endpoint publik khusus). Hanya galeri publik & aset landing yang di disk public.
 10. **Uang** disimpan sebagai integer rupiah (tanpa desimal). **Zona waktu** `Asia/Jakarta`, bahasa `id`.
 11. **Notifikasi** memakai Laravel database notifications (channel mail opsional). Push notification (FCM) nanti saat Flutter.
 12. **Absensi guru dan Kepala Sekolah:** peserta absensi adalah guru yang akunnya `aktif` dan Kepala Sekolah. Guru nonaktif tidak ikut absensi dan tidak ditandai tidak hadir. Absen masuk dan absen pulang dilakukan dari HP di `/mudarris/absensi` dengan lokasi perangkat dan swafoto. Semua keputusan diambil backend dengan jam server (`Asia/Jakarta`): hari ini tidak sebelum tanggal mulai absensi, hari kerja dan bukan tanggal libur, di dalam jam jenis absen itu, jarak ke titik sekolah (Haversine) tidak melebihi radius, akurasi lokasi tidak melebihi batas, belum absen jenis itu hari ini, dan absen pulang hanya setelah absen masuk. Jarak yang ditampilkan FE hanya informasi. Status absen masuk `hadir` atau `terlambat` menurut batas terlambat; absen pulang tidak punya status. Peserta yang tidak bisa datang mencatat `izin` atau `sakit` sendiri di jam absen masuk dengan keterangan dan foto, tanpa lokasi; hari itu tidak ada absen pulang. Peserta yang perlu pulang sebelum jam pulang buka bisa absen pulang lebih awal dengan alasan, tanpa persetujuan; lokasi dan foto tetap diperiksa. Peserta mendapat notifikasi setiap absennya tercatat dan setiap Kepala Sekolah mengoreksi atau mencatat absensinya. Setelah jam masuk tutup di hari kerja, scheduler menandai peserta yang belum absen masuk sebagai `tidak_hadir`, termasuk susulan hari kerja yang terlewat sampai 7 hari ke belakang, tetapi tidak pernah untuk tanggal sebelum tanggal mulai absensi. Kalau Kepala Sekolah menambahkan tanggal libur, tanda `tidak_hadir` buatan scheduler yang belum dikoreksi pada tanggal itu dihapus; absen sungguhan dan baris yang sudah dikoreksi tetap. Kepala Sekolah bisa mengoreksi status absen masuk dengan catatan wajib; pengoreksi dan waktunya dicatat. Guru tidak bisa absen untuk hari yang sudah lewat: kalau peserta lupa absen padahal masuk dan belum punya absen masuk di tanggal itu (misalnya hari ini sebelum jam masuk tutup), Kepala Sekolah mencatat absen masuk `hadir` atau `terlambat` untuk tanggal itu dengan catatan wajib, tanpa waktu, lokasi, dan foto, dan baris itu langsung dianggap sudah dikoreksi. Hal yang sama untuk peserta yang lupa absen pulang: Kepala Sekolah mencatat absen pulang untuk tanggal yang sudah punya absen masuk `hadir` atau `terlambat` dan belum punya absen pulang. Kepala Sekolah melihat absensi semua peserta per tanggal selain rekap 1–3 bulan. Foto absensi disimpan di disk private, hanya bisa dibuka pemiliknya dan Kepala Sekolah, dan file-nya dihapus setelah masa simpan (data absensinya tetap). Aturan absensi (titik sekolah, radius, batas akurasi, jam, hari kerja, tanggal libur, tanggal mulai, masa simpan foto) diatur Kepala Sekolah di pengaturan grup `absensi`.
@@ -94,7 +94,7 @@ Sistem Informasi Sekolah **TK Tarbiyathul Athfal 8** berbasis web (dan nanti mob
 - Kelas saya: daftar murid kelas yang diampu (sebagai wali kelas / pendamping), detail murid & kontak wali
 - Kelola kegiatan kelas (judul, tema, deskripsi, foto beserta keterangan dan urutannya)
 - Kelola rapor murid kelasnya (draft, isi per elemen, ajukan, perbaiki saat revisi)
-- Buat pengumuman untuk kelasnya / murid di kelasnya
+- Buat pengumuman untuk kelasnya / murid di kelasnya, dengan lampiran opsional (PDF atau gambar)
 - Lihat status tagihan murid kelasnya (read-only)
 - Lihat agenda
 - **Dengan izin modul dari Kepala Sekolah (A2.13)**: membuka bagian keuangan, konten website, laporan absensi, data murid (termasuk status, alumni, dan import), atau pengumuman sesuai level lihat atau kelola
@@ -109,7 +109,7 @@ Sistem Informasi Sekolah **TK Tarbiyathul Athfal 8** berbasis web (dan nanti mob
 - Kelola murid (CRUD, ubah status satu murid atau massal termasuk meluluskan satu kelas, riwayat status, alumni per tahun lulus, import dari Excel/CSV, unduh kartu akun wali, ubah hubungan & kontak utama wali, lepas tautan wali), lihat & ubah data wali murid, reset password wali murid
 - Keuangan: jenis tagihan, keringanan, generate tagihan manual (idempoten), tagihan sekali bayar (uang pangkal/seragam), ubah jatuh tempo/potongan/catatan tagihan, verifikasi pembayaran, catat pembayaran tunai/transfer, batalkan tagihan dan aktifkan kembali, laporan & ekspor Excel, daftar tunggakan
 - Rapor: review, perbaiki isi sebelum terbit, terbitkan, minta revisi, tarik rapor terbit; kelola elemen penilaian
-- Pengumuman (semua target) & agenda
+- Pengumuman (semua target, dengan lampiran opsional) & agenda
 - PPDB: buka/tutup, verifikasi, terima (pilih kelas), tolak
 - **CMS website:** profil sekolah, konten landing, galeri
 - Pengaturan: rekening sekolah, tanggal jatuh tempo, hari pengingat, info PPDB, banner info di beranda wali murid
@@ -246,7 +246,7 @@ Semua tabel punya `id` (bigint PK) dan `created_at/updated_at` kecuali pivot yan
 - **keringanan**: murid_id, jenis_tagihan_id, tipe (enum TipeKeringanan), nilai (int; persen 1–100 atau rupiah), alasan, berlaku_mulai (date), berlaku_sampai (date nullable), dibuat_oleh (FK users)
 - **tagihan**: kode (unique, `INV-YYYYMM-XXXXX`), murid_id, jenis_tagihan_id, tahun_ajaran_id, periode (date nullable, selalu tanggal 1 bulan tsb; null untuk tagihan sekali), nominal, potongan, total, jatuh_tempo (date), status (enum StatusTagihan), lunas_at (nullable), dibuat_oleh (FK users nullable; null = sistem), catatan. **Unique (murid_id, jenis_tagihan_id, periode)**, termasuk tagihan yang `dibatalkan`: tagihan bulanan yang dibatalkan tidak dibuat ulang, tetapi bisa diaktifkan kembali
 - **pembayaran**: kode (unique, `PAY-YYYYMMDD-XXXXX`), tagihan_id, dibayar_oleh (FK users nullable), metode (enum MetodeBayar), jumlah, tanggal_bayar, bukti_path (nullable, private), bank_pengirim (nullable), nama_pengirim (nullable), status (enum StatusPembayaran), alasan_penolakan (nullable), diverifikasi_oleh (FK users nullable), diverifikasi_at. 1 tagihan boleh punya banyak percobaan pembayaran, tapi maksimal 1 yang `menunggu` dan 1 yang `diterima`
-- **pengumuman**: judul, slug (unique), isi (HTML, disanitasi), lampiran_path (nullable), target (enum TargetPengumuman), is_publik (bool, tampil di landing; hanya boleh jika target `semua`), is_pinned (bool), penulis_id (FK users), published_at (nullable = draft), deleted_at
+- **pengumuman**: judul, slug (unique), isi (HTML, disanitasi), lampiran_path (nullable, private), lampiran_nama (nullable, nama file asli), lampiran_ukuran (nullable, byte), target (enum TargetPengumuman), is_publik (bool, tampil di landing; hanya boleh jika target `semua`), is_pinned (bool), penulis_id (FK users), published_at (nullable = draft), deleted_at
 - **pengumuman_kelas**: pengumuman_id, kelas_id. **pengumuman_murid**: pengumuman_id, murid_id
 - **agenda**: judul, deskripsi, tanggal_mulai, tanggal_selesai, jenis (enum JenisAgenda), is_publik, dibuat_oleh
 - **kegiatan_kelas**: kelas_id, guru_id, tanggal, tema, judul, deskripsi. **kegiatan_foto**: kegiatan_kelas_id, path (private), caption, urutan
@@ -528,7 +528,7 @@ Status HTTP di luar daftar di atas dipetakan ke kode terdekat: 405 (metode HTTP 
 
 **Konvensi query list:** `?search=`, `?sort=nama` / `?sort=-created_at`, `?filter[status]=aktif`, `?filter[kelas_id]=3`. Filter boolean (misal `filter[dibaca]`) menerima `true`/`false` atau `1`/`0`. Tanggal format `YYYY-MM-DD`, datetime ISO 8601 dengan offset `+07:00`. Uang = integer rupiah.
 
-**File private:** semua `*_url` untuk file private (foto kegiatan, foto murid, foto rapor, bukti bayar, dokumen PPDB) adalah signed URL `GET /media/{token}` yang **bisa langsung dipakai di `<img>` / `<a>` tanpa header Authorization** dan berlaku **30 menit**. Setelah kedaluwarsa, ambil ulang datanya untuk mendapat URL baru. Hak akses dicek saat URL dibuat, jadi URL hanya dikirim ke pengguna yang berhak; siapa pun yang memegang URL bisa membukanya selama masa berlaku.
+**File private:** semua `*_url` untuk file private (foto kegiatan, foto murid, foto rapor, bukti bayar, dokumen PPDB, lampiran pengumuman) adalah signed URL `GET /media/{token}` yang **bisa langsung dipakai di `<img>` / `<a>` tanpa header Authorization** dan berlaku **30 menit**. Setelah kedaluwarsa, ambil ulang datanya untuk mendapat URL baru. Hak akses dicek saat URL dibuat, jadi URL hanya dikirim ke pengguna yang berhak; siapa pun yang memegang URL bisa membukanya selama masa berlaku.
 
 **Singkatan role:** SA = super_admin, G = guru, K = petugas keuangan (SA atau guru dengan izin `keuangan` `kelola`), W = wali_murid, Pub = publik. `Izin(modul, level)` = SA atau guru dengan izin modul itu di level tersebut atau lebih tinggi (A2.13); tanpa izin dibalas 403 `FORBIDDEN` dengan pesan izin yang perlu diminta.
 
@@ -538,6 +538,7 @@ Status HTTP di luar daftar di atas dipetakan ke kode terdekat: 405 (metode HTTP 
 - `GET /public/profil` — Pub — semua pengaturan grup profil + landing
 - `GET /public/pengumuman` — Pub — pengumuman `is_publik` & terbit, berpaginasi
 - `GET /public/pengumuman/{slug}` — Pub
+- `GET /public/pengumuman/{slug}/lampiran` — Pub — file lampiran pengumuman publik yang sudah terbit (stream, alamat tetap, tidak kedaluwarsa); pengumuman lain atau tanpa lampiran → 404 `NOT_FOUND`
 - `GET /public/agenda?bulan=YYYY-MM` — Pub — agenda `is_publik`
 - `GET /public/galeri` — Pub — album publik
 - `GET /public/galeri/{slug}` — Pub — album + foto
@@ -664,8 +665,9 @@ Untuk W: `"email": null`, `"username": "TA20260001"` (NIS anak), `wajib_ganti_pa
 - `GET /rapor/{id}/pdf` — SA, G(scoped), W(hanya terbit)
 - `GET /pengumuman` — semua — feed relevan untuk user (SA dan Izin(pengumuman, lihat): semua, termasuk draft). Wali yang semua anaknya tidak aktif tidak melihat pengumuman target `semua` dan `wali_murid`
 - `GET /pengumuman/{id}` — sama
-- `POST /pengumuman` — SA dan Izin(pengumuman, kelola) (target apa pun), G lain (target `kelas` yang diampu / `murid` di kelasnya) — `{ judul, isi, target, kelas_ids?, murid_ids?, is_publik?, is_pinned?, publish: bool }`
-- `PUT|DELETE /pengumuman/{id}` — penulis, SA, Izin(pengumuman, kelola)
+- `POST /pengumuman` — SA dan Izin(pengumuman, kelola) (target apa pun), G lain (target `kelas` yang diampu / `murid` di kelasnya) — `{ judul, isi, target, kelas_ids?, murid_ids?, is_publik?, is_pinned?, publish: bool, lampiran? }`. Body JSON, atau multipart kalau membawa `lampiran` (file PDF/JPG/PNG/WebP, maks 5 MB)
+- `PUT|DELETE /pengumuman/{id}` — penulis, SA, Izin(pengumuman, kelola). `PUT` juga menerima `lampiran` (mengganti lampiran lama) dan `hapus_lampiran: bool`; keduanya sekaligus → 422 `VALIDATION_ERROR`. Menghapus pengumuman ikut menghapus file lampirannya
+- Data pengumuman memuat `lampiran: { nama, jenis: pdf|gambar, ukuran (byte), url } | null`. `url` = signed URL untuk pengguna yang login; di respons `/public/pengumuman` = `GET /public/pengumuman/{slug}/lampiran`. Rincian di `docs/kontrak-api-lampiran-pengumuman.md`
 - `GET /agenda?bulan=YYYY-MM` — semua. `POST|PUT|DELETE` — SA
 - `GET /notifikasi` — semua. `GET /notifikasi/belum-dibaca` → `{ jumlah }`. `POST /notifikasi/{id}/baca`. `POST /notifikasi/baca-semua`
 
@@ -802,7 +804,7 @@ src/
 | `/mudarris/keuangan/tunggakan` | ✓ | Izin(keuangan, lihat) | | Daftar penunggak + tombol "Kirim pengumuman" (prefill target murid) |
 | `/dashboard/kegiatan`, `/[id]` (W); `/mudarris/kegiatan`, `/baru`, `/[id]` (SA, G) | ✓ | ✓ | ✓ lihat | Feed kegiatan (kartu foto), form dengan multi-upload, detail dengan galeri + lightbox |
 | `/dashboard/rapor`, `/[id]` (W); `/mudarris/rapor`, `/[id]` (SA, G) | ✓ | ✓ | ✓ terbit | G: pilih kelas & semester → daftar murid + status rapor → editor. SA: tab "Menunggu Review" → terbitkan / minta revisi. W: daftar rapor terbit + unduh PDF |
-| `/dashboard/pengumuman`, `/[id]` (W); `/mudarris/pengumuman`, `/baru`, `/[id]` (SA, G) | ✓ | ✓ | ✓ lihat | Feed; form Tiptap + pemilih target (kelas/murid dibatasi untuk guru; Izin(pengumuman, kelola) membuka semua target) + publik/pin/draft. Wali yang anaknya sudah tidak aktif tidak menerima target semua/wali murid |
+| `/dashboard/pengumuman`, `/[id]` (W); `/mudarris/pengumuman`, `/baru`, `/[id]` (SA, G) | ✓ | ✓ | ✓ lihat | Feed; form Tiptap + pemilih target (kelas/murid dibatasi untuk guru; Izin(pengumuman, kelola) membuka semua target) + publik/pin/draft + lampiran opsional (satu file PDF/JPG/PNG/WebP, maks 5 MB; saat mengubah bisa diganti atau dihapus). Detail (juga `/pengumuman/[slug]` publik) menampilkan kartu lampiran: nama, ukuran, tombol Buka Lampiran, pratinjau untuk gambar; daftar memberi penanda lampiran. Wali yang anaknya sudah tidak aktif tidak menerima target semua/wali murid |
 | `/dashboard/agenda` (W); `/mudarris/agenda` (SA, G) | ✓ kelola | ✓ | ✓ | Kalender bulanan + daftar; SA bisa tambah/edit |
 | `/dashboard/ppdb`, `/daftar`, `/[id]` (W); `/mudarris/ppdb`, `/[id]` (SA, G) | ✓ | | ✓ | W: daftar pendaftarannya + form multi-step (`/daftar`, sama dengan form publik) untuk kakak/adik. SA: tabel pendaftar, detail dokumen, verifikasi/terima (pilih kelas)/tolak |
 | `/mudarris/website` | ✓ | Izin(konten_website, lihat) | | **CMS landing page** (B7); izin lihat = mode baca |
@@ -830,7 +832,7 @@ Menu sidebar dibangun dari 1 konfigurasi (`lib/navigation.ts`) berisi `roles` da
 - **Sebelum `api.json` tersedia:** tulis tipe manual di `src/types/domain.ts` persis sesuai A7, dan aktifkan mode mock `NEXT_PUBLIC_USE_MOCK=true` (data contoh di `src/mocks/` dengan bentuk respons A7, termasuk pagination & error). Setiap hook API harus bisa jalan di mode mock dan mode asli **tanpa mengubah komponen**. Catat di `dokumentasi.md` endpoint mana yang masih mock. Setelah `api.json` ada, generate tipe dan sesuaikan `domain.ts` agar merujuk ke tipe hasil generate.
 - Query key terpusat (`lib/api/query-keys.ts`), invalidasi yang benar setelah mutasi (misal terima pembayaran → invalidate tagihan, pembayaran, dashboard).
 - Error handling terpusat: `VALIDATION_ERROR` → petakan `errors` ke field react-hook-form; `PASSWORD_WAJIB_DIGANTI` → `/dashboard/ganti-password` (B3); error lain → toast `message`. 403 `FORBIDDEN` saat memuat data → `GalatMuat` menampilkan pesan backend (izin yang perlu diminta) dan tautan ke beranda, lalu sesi diambil ulang. 403/404 halaman → halaman "Tidak ditemukan / tidak punya akses" yang ramah.
-- Unggahan multipart (PPDB, bukti transfer, foto) dikirim lewat `openapi-fetch` dengan `bodySerializer` yang membentuk `FormData`. `gen:api` mengubah field `format: binary` menjadi `Blob` supaya `File` bisa dipakai di body tanpa cast.
+- Unggahan multipart (PPDB, bukti transfer, foto, pengumuman beserta lampirannya) dikirim lewat `openapi-fetch` dengan `bodySerializer` yang membentuk `FormData`. `gen:api` mengubah field `format: binary` menjadi `Blob` supaya `File` bisa dipakai di body tanpa cast.
 - Badge notifikasi: polling `GET /notifikasi/belum-dibaca` tiap 60 detik (hanya saat tab aktif).
 - File private: tampilkan dari `*_url` yang dikirim BE (sudah signed). Unduhan PDF/Excel lewat `/api/proxy/...` dengan nama file yang rapi.
 

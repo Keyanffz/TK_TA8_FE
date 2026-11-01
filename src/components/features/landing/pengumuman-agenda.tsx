@@ -1,6 +1,7 @@
 import { ArrowRight, Pin } from "lucide-react";
 import Link from "next/link";
 
+import { PenandaLampiran } from "@/components/features/pengumuman/penanda-lampiran";
 import { BlokTanggal } from "@/components/shared/blok-tanggal";
 import { JudulBagian } from "@/components/shared/judul-bagian";
 import { Muncul } from "@/components/shared/muncul";
@@ -45,6 +46,7 @@ export function BagianPengumumanAgenda({ pengumuman, agenda }: PengumumanAgendaP
                       </span>
                     ) : null}
                     {item.published_at ? <time dateTime={item.published_at}>{formatTanggal(item.published_at)}</time> : null}
+                    {item.lampiran ? <PenandaLampiran className="font-bold text-primary-strong" /> : null}
                   </p>
                   <h3 className="mt-2 text-base font-bold">
                     <Link href={`/pengumuman/${item.slug}`} className="hover:text-primary-strong hover:underline">

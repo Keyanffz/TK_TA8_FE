@@ -1020,7 +1020,8 @@ export interface paths {
         };
         /**
          * Menyajikan file private dari signed URL (`*_url`). Tidak memakai token Bearer; hak akses
-         *     sudah dicek saat URL dibuat, dan URL berlaku 30 menit. Isinya gambar JPEG atau dokumen PDF (PPDB)
+         *     sudah dicek saat URL dibuat, dan URL berlaku 30 menit. Isinya gambar JPEG atau PDF (dokumen PPDB, lampiran
+         *     pengumuman)
          */
         get: operations["media"];
         put?: never;
@@ -1598,7 +1599,7 @@ export interface paths {
         put?: never;
         /**
          * Membuat pengumuman. `publish: true` langsung terbit dan penerima diberi notifikasi lewat antrean;
-         *     `publish: false` disimpan sebagai draft
+         *     `publish: false` disimpan sebagai draft. Kirim sebagai `multipart/form-data` kalau membawa `lampiran`
          */
         post: operations["pengumuman.store"];
         delete?: never;
@@ -1617,10 +1618,12 @@ export interface paths {
         get: operations["pengumuman.show"];
         /**
          * Mengubah pengumuman (penulis atau Kepala Sekolah). Draft yang diterbitkan memicu notifikasi; pengumuman
-         *     yang sudah terbit tidak dikirimi notifikasi ulang
+         *     yang sudah terbit tidak dikirimi notifikasi ulang. `lampiran` (multipart) menggantikan lampiran lama,
+         *     `hapus_lampiran: true` menghapusnya
          */
         put: operations["pengumuman.update"];
         post?: never;
+        /** Menghapus pengumuman beserta file lampirannya */
         delete: operations["pengumuman.destroy"];
         options?: never;
         head?: never;
@@ -1734,6 +1737,26 @@ export interface paths {
             cookie?: never;
         };
         get: operations["publik.detailPengumuman"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/public/pengumuman/{slug}/lampiran": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * File lampiran pengumuman publik yang sudah terbit, dengan nama file aslinya. Alamatnya tetap supaya tautan di
+         *     halaman publik yang di-cache tidak kedaluwarsa. Pengumuman lain atau tanpa lampiran dibalas 404
+         */
+        get: operations["publik.pengumuman.lampiran"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3158,6 +3181,18 @@ export interface components {
             slug: string;
             /** @description HTML yang sudah disanitasi. */
             isi: string;
+            /**
+             * @description Null kalau pengumuman tidak punya lampiran. `url` menuju `GET /public/pengumuman/{slug}/lampiran` dan tidak
+             *     kedaluwarsa, karena halaman publik di-cache lebih lama dari masa berlaku signed URL.
+             */
+            lampiran: {
+                nama: string;
+                /** @enum {string} */
+                jenis: "pdf" | "gambar";
+                /** @description Ukuran file dalam byte. */
+                ukuran: number;
+                url: string;
+            } | null;
             is_pinned: boolean;
             /** Format: date-time */
             published_at: string | null;
@@ -3169,6 +3204,15 @@ export interface components {
             slug: string;
             /** @description HTML yang sudah disanitasi. */
             isi: string;
+            /** @description Null kalau pengumuman tidak punya lampiran. `url` adalah signed URL yang berlaku 30 menit. */
+            lampiran: {
+                nama: string;
+                /** @enum {string} */
+                jenis: "pdf" | "gambar";
+                /** @description Ukuran file dalam byte. */
+                ukuran: number;
+                url: string;
+            } | null;
             target: components["schemas"]["TargetPengumuman"];
             /** @description Hanya untuk Kepala Sekolah, pemegang izin lihat pengumuman, dan penulis. */
             kelas?: {
@@ -3571,7 +3615,8 @@ export interface components {
          * SimpanPengumumanRequest
          * @description `POST /pengumuman` dan `PUT /pengumuman/{id}` (B6.10). Kepala Sekolah dan pemegang izin kelola pengumuman bebas
          *     memilih target; guru lain hanya `kelas` (kelas yang dia ampu) atau `murid` (murid di kelasnya). `is_publik` hanya
-         *     untuk target `semua`. `publish: false` menyimpan sebagai draft.
+         *     untuk target `semua`. `publish: false` menyimpan sebagai draft. Body boleh JSON, atau multipart kalau membawa
+         *     `lampiran`; `hapus_lampiran` hanya berpengaruh di `PUT`.
          */
         SimpanPengumumanRequest: {
             judul: string;
@@ -3582,6 +3627,13 @@ export interface components {
             is_publik?: boolean;
             is_pinned?: boolean;
             publish: boolean;
+            /**
+             * Format: binary
+             * @description Satu file PDF atau gambar, maksimal 5 MB. Di `PUT`, menggantikan lampiran lama.
+             */
+            lampiran?: Blob | null;
+            /** @description `true` menghapus lampiran yang ada. Tidak boleh bersama `lampiran`. */
+            hapus_lampiran?: boolean;
         };
         /**
          * SimpanTahunAjaranRequest
@@ -14141,7 +14193,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["SimpanPengumumanRequest"];
+                "multipart/form-data": components["schemas"]["SimpanPengumumanRequest"];
             };
         };
         responses: {
@@ -14325,7 +14377,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["SimpanPengumumanRequest"];
+                "multipart/form-data": components["schemas"]["SimpanPengumumanRequest"];
             };
         };
         responses: {
@@ -14959,6 +15011,60 @@ export interface operations {
                         data: components["schemas"]["PengumumanPublikResource"];
                         meta: null;
                     };
+                };
+            };
+            /** @description NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "NOT_FOUND";
+                        errors: null;
+                    };
+                };
+            };
+            /** @description TOO_MANY_REQUESTS */
+            429: {
+                headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "TOO_MANY_REQUESTS";
+                        errors: null;
+                    };
+                };
+            };
+        };
+    };
+    "publik.pengumuman.lampiran": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description File lampiran (PDF, atau gambar JPEG) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/octet-stream": Blob;
                 };
             };
             /** @description NOT_FOUND */

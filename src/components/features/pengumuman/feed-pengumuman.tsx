@@ -4,6 +4,7 @@ import { Star } from "lucide-react";
 import Link from "next/link";
 import { parseAsInteger, parseAsString, parseAsStringLiteral, useQueryState } from "nuqs";
 
+import { PenandaLampiran } from "@/components/features/pengumuman/penanda-lampiran";
 import { EmptyState } from "@/components/shared/empty-state";
 import { GalatMuat } from "@/components/shared/galat-muat";
 import { KolomCari } from "@/components/shared/kolom-cari";
@@ -90,6 +91,7 @@ export function FeedPengumuman({ penulis, beranda }: { penulis: boolean; beranda
                     <span>{item.published_at ? formatTanggal(item.published_at) : "Belum terbit"}</span>
                     <span>· {item.penulis.nama}</span>
                     {penulis ? <span>· {sasaranPengumuman(item)}</span> : null}
+                    {item.lampiran ? <PenandaLampiran className="font-bold text-primary-strong" /> : null}
                     {item.published_at ? null : <StatusBadge nada="netral">Draft</StatusBadge>}
                     {item.is_publik ? <StatusBadge nada="sukses">Tampil di website</StatusBadge> : null}
                   </span>

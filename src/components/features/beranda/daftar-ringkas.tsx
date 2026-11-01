@@ -1,6 +1,7 @@
 import { Pin } from "lucide-react";
 import Link from "next/link";
 
+import { PenandaLampiran } from "@/components/features/pengumuman/penanda-lampiran";
 import { BlokTanggal } from "@/components/shared/blok-tanggal";
 import { EmptyState } from "@/components/shared/empty-state";
 import { LABEL_JENIS_AGENDA } from "@/lib/constants/label";
@@ -28,6 +29,7 @@ export function PengumumanRingkas({ pengumuman, beranda }: { pengumuman: Pengumu
                 </span>
               ) : null}
               {item.published_at ? <time dateTime={item.published_at}>{formatTanggal(item.published_at)}</time> : null}
+              {item.lampiran ? <PenandaLampiran className="font-bold text-primary-strong" /> : null}
             </p>
             <p className="mt-1 font-bold group-hover:text-primary-strong group-hover:underline">{item.judul}</p>
             <p className="mt-0.5 text-sm text-muted-foreground">{ringkas(teksDariHtml(item.isi), PANJANG_CUPLIKAN)}</p>

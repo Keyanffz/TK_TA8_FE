@@ -28,8 +28,9 @@ Website publik dan dashboard sistem informasi TK Tarbiyathul Athfal 8 (TK Muslim
 | Catat Absen Pulang untuk guru yang lupa absen pulang (branch `fe/absensi-pulang`) | Selesai, diuji di browser, di-merge (PR #8; backend PR #10) |
 | Hak akses guru, status murid, alumni, import murid (branch `fe/hak-akses-status-murid`) | Selesai, di-merge (PR #17; lihat "Keputusan hak akses guru dan status murid") |
 | Tampilan error (sambungan, server sekolah, halaman) dan halaman 404 yang disamakan (branch `ccr-b869340b-k7sh7n`) | Selesai, diuji di browser, di-merge (PR #20; lihat "Keputusan tampilan error") |
-| Foto absen masuk dan pulang hanya dari kamera dengan tampilan error kamera, galeri untuk izin, sakit, dan pulang lebih awal (branch `claude/modest-clarke-625zwd`) | Selesai, diuji di browser dengan backend tiruan, di-merge ke `main` tanpa PR atas permintaan pemilik repo (lihat "Keputusan absensi" nomor 14–16) |
+| Foto absen masuk dan pulang hanya dari kamera dengan tampilan error kamera, galeri untuk izin, sakit, dan pulang lebih awal (branch `claude/modest-clarke-625zwd`) | Selesai, diuji di browser dengan backend tiruan, di-merge ke `main` tanpa PR atas permintaan pemilik repo (lihat "Keputusan absensi" nomor 14–16); diuji ulang dengan backend asli di branch `fe/lampiran-pengumuman` |
 | README, `package-lock.json`, dan perapian dokumentasi (branch `claude/modest-clarke-625zwd`) | Selesai, di-merge ke `main` tanpa PR atas permintaan pemilik repo |
+| Lampiran pengumuman (kontrak di branch `claude/modest-clarke-625zwd`, kode di `fe/lampiran-pengumuman`; backend `be/lampiran-pengumuman`) | Selesai, diuji di browser bersama backend asli, di-merge (PR #21; backend PR #17; lihat "Keputusan lampiran pengumuman") |
 
 Mode mock tidak dipakai: `api.json` final dari backend sudah tersedia sejak Fase 1, jadi semua request memakai backend asli dan tipe hasil generate. Tidak ada endpoint mock.
 
@@ -406,6 +407,25 @@ Diminta pemilik repo: tampilan error yang membedakan masalah sambungan internet,
 - **`pesanError()`**: error yang bukan `ApiError` (fetch putus) menampilkan "Perangkat Anda sedang tidak tersambung ke internet. ..." kalau perangkat offline; selain itu tetap "Server sekolah sedang tidak bisa dihubungi. ...". Berlaku untuk toast dan `GalatMuat` di seluruh aplikasi. `sedangOffline()` memeriksa `navigator.onLine === false`, karena di server (Node.js) `navigator.onLine` tidak ada.
 - **Batas**: pindah halaman saat offline tidak menampilkan halaman ini. Next.js 16 mengganti navigasi yang RSC-nya gagal diambil dengan navigasi browser biasa (`client/components/router-reducer/fetch-server-response.js`), jadi yang tampil halaman offline bawaan browser. Penanganan offline Next.js (`experimental.useOffline`) tidak diaktifkan karena masih eksperimental.
 
+## Keputusan lampiran pengumuman
+
+Disetujui pemilik repo: satu file PDF atau gambar, maksimal 5 MB, dan lampiran pengumuman publik bisa diunduh pengunjung website. Kontrak di `docs/kontrak-api-lampiran-pengumuman.md`, ringkasannya di A2.9, A3, A4, A7, dan baris pengumuman B4. Backend di-merge lewat PR #17. Yang diputuskan saat pengerjaan FE:
+
+1. `useSimpanPengumuman` selalu mengirim `multipart/form-data` lewat `keFormData`, juga untuk pengumuman tanpa lampiran, karena `api.json` hanya mencatat body multipart untuk `POST /pengumuman` dan `PUT /pengumuman/{id}` (backend tetap menerima JSON). Array terkirim sebagai `kelas_ids[]` dan `murid_ids[]`, boolean sebagai `1`/`0`.
+2. Kolom "Lampiran (opsional)" (`KolomLampiran`, `kolom-lampiran.tsx`) memakai `ZonaUnggah` dengan `terimaPdf` dan satu file. Gambar dikecilkan di browser seperti unggahan lain (maksimal 1 MB, sisi 1600 px); PDF di atas 5 MB dan jenis lain ditolak sebelum diunggah. Pesan penolakan jenis file di `ZonaUnggah` sekarang menyebut nama filenya ("Daftar.docx tidak bisa diunggah. Pilih foto (JPG, PNG, WebP) atau PDF."), berlaku untuk semua unggahan.
+3. Saat mengubah, lampiran yang tersimpan tampil di bawah label lewat prop baru `tersimpan` di `ZonaUnggah`: nama (tautan ke file), jenis, ukuran, dan tombol Hapus Lampiran. Penghapusan baru berlaku saat pengumuman disimpan. Tombolnya berganti menjadi Batal Hapus di elemen yang sama, supaya fokus keyboard tidak hilang. File baru menggantikan lampiran lama (barisnya dicoret dengan keterangan "Diganti file baru saat pengumuman disimpan."), dan saat itu `hapus_lampiran` tidak ikut dikirim karena backend menolak keduanya sekaligus.
+4. Pesan validasi backend untuk `lampiran` (misalnya "Ukuran lampiran maksimal 5 MB." atau "Lampiran gagal diunggah.") dipasang ke kolom itu apa adanya lewat `terapkanErrorValidasi`.
+5. `KartuLampiran` (`kartu-lampiran.tsx`) dipakai detail pengumuman di `/dashboard`, `/mudarris`, dan `/pengumuman/[slug]`: judul "Lampiran", ikon atau pratinjau, nama, jenis ("PDF" atau "Gambar"; backend selalu menyimpan gambar sebagai JPEG), ukuran (`formatUkuranFile`, dipindah dari `ZonaUnggah` ke `src/lib/format.ts`), dan tombol Buka Lampiran ke tab baru. Pratinjau hanya untuk jenis gambar (kotak 4:3, `object-contain`, lebar maksimal 448 px), lewat `next/image` dengan `unoptimized` seperti foto kegiatan: signed URL kedaluwarsa dalam 30 menit, dan alamat unduhan publik tetap sama walau lampirannya diganti, sehingga hasil optimasi yang di-cache bisa menampilkan gambar lama.
+6. Di halaman publik, `lampiran.url` dari backend sudah berupa alamat tetap `GET /public/pengumuman/{slug}/lampiran`, jadi tombol Buka Lampiran langsung ke backend tanpa `/api/proxy`. Halaman publik tetap ISR 5 menit; simpan pengumuman oleh Kepala Sekolah atau pemegang izin kelola pengumuman me-revalidate tag `publik-pengumuman` seperti sebelumnya.
+7. Penanda lampiran (`PenandaLampiran`: ikon klip dan kata "Lampiran") tampil di feed pengumuman `/dashboard` dan `/mudarris`, daftar publik, landing, dan juga daftar Pengumuman Terbaru di beranda ketiga peran. Beranda tidak disebut di langkah 7 kontrak, tetapi B4 meminta penanda di daftar pengumuman, dan `pengumuman_terbaru` di `GET /dashboard` sudah membawa `lampiran`.
+8. Dialog hapus pengumuman menambahkan "File lampirannya ikut dihapus." kalau pengumuman punya lampiran, karena backend langsung menghapus filenya.
+
+Temuan saat uji yang belum diperbaiki karena di luar fitur ini:
+
+- `browser-image-compression` dengan `useWebWorker: true` (`kompresGambar` dan `kompresFotoAbsensi` di `src/lib/gambar.ts`) memuat skripnya ke web worker dari `cdn.jsdelivr.net` (opsi `libURL` bawaan). Di container uji CDN itu diblokir, jadi kompresi jatuh ke main thread dan tetap berhasil. Di produksi berarti setiap unggahan gambar memanggil CDN pihak ketiga. Usulan: `libURL` ke salinan yang disajikan sendiri, atau `useWebWorker: false`.
+- Setelah pengumuman dihapus dari halaman detail, query detail ikut diambil ulang oleh invalidasi `pengumuman.semua` dan dibalas 404, sehingga "Data tidak ditemukan." tampil sekitar 0,1 detik sebelum pindah ke daftar. Hapus data lain yang meng-invalidate query detail yang sedang terbuka (misalnya kegiatan) kemungkinan sama.
+- Wali yang membuka alamat pengumuman yang bukan untuknya (404 dari backend) melihat `GalatMuat` "Data belum bisa dimuat" dengan "Data tidak ditemukan." dan tombol Muat Ulang, bukan halaman tidak ditemukan (B6). Perilaku ini sudah ada sebelum lampiran.
+
 ## Temuan kontrak Fase 6
 
 - Sudah diperbaiki backend (dipakai di Fase 8): `PUT /kegiatan/{id}` sekarang `PerbaruiKegiatanRequest` (JSON, tanpa `kelas_id` dan `foto`), dan `PUT /murid/{id}` memakai `PerbaruiMuridRequest` dengan `status` wajib. Pembuangan `kelas_id` lewat `bodySerializer` sudah dihapus.
@@ -425,7 +445,7 @@ Setiap data yang tampil ke wali dan halaman Kepala Sekolah yang mengelolanya:
 | Rekening sekolah di detail tagihan | `keuangan.rekening` | `/dashboard/pengaturan` tab Rekening | 7 | Endpoint ada |
 | Riwayat pembayaran, kwitansi | `pembayaran` | `/dashboard/pembayaran` (verifikasi, catat tunai) | 5 | Endpoint ada |
 | Kegiatan kelas: judul, tema, deskripsi, tanggal, foto | `kegiatan_kelas`, `kegiatan_foto` | `/dashboard/kegiatan/[id]` (SA boleh mengubah semua) | 6 | Endpoint ada (`PUT /kegiatan-foto/{id}`) |
-| Pengumuman | `pengumuman` | `/dashboard/pengumuman` (SA semua target, pin, draft) | 6 | Endpoint ada; lampiran belum bisa diunggah (sudah dicatat BE) |
+| Pengumuman | `pengumuman` | `/dashboard/pengumuman` (SA semua target, pin, draft, lampiran) | 6 | Endpoint ada; lampiran PDF atau gambar tampil sebagai kartu di detail |
 | Agenda sekolah | `agenda` | `/dashboard/agenda` | 6 | Endpoint ada |
 | Rapor terbaru dan PDF | `rapor`, `rapor_detail`, `elemen_penilaian` | `/dashboard/rapor` (review, terbitkan, minta revisi), `/dashboard/pengaturan` tab Elemen Penilaian | 6, 7 | Endpoint ada (`PUT /rapor/{id}` untuk SA saat diajukan, `POST /rapor/{id}/tarik`) |
 | Info dan status PPDB | `ppdb.*`, `pendaftaran` | `/dashboard/pengaturan` tab PPDB, `/dashboard/ppdb` | 7 | Endpoint ada |
@@ -518,7 +538,7 @@ Andika hanya punya bobot 400 dan 700, jadi `font-semibold` tampil sebagai 700.
 | Route | Akses | Isi |
 |---|---|---|
 | `/` | publik | Landing: hero, pita PPDB (jika dibuka), profil (sambutan, visi-misi, sejarah), program, keunggulan, fasilitas, guru, galeri terbaru, pengumuman + agenda, kontak + peta. Section yang datanya kosong di CMS tidak ditampilkan. ISR 5 menit. |
-| `/pengumuman`, `/pengumuman/[slug]` | publik | Daftar berpaginasi (`?page=`) dan detail pengumuman publik |
+| `/pengumuman`, `/pengumuman/[slug]` | publik | Daftar berpaginasi (`?page=`) dengan penanda lampiran, dan detail pengumuman publik dengan kartu lampiran (unduhan lewat alamat tetap backend) |
 | `/galeri`, `/galeri/[slug]` | publik | Daftar album berpaginasi dan detail album dengan lightbox (panah kiri/kanan, Esc) |
 | `/ppdb` | publik | Status buka/tutup, jadwal, kuota, sisa kuota, info HTML; tombol ke `/ppdb/daftar` dan tautan cek status |
 | `/ppdb/daftar` | publik | Form pendaftaran 4 langkah tanpa login (`POST /public/pendaftaran`); setelah terkirim tampil kode pendaftaran + salin. PPDB tutup/kuota penuh → pesan tanpa form |
@@ -559,9 +579,9 @@ Andika hanya punya bobot 400 dan 700, jadi `font-semibold` tampil sebagai 700.
 | `/dashboard/kegiatan/[id]` (W); `/mudarris/kegiatan/[id]` (SA, G) | SA, G, W | Detail + galeri + lightbox; pembuat/SA: ubah, hapus, kelola foto (keterangan, urutan, hapus, tambah) |
 | `/dashboard/rapor` (W); `/mudarris/rapor` (SA, G) | SA, G, W | G: kelas + semester → murid + status → buat/isi. SA: Menunggu Review, Semua Rapor, Kelas Saya. W: rapor terbit anak aktif + unduh PDF |
 | `/dashboard/rapor/[id]` (W); `/mudarris/rapor/[id]` (SA, G) | SA, G, W | Editor (pembuat saat draft/revisi, SA saat diajukan) atau tampilan; ajukan, terbitkan, minta revisi, tarik; PDF. W: rapor ditarik → pesan ramah |
-| `/dashboard/pengumuman` (W); `/mudarris/pengumuman` (SA, G) | SA, G, W (lihat) | Feed (disematkan di atas); SA/G: tab Semua/Terbit/Draft, cari, Tulis Pengumuman |
-| `/mudarris/pengumuman/baru` | SA, G | Form Tiptap + sasaran; `?dari=tunggakan&kelas=` terisi murid penunggak (K) |
-| `/dashboard/pengumuman/[id]` (W); `/mudarris/pengumuman/[id]`, `/[id]/ubah` (SA, G) | SA, G, W / penulis, SA | Detail; ubah dan hapus untuk penulis dan SA |
+| `/dashboard/pengumuman` (W); `/mudarris/pengumuman` (SA, G) | SA, G, W (lihat) | Feed (disematkan di atas, penanda lampiran); SA/G: tab Semua/Terbit/Draft, cari, Tulis Pengumuman |
+| `/mudarris/pengumuman/baru` | SA, G | Form Tiptap + sasaran + lampiran opsional (satu PDF atau gambar, maksimal 5 MB); `?dari=tunggakan&kelas=` terisi murid penunggak (K) |
+| `/dashboard/pengumuman/[id]` (W); `/mudarris/pengumuman/[id]`, `/[id]/ubah` (SA, G) | SA, G, W / penulis, SA | Detail dengan kartu lampiran; ubah (termasuk ganti atau hapus lampiran) dan hapus untuk penulis dan SA |
 | `/dashboard/agenda` (W); `/mudarris/agenda` (SA, G) | SA (kelola), G, W | Kalender bulanan + daftar (`?bulan=`, `?hari=`); SA tambah/ubah/hapus |
 | `/mudarris/absensi` | SA, G | Status hari ini, tombol Absen Masuk / Absen Pulang, Izin atau Sakit, Pulang Lebih Awal, alur lokasi + foto (kamera; galeri untuk izin, sakit, pulang lebih awal), tampilan error kamera, lima hari terakhir |
 | `/mudarris/absensi/riwayat` | SA, G | Riwayat pribadi per bulan (`?bulan=`) dengan foto |
@@ -579,7 +599,7 @@ Menu sidebar dibangun dari satu konfigurasi (`src/lib/navigation.ts`) berisi rol
 ## Rencana perbaikan berikutnya
 
 - **File gambar pengaturan yang tidak jadi disimpan (F7-3)**: dikerjakan di backend (branch `be/bersihkan-gambar`). `POST /pengaturan/upload` langsung menyimpan file ke folder `pengaturan/`, sedangkan path-nya baru tercatat saat tab CMS disimpan, jadi gambar yang batal disimpan tertinggal. Perintah `pengaturan:bersihkan-gambar` berjalan harian pukul 02:00 WIB dan menghapus file di folder itu yang tidak dipakai pengaturan mana pun dan terakhir diubah lebih dari sehari lalu; batas sehari menjaga gambar yang masih menunggu disimpan di form yang terbuka. FE tidak berubah.
-- **Lampiran di Pengumuman**: disetujui pemilik repo (sebelumnya saran di bawah). Satu berkas, misalnya surat edaran PDF, diunggah bersama pengumuman. FE belum bisa mengerjakannya sebelum backend menambah unggahan dan data lampiran ke kontrak: kolom `lampiran_path` sudah ada di tabel A4, tetapi belum ada di A7 dan `api.json`. Rancangan kontraknya menunggu persetujuan pemilik repo.
+- **Lampiran di Pengumuman**: selesai. Disetujui pemilik repo: satu file PDF atau gambar, maksimal 5 MB, dan lampiran pengumuman publik bisa diunduh pengunjung website. Kontraknya di `docs/kontrak-api-lampiran-pengumuman.md` dan ringkasannya di A2.9, A3, A4, A7, dan B4 `PROMPT_FE_TK.md`. Backend selesai lewat PR #17 (`be/lampiran-pengumuman`, test SQLite dan MariaDB, `api.json` sudah memuat lampiran). FE selesai lewat PR #21 (`fe/lampiran-pengumuman`) dan diuji bersama backend asli (lihat "Keputusan lampiran pengumuman" dan Changelog).
 
 ## Saran dari Claude
 
@@ -596,10 +616,67 @@ Tempat deploy belum ditentukan. Syarat yang sudah pasti:
 2. **`TRUSTED_PROXIES` di backend** wajib berisi IP server FE (Next.js), ditambah reverse proxy di depan backend kalau ada. Tanpa itu semua pengunjung dihitung sebagai satu IP (IP server FE).
 3. **`BE_API_URL`** harus alamat backend yang bisa dibuka browser (bukan hostname jaringan internal), karena host signed URL file private diambil dari request yang diterima backend.
 4. HTTPS di produksi: cookie sesi memakai flag `Secure` saat `NODE_ENV=production`. Absensi juga butuh HTTPS, karena browser hanya membuka kamera dan lokasi di secure context (https atau `localhost`).
-5. Batas body di reverse proxy minimal 55 MB (unggahan kegiatan 10 foto × 5 MB). PHP backend: `upload_max_filesize` minimal `5M` per file dan `post_max_size` minimal `55M`.
+5. Batas body di reverse proxy minimal 55 MB (unggahan kegiatan 10 foto × 5 MB). PHP backend: `post_max_size` minimal `55M`, dan `upload_max_filesize` disamakan dengan `post_max_size` (misalnya `55M`). Batas 5 MB per file dijaga validasi backend. Kalau `upload_max_filesize` tepat `5M`, file 6 MB ditolak PHP lebih dulu dan pesannya hanya "Lampiran gagal diunggah." (atau nama field lain), bukan "Ukuran lampiran maksimal 5 MB." (temuan sesi backend `be/lampiran-pengumuman`).
 6. **Masuk dengan Google**: `NEXT_PUBLIC_GOOGLE_CLIENT_ID` diisi sebelum `npm run build`, dan origin FE produksi (misalnya `https://tkta8.sch.id`) didaftarkan di Authorized JavaScript origins Client ID itu di Google Cloud Console. Backend memakai Client ID yang sama di `GOOGLE_CLIENT_ID`.
 
 ## Changelog
+
+### Lampiran pengumuman di FE dan uji bersama backend asli (branch `fe/lampiran-pengumuman`, PR #21)
+
+Diminta pemilik repo: menyelesaikan langkah 7 kontrak lampiran setelah backend di-merge (PR #17, `2a62d32`), lalu menguji FE bersama backend asli, termasuk uji ulang absensi yang sebelumnya hanya memakai backend tiruan. Branch dibuat dari `claude/modest-clarke-625zwd` (dua commit kontrak); `main` FE belum bergerak sejak itu, jadi tidak perlu rebase. Keputusan ada di "Keputusan lampiran pengumuman".
+
+File baru:
+- `src/components/features/pengumuman/kolom-lampiran.tsx`: kolom Lampiran (opsional) dengan lampiran tersimpan, Hapus Lampiran, dan ganti file
+- `src/components/features/pengumuman/kartu-lampiran.tsx`: kartu lampiran di detail pengumuman
+- `src/components/features/pengumuman/penanda-lampiran.tsx`: ikon klip di daftar pengumuman
+
+File yang diubah:
+- `src/types/api.d.ts`: `npm run gen:api` dari `api.json` backend `main` (`lampiran` di `PengumumanResource` dan `PengumumanPublikResource`, `lampiran` dan `hapus_lampiran` di `SimpanPengumumanRequest`, body multipart, path `/public/pengumuman/{slug}/lampiran`)
+- `src/types/domain.ts`: `LampiranPengumuman`, `JenisLampiran`
+- `src/lib/api/pengumuman.ts`: `useSimpanPengumuman` multipart lewat `keFormData`
+- `src/lib/format.ts`: `formatUkuranFile` (dipindah dari `ZonaUnggah`)
+- `src/lib/constants/label.ts`: `LABEL_JENIS_LAMPIRAN`
+- `src/components/shared/zona-unggah.tsx`: prop `tersimpan`, nama file di pesan penolakan, `formatUkuranFile`
+- `src/components/features/pengumuman/form-pengumuman.tsx`, `pengumuman-baru.tsx`, `ubah-pengumuman.tsx`: field `lampiran` dan `hapus_lampiran`, lampiran tersimpan saat mengubah
+- `src/components/features/pengumuman/detail-pengumuman.tsx`: kartu lampiran, kalimat file ikut dihapus di dialog hapus
+- `src/app/(public)/pengumuman/[slug]/page.tsx`: kartu lampiran
+- `src/components/features/pengumuman/feed-pengumuman.tsx`, `src/app/(public)/pengumuman/(daftar)/page.tsx`, `src/components/features/landing/pengumuman-agenda.tsx`, `src/components/features/beranda/daftar-ringkas.tsx`: penanda lampiran
+- `docs/kontrak-api-lampiran-pengumuman.md`: disamakan dengan versi backend; kalimat "belum dijalankan" dihapus, rujukan tetap ke `PROMPT_FE_TK.md`
+- `PROMPT_FE_TK.md` (B6: pengumuman masuk daftar unggahan multipart), `README.md` (fitur per peran, Deploy), `dokumentasi.md` (status, keputusan, peta route, rencana perbaikan, Deploy)
+
+Hasil pengecekan FE: `npm ci`, `npm run lint`, `npm run typecheck`, `npm run build`, dan `npm run check:slop` tanpa temuan (Node 24.22.1).
+
+Hasil pengecekan backend (`main` `2a62d32`, tanpa perubahan kode): `php artisan test --compact` 1101 test lulus (5396 assertion, SQLite), `composer check:slop` tanpa temuan, Pint dan PHPStan tanpa temuan. Bagian A `PROMPT_FE_TK.md` di branch ini identik dengan `PROMPT_BE_TK.md` di `main` backend (dibandingkan dari "# BAGIAN A" sampai sebelum "# BAGIAN B"). Uji bersama tidak menemukan bug backend, jadi tidak ada PR backend.
+
+Lingkungan uji: container cloud Ubuntu 24.04 tanpa PHP 8.4 dan tanpa database, disiapkan seperti "Yang khusus container dan tidak berlaku di laptop" di dokumentasi backend: PHP 8.5.9 dibangun dari sumber paket Ubuntu (`upload_max_filesize` dan `post_max_size` 55M), MariaDB 10.11.14 dari apt, `phpstan/phpstan` 2.2.16 dari zip hasil clone tag karena unduhan zip GitHub diblokir proxy. Database dev diisi `migrate --seed` dan `DemoSeeder`. Backend lewat `php artisan serve`, FE lewat `npm run build && npm start`, browser Chromium (Playwright, headless) dari skrip di luar repo dengan viewport HP 390 px dan desktop 1280 px. Kepala Sekolah masuk dengan email dan password dari `.env` backend, wali murid dengan NIS dan password dari "Akun seed" backend, dan guru Nur Aini (wali kelas TK A1) lewat token `createToken('web')` dari tinker yang dipasang sebagai cookie `tk_token` (httpOnly) dan `tk_role=guru`.
+
+Uji di browser, 63 pemeriksaan lulus (skrip sempat berhenti di jalankan pertama karena selector dan cara membaca body multipart di Playwright, bukan karena aplikasi), semua screenshot diperiksa:
+- a. Kepala Sekolah membuat pengumuman publik dengan PDF: body POST multipart dengan `is_publik` 1, `is_pinned` 0, `publish` 1, dan file `lampiran`; kartu lampiran di detail (nama, "PDF · 1 KB", Buka Lampiran ke tab baru); tab baru menampilkan PDF di viewer Chromium dan isinya sama dengan file asli; penanda klip di daftar dan beranda, tanpa penanda di pengumuman tanpa lampiran; detail di HP tanpa scroll horizontal; kolom `lampiran_*` dan file di disk privat terisi.
+- b. Mengubah pengumuman itu: lampiran tersimpan tampil dengan Hapus Lampiran; PNG 2400×1800 menggantikan PDF (PUT multipart tanpa `hapus_lampiran`), nama menjadi "Jadwal Lomba Mewarnai.jpg" dengan "Gambar · 58 KB", pratinjau termuat di dashboard dan halaman publik, file PDF lama terhapus; Hapus Lampiran berganti Batal Hapus dengan fokus tetap di tombol, PUT membawa `hapus_lampiran=1`, kartu dan penanda hilang, ketiga kolom kosong, file terhapus, unduhan publik 404.
+- c. `.docx` ditolak dengan "Daftar Perlengkapan Lomba.docx tidak bisa diunggah. Pilih foto (JPG, PNG, WebP) atau PDF." dan PDF 6 MB dengan "Laporan Kegiatan Tahunan.pdf lebih dari 5 MB. Perkecil file PDF-nya atau kirim foto dokumen.", keduanya tanpa request ke backend.
+- d. Guru TK A1: sasaran hanya Kelas tertentu dan Murid tertentu, pilihan kelas hanya TK A1, tanpa pilihan tampil di website; pengumuman kelas TK A1 dengan PDF tersimpan. Wali `TA20260011` (anak di TK A1) melihatnya dengan penanda di beranda dan feed, membuka detail, dan signed URL-nya menyajikan file yang sama, juga lewat Buka Lampiran di desktop. Wali `TA20250016` (anak di TK B2) tidak melihatnya di feed, `GET /pengumuman/{id}` dibalas 404, dan halaman detailnya tidak menampilkan isi.
+- e. Tanpa login: penanda di daftar publik dan landing, kartu lampiran di `/pengumuman/[slug]` dengan tautan `GET /public/pengumuman/{slug}/lampiran` yang menyajikan PDF (`inline; filename="Surat Edaran Libur Semester.pdf"`, `Cache-Control: no-cache, private`); pengumuman kelas TK A1 membalas 404 di `/pengumuman/[slug]`, tidak ada di daftar publik, dan unduhan publiknya 404.
+- f. Guru menghapus pengumuman berlampiran dari detail: dialog menyebut file ikut dihapus, file hilang dari `storage/app/private/pengumuman`, pengumuman terhapus lunak, dan signed URL lama dibalas 404.
+- g. Absensi dengan backend asli. Karena uji berjalan Senin dini hari, Pengaturan Absensi diubah sementara lewat `PUT /pengaturan` (titik sekolah sama dengan lokasi tiruan, jam masuk 00:00–21:00, jam pulang 22:00–23:30, hari kerja Senin–Minggu), lalu dikembalikan dan dicek sama dengan nilai awal. Guru: Absen Masuk dengan kamera tiruan Chromium tanpa tombol galeri dan tanpa input file (201, hadir, jarak 0 m); Pulang Lebih Awal dengan foto surat dari galeri (input `accept="image/*"` tanpa `capture`; 201, `pulang_awal` true, badge "Lebih awal"). Kepala Sekolah di browser tanpa persetujuan kamera: tampilan error "Izin kamera ditolak" dengan Muat Ulang, Batal, dan tautan ke Rekap Absensi; Izin dengan foto galeri saat kamera ditolak hanya menampilkan pesan singkat (201, status izin, tanpa koordinat, "tidak perlu absen pulang").
+
+Data uji dibersihkan: pengumuman uji dihapus lewat API (file lampirannya ikut terhapus), baris absensi uji 2 November 2026 beserta fotonya dan antrean notifikasi di tabel `jobs` dihapus, token uji dicabut.
+
+Temuan yang belum diperbaiki (CDN `browser-image-compression`, kedipan "Data tidak ditemukan." setelah hapus, 404 pengumuman untuk wali) ada di "Keputusan lampiran pengumuman".
+
+Belum terverifikasi: HP sungguhan (pemilih file Android dan iPhone, foto HEIC, PDF di browser HP), unggahan lewat jaringan seluler, backend di MySQL 8 produksi, dan pemegang izin kelola pengumuman yang mengganti lampiran pengumuman guru lain.
+
+### Kontrak lampiran pengumuman (branch `claude/modest-clarke-625zwd`)
+
+Diminta pemilik repo, dengan pilihan: satu file PDF atau gambar, maksimal 5 MB, dan lampiran pengumuman publik bisa diunduh pengunjung website. Kode FE belum berubah karena `api.json` backend belum memuatnya. Kode backend ditulis di sesi yang sama (branch `be/lampiran-pengumuman`, belum diuji), dan kontraknya disesuaikan dengan kode itu: lampiran gambar dikecilkan seperti dokumen PPDB (`simpanDokumen()`, lebar 1600 px, JPEG) dan ekstensi nama tampilannya mengikuti file tersimpan. Kontrak disusun dari kode backend yang ada: `MediaService` (disk privat, `EKSTENSI_DOKUMEN`, `UKURAN_MAKSIMAL_KB`, `urlPrivat()`, `responsPrivat()`), kolom `lampiran_path` yang sudah ada di tabel `pengumuman`, dan `PUT` multipart yang sudah dipakai `PUT /murid/{id}` dan `PUT /auth/profil`. Lampiran pengumuman publik memakai endpoint publik beralamat tetap, bukan signed URL, karena halaman publik di-cache (ISR 5 menit) sedangkan signed URL berlaku 30 menit.
+
+File baru:
+- `docs/kontrak-api-lampiran-pengumuman.md`: aturan, kolom baru (`lampiran_nama`, `lampiran_ukuran`), field `lampiran` dan `hapus_lampiran` di `POST`/`PUT /pengumuman`, `GET /public/pengumuman/{slug}/lampiran`, bentuk `lampiran` di respons, uji backend yang diharapkan, dan langkah FE setelah backend siap
+
+File yang diubah:
+- `PROMPT_FE_TK.md`: A2.9 (lampiran disimpan privat), A3, A4 (kolom lampiran), A7 (endpoint dan bentuk data), B4 (form dan kartu lampiran). Bagian A di prompt backend perlu diubah sama.
+- `dokumentasi.md`
+
+Hasil pengecekan: `npm run check:slop` tanpa temuan (hanya dokumen yang berubah).
 
 ### README, `package-lock.json`, dan perapian dokumentasi (branch `claude/modest-clarke-625zwd`)
 
