@@ -26,7 +26,7 @@ const SISI_MAKS_FOTO_ABSENSI_PX = 1280;
 const UKURAN_MAKS_FOTO_ABSENSI_MB = 1;
 const KUALITAS_JPEG_ABSENSI = 0.85;
 
-/** Foto absensi dari input file (galeri atau kamera bawaan HP) dijadikan JPEG maksimal 1280 px. */
+/** Foto absensi yang dipilih dari galeri dijadikan JPEG maksimal 1280 px. */
 export async function kompresFotoAbsensi(file: File): Promise<File> {
   const hasil: Blob = await imageCompression(file, {
     maxSizeMB: UKURAN_MAKS_FOTO_ABSENSI_MB,

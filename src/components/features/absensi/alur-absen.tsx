@@ -3,8 +3,10 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
+import { TampilanGalatKamera } from "@/components/features/absensi/galat-kamera";
 import { InfoLokasi } from "@/components/features/absensi/info-lokasi";
 import { KameraSwafoto } from "@/components/features/absensi/kamera-swafoto";
+import { useKamera } from "@/components/features/absensi/use-kamera";
 import { useLokasi, type StatusLokasi } from "@/components/features/absensi/use-lokasi";
 import { KolomArea } from "@/components/shared/kolom-teks";
 import { KolomRadio, type OpsiRadio } from "@/components/shared/kolom-radio";
@@ -69,14 +71,17 @@ function susunIsian(mode: ModeAbsen, butuhKeterangan: boolean, { foto, keteranga
   return { jenis: mode === "masuk" ? "masuk" : "pulang", latitude, longitude, akurasi, keterangan: alasan || undefined, foto };
 }
 
-/** Langkah absen di satu layar HP: lokasi (kecuali izin/sakit), alasan bila perlu, lalu swafoto, kemudian kirim. */
-export function AlurAbsen({ mode, status, onTutup }: { mode: ModeAbsen; status: AbsensiHariIni; onTutup: () => void }) {
+type AlurAbsenProps = { mode: ModeAbsen; status: AbsensiHariIni; kepalaSekolah: boolean; onTutup: () => void };
+
+/** Langkah absen di satu layar HP: lokasi (kecuali izin/sakit), alasan bila perlu, lalu foto, kemudian kirim. */
+export function AlurAbsen({ mode, status, kepalaSekolah, onTutup }: AlurAbsenProps) {
   const butuhLokasi = mode !== "izin_sakit";
   const butuhKeterangan = mode === "izin_sakit" || mode === "pulang_awal";
   // Absen masuk dan pulang biasa hanya dari kamera; izin, sakit, dan pulang lebih awal boleh memakai foto surat.
   const bolehGaleri = mode !== "masuk" && mode !== "pulang";
   const { lokasi, cari } = useLokasi();
   const [foto, setFoto] = useState<File | null>(null);
+  const kamera = useKamera(foto === null);
   const [tidakMasuk, setTidakMasuk] = useState<StatusTidakMasuk>("sakit");
   const [keterangan, setKeterangan] = useState("");
   const absen = useAbsen();
@@ -86,6 +91,12 @@ export function AlurAbsen({ mode, status, onTutup }: { mode: ModeAbsen; status: 
   useEffect(() => {
     if (butuhLokasi) cari();
   }, [butuhLokasi, cari]);
+
+  if (!bolehGaleri && kamera.status.tahap === "gagal") {
+    return (
+      <TampilanGalatKamera galat={kamera.status.galat} jenis={mode} kepalaSekolah={kepalaSekolah} onCobaLagi={kamera.bukaLagi} onBatal={onTutup} />
+    );
+  }
 
   const isian = susunIsian(mode, butuhKeterangan, { foto, keterangan, tidakMasuk, lokasi });
 
@@ -131,7 +142,7 @@ export function AlurAbsen({ mode, status, onTutup }: { mode: ModeAbsen; status: 
       <div className="flex flex-col gap-3">
         <h3 className="font-heading font-bold">{nomorFoto}. {bolehGaleri ? "Foto" : "Foto wajah"}</h3>
         {petunjuk ? <p className="text-sm text-muted-foreground">{petunjuk}</p> : null}
-        <KameraSwafoto foto={foto} onFoto={setFoto} bolehGaleri={bolehGaleri} />
+        <KameraSwafoto kamera={kamera} foto={foto} onFoto={setFoto} bolehGaleri={bolehGaleri} />
       </div>
 
       {galat ? (

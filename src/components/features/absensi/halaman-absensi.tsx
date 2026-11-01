@@ -140,7 +140,7 @@ export function HalamanAbsensi({ kepalaSekolah, bisaLihatRekap }: { kepalaSekola
       <KartuStatus status={data} />
 
       {alurAktif ? (
-        <AlurAbsen mode={alurAktif} status={data} onTutup={() => setAlur(null)} />
+        <AlurAbsen mode={alurAktif} status={data} kepalaSekolah={kepalaSekolah} onTutup={() => setAlur(null)} />
       ) : langkah.boleh ? (
         <div className="flex flex-col gap-2">
           <Button size="lg" className="h-16 text-lg" onClick={() => setAlur(langkah.jenis)}>
