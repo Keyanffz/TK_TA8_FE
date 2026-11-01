@@ -1,8 +1,8 @@
 # Kontrak API: lampiran pengumuman
 
-Kontrak untuk lampiran di pengumuman, disetujui pemilik repo. Backend belum mengerjakannya. FE baru mulai setelah `api.json` backend memuat isi dokumen ini, karena FE tidak memakai field di luar kontrak. Semua endpoint memakai prefix `/api/v1`, header `Authorization: Bearer` (kecuali endpoint publik), dan format respons A7.
+Kontrak untuk lampiran di pengumuman, disetujui pemilik repo. Kode backend ada di branch `be/lampiran-pengumuman`, tetapi tesnya belum dijalankan dan `api.json` belum diekspor karena container sesi penulisannya tidak punya PHP 8.4. FE baru mulai setelah `api.json` backend memuat isi dokumen ini, karena FE tidak memakai field di luar kontrak. Semua endpoint memakai prefix `/api/v1`, header `Authorization: Bearer` (kecuali endpoint publik), dan format respons A7.
 
-Ringkasannya sudah masuk Bagian A `PROMPT_FE_TK.md` (A2.9, A3, A4 tabel `pengumuman`, A7). Bagian A di prompt backend perlu diubah sama supaya tetap identik.
+Ringkasannya sudah masuk Bagian A `PROMPT_FE_TK.md` (A2.9, A3, A4 tabel `pengumuman`, A7). Bagian A `PROMPT_BE_TK.md` sudah disamakan di branch backend `be/lampiran-pengumuman`.
 
 Nama konstanta dan fungsi di bawah merujuk ke kode backend yang sudah ada (`app/Services/MediaService.php`).
 
@@ -10,11 +10,11 @@ Nama konstanta dan fungsi di bawah merujuk ke kode backend yang sudah ada (`app/
 
 - Satu lampiran per pengumuman, opsional.
 - Jenis file: PDF dan gambar, yaitu ekstensi `MediaService::EKSTENSI_DOKUMEN` (`jpg`, `jpeg`, `png`, `webp`, `pdf`). Ukuran maksimal 5 MB (`MediaService::UKURAN_MAKSIMAL_KB`).
-- File disimpan di disk privat (`MediaService::DISK_PRIVAT`, folder `pengumuman`) lewat `simpanDokumen()`, apa adanya tanpa dikecilkan, supaya tulisan di foto surat tetap terbaca.
+- File disimpan di disk privat (`MediaService::DISK_PRIVAT`, folder `pengumuman`) lewat `simpanDokumen()`, sama dengan dokumen PPDB: PDF apa adanya, gambar diperkecil ke lebar 1600 px dan disimpan sebagai JPEG (B5). Ekstensi nama tampilan mengikuti file yang tersimpan, jadi lampiran `Jadwal.png` menjadi `Jadwal.jpg`.
 - Yang boleh menambah, mengganti, atau menghapus lampiran sama dengan yang boleh membuat atau mengubah pengumuman itu. Aturan `POST /pengumuman` dan `PUT /pengumuman/{id}` tidak berubah.
 - Yang boleh membuka lampiran sama dengan yang boleh melihat pengumuman itu (`GET /pengumuman/{id}`), ditambah pengunjung website untuk pengumuman publik yang sudah terbit.
 - Mengganti lampiran menghapus file lama. Menghapus pengumuman menghapus file lampirannya.
-- Nama file asli disimpan untuk ditampilkan dan dipakai sebagai nama unduhan. Bagian path dibuang, panjang maksimal 255 karakter.
+- Nama file asli disimpan untuk ditampilkan dan dipakai sebagai nama unduhan. Bagian path, garis miring, dan karakter kontrol dibuang (nama ini masuk header `Content-Disposition`), lalu dibatasi 200 karakter ditambah ekstensi.
 
 ## 2. Kolom tabel `pengumuman`
 
@@ -56,7 +56,7 @@ Alamat ini tidak kedaluwarsa. Halaman publik FE di-cache (ISR 5 menit), jadi sig
 
 `lampiran` bernilai `null` kalau pengumuman tidak punya lampiran.
 
-- `jenis`: `pdf` untuk file `.pdf`, selain itu `gambar`. FE memakainya untuk memilih tampilan (pratinjau gambar atau kartu dokumen).
+- `jenis`: `pdf` untuk file `.pdf`, selain itu `gambar` (selalu JPEG). FE memakainya untuk memilih tampilan (pratinjau gambar atau kartu dokumen).
 - `ukuran`: byte, dari `lampiran_ukuran`.
 - `url` di `PengumumanResource` (`GET /pengumuman`, `GET /pengumuman/{id}`, respons `POST`/`PUT`, `pengumuman_terbaru` di `GET /dashboard`): signed URL `GET /media/{token}` 30 menit dari `urlPrivat()`, sesuai aturan "File private" A7.
 - `url` di `PengumumanPublikResource` (`GET /public/pengumuman`, `GET /public/pengumuman/{slug}`): URL absolut `GET /public/pengumuman/{slug}/lampiran`.
@@ -68,7 +68,10 @@ Alamat ini tidak kedaluwarsa. Halaman publik FE di-cache (ISR 5 menit), jadi sig
 
 ## 6. Uji backend yang diharapkan
 
+Ditulis di `tests/Feature/Pengumuman/LampiranPengumumanTest.php` (branch backend `be/lampiran-pengumuman`).
+
 - penulis bisa menambah lampiran PDF saat membuat pengumuman
+- lampiran gambar dikecilkan menjadi JPEG dan ekstensi namanya ikut berubah
 - file selain PDF dan gambar ditolak, begitu juga file di atas 5 MB
 - mengganti lampiran menghapus file lama
 - `hapus_lampiran` menghapus file dan mengosongkan ketiga kolom

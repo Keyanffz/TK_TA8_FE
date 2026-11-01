@@ -30,7 +30,7 @@ Website publik dan dashboard sistem informasi TK Tarbiyathul Athfal 8 (TK Muslim
 | Tampilan error (sambungan, server sekolah, halaman) dan halaman 404 yang disamakan (branch `ccr-b869340b-k7sh7n`) | Selesai, diuji di browser, di-merge (PR #20; lihat "Keputusan tampilan error") |
 | Foto absen masuk dan pulang hanya dari kamera dengan tampilan error kamera, galeri untuk izin, sakit, dan pulang lebih awal (branch `claude/modest-clarke-625zwd`) | Selesai, diuji di browser dengan backend tiruan, di-merge ke `main` tanpa PR atas permintaan pemilik repo (lihat "Keputusan absensi" nomor 14–16) |
 | README, `package-lock.json`, dan perapian dokumentasi (branch `claude/modest-clarke-625zwd`) | Selesai, di-merge ke `main` tanpa PR atas permintaan pemilik repo |
-| Lampiran pengumuman (branch `claude/modest-clarke-625zwd`) | Kontrak ditulis (`docs/kontrak-api-lampiran-pengumuman.md`), menunggu backend; FE belum dikerjakan |
+| Lampiran pengumuman (branch `claude/modest-clarke-625zwd`; backend `be/lampiran-pengumuman`) | Kontrak ditulis (`docs/kontrak-api-lampiran-pengumuman.md`). Kode backend ditulis tetapi test dan ekspor `api.json` belum dijalankan (container tanpa PHP 8.4). FE belum dikerjakan, menunggu `api.json` |
 
 Mode mock tidak dipakai: `api.json` final dari backend sudah tersedia sejak Fase 1, jadi semua request memakai backend asli dan tipe hasil generate. Tidak ada endpoint mock.
 
@@ -580,7 +580,7 @@ Menu sidebar dibangun dari satu konfigurasi (`src/lib/navigation.ts`) berisi rol
 ## Rencana perbaikan berikutnya
 
 - **File gambar pengaturan yang tidak jadi disimpan (F7-3)**: dikerjakan di backend (branch `be/bersihkan-gambar`). `POST /pengaturan/upload` langsung menyimpan file ke folder `pengaturan/`, sedangkan path-nya baru tercatat saat tab CMS disimpan, jadi gambar yang batal disimpan tertinggal. Perintah `pengaturan:bersihkan-gambar` berjalan harian pukul 02:00 WIB dan menghapus file di folder itu yang tidak dipakai pengaturan mana pun dan terakhir diubah lebih dari sehari lalu; batas sehari menjaga gambar yang masih menunggu disimpan di form yang terbuka. FE tidak berubah.
-- **Lampiran di Pengumuman**: disetujui pemilik repo (sebelumnya saran di bawah): satu file PDF atau gambar, maksimal 5 MB, dan lampiran pengumuman publik bisa diunduh pengunjung website. Kontraknya di `docs/kontrak-api-lampiran-pengumuman.md` dan ringkasannya di A2.9, A3, A4, A7, dan B4 `PROMPT_FE_TK.md`. Menunggu backend: kolom `lampiran_path` sudah ada di tabel backend, tetapi belum dipakai API dan belum ada di `api.json`. FE dikerjakan setelah `api.json` memuat kontrak itu.
+- **Lampiran di Pengumuman**: disetujui pemilik repo (sebelumnya saran di bawah): satu file PDF atau gambar, maksimal 5 MB, dan lampiran pengumuman publik bisa diunduh pengunjung website. Kontraknya di `docs/kontrak-api-lampiran-pengumuman.md` dan ringkasannya di A2.9, A3, A4, A7, dan B4 `PROMPT_FE_TK.md`. Kode backend sudah ditulis di branch `be/lampiran-pengumuman` (repo `TK_TA8_BE`), tetapi test, Pint, PHPStan, dan ekspor `api.json` belum dijalankan karena container sesi itu hanya punya PHP 8.3 dan PPA PHP 8.4 diblokir kebijakan jaringan. FE dikerjakan setelah `api.json` memuat kontrak itu.
 
 ## Saran dari Claude
 
@@ -604,7 +604,7 @@ Tempat deploy belum ditentukan. Syarat yang sudah pasti:
 
 ### Kontrak lampiran pengumuman (branch `claude/modest-clarke-625zwd`)
 
-Diminta pemilik repo, dengan pilihan: satu file PDF atau gambar, maksimal 5 MB, dan lampiran pengumuman publik bisa diunduh pengunjung website. Backend belum mengerjakannya, jadi kode FE belum berubah. Kontrak disusun dari kode backend yang ada: `MediaService` (disk privat, `EKSTENSI_DOKUMEN`, `UKURAN_MAKSIMAL_KB`, `urlPrivat()`, `responsPrivat()`), kolom `lampiran_path` yang sudah ada di tabel `pengumuman`, dan `PUT` multipart yang sudah dipakai `PUT /murid/{id}` dan `PUT /auth/profil`. Lampiran pengumuman publik memakai endpoint publik beralamat tetap, bukan signed URL, karena halaman publik di-cache (ISR 5 menit) sedangkan signed URL berlaku 30 menit.
+Diminta pemilik repo, dengan pilihan: satu file PDF atau gambar, maksimal 5 MB, dan lampiran pengumuman publik bisa diunduh pengunjung website. Kode FE belum berubah karena `api.json` backend belum memuatnya. Kode backend ditulis di sesi yang sama (branch `be/lampiran-pengumuman`, belum diuji), dan kontraknya disesuaikan dengan kode itu: lampiran gambar dikecilkan seperti dokumen PPDB (`simpanDokumen()`, lebar 1600 px, JPEG) dan ekstensi nama tampilannya mengikuti file tersimpan. Kontrak disusun dari kode backend yang ada: `MediaService` (disk privat, `EKSTENSI_DOKUMEN`, `UKURAN_MAKSIMAL_KB`, `urlPrivat()`, `responsPrivat()`), kolom `lampiran_path` yang sudah ada di tabel `pengumuman`, dan `PUT` multipart yang sudah dipakai `PUT /murid/{id}` dan `PUT /auth/profil`. Lampiran pengumuman publik memakai endpoint publik beralamat tetap, bukan signed URL, karena halaman publik di-cache (ISR 5 menit) sedangkan signed URL berlaku 30 menit.
 
 File baru:
 - `docs/kontrak-api-lampiran-pengumuman.md`: aturan, kolom baru (`lampiran_nama`, `lampiran_ukuran`), field `lampiran` dan `hapus_lampiran` di `POST`/`PUT /pengumuman`, `GET /public/pengumuman/{slug}/lampiran`, bentuk `lampiran` di respons, uji backend yang diharapkan, dan langkah FE setelah backend siap
