@@ -2,10 +2,11 @@
 
 import { FileText, UploadCloud, X } from "lucide-react";
 import Image from "next/image";
-import { useEffect, useId, useMemo, useRef, useState, type DragEvent } from "react";
+import { useEffect, useId, useMemo, useRef, useState, type DragEvent, type ReactNode } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Field, FieldDescription, FieldError, FieldLabel } from "@/components/ui/field";
+import { formatUkuranFile } from "@/lib/format";
 import { kompresGambar, TIPE_GAMBAR_DITERIMA, TIPE_PDF, tipeGambarDiterima, UKURAN_MAKS_UNGGAH_BYTE } from "@/lib/gambar";
 import { cn } from "@/lib/utils";
 
@@ -16,15 +17,12 @@ type ZonaUnggahProps = {
   /** File yang sudah dipilih (dikendalikan react-hook-form lewat Controller). */
   nilai: File[];
   onUbah: (file: File[]) => void;
-  /** PDF diterima selain gambar (dokumen PPDB, bukan pas foto). */
+  /** PDF diterima selain gambar (dokumen PPDB, lampiran pengumuman; bukan pas foto). */
   terimaPdf?: boolean;
   maks?: number;
+  /** File yang sudah tersimpan di server (misalnya lampiran saat mengubah pengumuman), tampil di bawah label. */
+  tersimpan?: ReactNode;
 };
-
-function ukuranFile(byte: number): string {
-  if (byte < 1024 * 1024) return `${Math.max(1, Math.round(byte / 1024)).toLocaleString("id-ID")} KB`;
-  return `${(byte / 1024 / 1024).toLocaleString("id-ID", { maximumFractionDigits: 1 })} MB`;
-}
 
 /** Pratinjau: gambar sebagai thumbnail, PDF sebagai nama file. */
 function ItemFile({ file, onHapus }: { file: File; onHapus: () => void }) {
@@ -38,7 +36,7 @@ function ItemFile({ file, onHapus }: { file: File; onHapus: () => void }) {
       </span>
       <span className="min-w-0 flex-1">
         <span className="block truncate text-sm font-bold">{file.name}</span>
-        <span className="block text-xs text-muted-foreground">{ukuranFile(file.size)}</span>
+        <span className="block text-xs text-muted-foreground">{formatUkuranFile(file.size)}</span>
       </span>
       <Button type="button" variant="ghost" size="icon" onClick={onHapus} aria-label={`Hapus ${file.name}`}>
         <X aria-hidden="true" />
@@ -51,7 +49,7 @@ function ItemFile({ file, onHapus }: { file: File; onHapus: () => void }) {
  * Pilih file dengan klik atau seret (B1). Gambar dikecilkan di browser sebelum
  * dikirim; PDF dikirim apa adanya dan harus di bawah 5 MB.
  */
-export function ZonaUnggah({ label, deskripsi, error, nilai, onUbah, terimaPdf = false, maks = 1 }: ZonaUnggahProps) {
+export function ZonaUnggah({ label, deskripsi, error, nilai, onUbah, terimaPdf = false, maks = 1, tersimpan }: ZonaUnggahProps) {
   const id = useId();
   const [memproses, setMemproses] = useState(false);
   const [galat, setGalat] = useState<string | null>(null);
@@ -91,7 +89,11 @@ export function ZonaUnggah({ label, deskripsi, error, nilai, onUbah, terimaPdf =
         } else if (tipeGambarDiterima(file)) {
           hasil.push(await kompresGambar(file));
         } else {
-          setGalat(terimaPdf ? "Pilih foto (JPG, PNG, WebP) atau PDF." : "Pilih foto berformat JPG, PNG, atau WebP.");
+          setGalat(
+            terimaPdf
+              ? `${file.name} tidak bisa diunggah. Pilih foto (JPG, PNG, WebP) atau PDF.`
+              : `${file.name} tidak bisa diunggah. Pilih foto berformat JPG, PNG, atau WebP.`,
+          );
           return;
         }
       }
@@ -114,6 +116,7 @@ export function ZonaUnggah({ label, deskripsi, error, nilai, onUbah, terimaPdf =
   return (
     <Field data-invalid={pesan ? true : undefined}>
       <FieldLabel htmlFor={id}>{label}</FieldLabel>
+      {tersimpan}
       {nilai.length > 0 ? (
         <ul ref={daftarRef} className="flex flex-col gap-2">
           {nilai.map((file, indeks) => (
