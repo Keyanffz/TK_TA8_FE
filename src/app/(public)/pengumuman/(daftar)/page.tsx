@@ -2,6 +2,7 @@ import { Pin } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 
+import { PenandaLampiran } from "@/components/features/pengumuman/penanda-lampiran";
 import { EmptyState } from "@/components/shared/empty-state";
 import { JudulHalaman } from "@/components/shared/judul-halaman";
 import { PaginasiTautan } from "@/components/shared/paginasi-tautan";
@@ -38,6 +39,7 @@ export default async function PengumumanPage({ searchParams }: PageProps<"/pengu
                       </span>
                     ) : null}
                     {item.published_at ? <time dateTime={item.published_at}>{formatTanggal(item.published_at)}</time> : null}
+                    {item.lampiran ? <PenandaLampiran className="font-semibold text-primary-strong" /> : null}
                   </p>
                   <h2 className="mt-1 text-lg font-semibold">
                     <Link href={`/pengumuman/${item.slug}`} className="hover:text-primary-strong hover:underline">
