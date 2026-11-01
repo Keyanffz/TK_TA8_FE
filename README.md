@@ -25,6 +25,7 @@ Variabel `.env.local`:
 |---|---|
 | `BE_API_URL` | Base URL API backend termasuk `/api/v1`, misalnya `http://localhost:8000/api/v1`. Harus alamat yang juga bisa dibuka browser, karena signed URL file private dibentuk backend dari host request yang diterimanya. |
 | `API_SPEC_PATH` | Path atau URL `api.json` untuk `npm run gen:api`. Lokal: `../TK_TA8_BE/storage/api-docs/api.json`. |
+| `NEXT_PUBLIC_GOOGLE_CLIENT_ID` | Client ID OAuth Google (jenis Web application) untuk tombol Masuk dengan Google di `/mudarris/login`, sama dengan `GOOGLE_CLIENT_ID` di backend. Dibaca saat build, jadi build ulang setelah mengubahnya. Kalau kosong, guru tidak bisa masuk; Kepala Sekolah tetap bisa masuk dengan password. |
 
 ## Perintah
 
@@ -45,29 +46,33 @@ Build tidak membutuhkan backend. Kalau backend tidak bisa dihubungi saat `npm ru
 - Halaman depan dari CMS: profil, sambutan Kepala Sekolah, visi-misi, program, keunggulan, fasilitas, guru, galeri, pengumuman, agenda, info PPDB, kontak dan peta.
 - Daftar dan detail pengumuman publik, galeri album.
 - PPDB: info, pendaftaran tanpa login dengan unggah dokumen, cek status dengan kode pendaftaran + tanggal lahir anak.
-- Login terpisah untuk wali murid dan untuk guru/Kepala Sekolah, daftar akun guru, lupa dan reset password (guru dan Kepala Sekolah).
+- Halaman login terpisah: wali murid di `/login`, guru dan Kepala Sekolah di `/mudarris/login`. Lupa dan reset password hanya untuk Kepala Sekolah.
 
 **Wali Murid**
 - Login dengan NIS anak + password. Password awal adalah tanggal lahir anak (DDMMYYYY) dan wajib diganti saat pertama masuk, lalu melengkapi profil.
 - Menambahkan kakak/adik dengan NIS + tanggal lahir anak, dan memilih anak aktif.
+- Beranda dengan info dari sekolah, tagihan yang belum dibayar, kegiatan, pengumuman, agenda, dan rapor terbaru.
 - Tagihan anak, bayar dengan unggah bukti transfer, riwayat pembayaran dan kwitansi.
 - Kegiatan kelas anak (foto), rapor yang sudah terbit dan PDF-nya, pengumuman, agenda, pendaftaran PPDB kakak/adik, notifikasi, profil.
 
 **Guru**
+- Login dengan akun Google yang emailnya didaftarkan Kepala Sekolah. Guru tidak punya password.
 - Kelas yang diampu dan murid di dalamnya, beserta kontak wali.
 - Kegiatan kelas dengan foto, keterangan, dan urutan.
 - Rapor per elemen penilaian: draft, ajukan, perbaiki saat diminta revisi.
 - Pengumuman untuk kelas atau murid di kelasnya, lihat agenda, lihat status tagihan kelasnya.
-- Guru dengan izin keuangan mendapat menu keuangan seperti Kepala Sekolah, kecuali rekening dan jenis tagihan.
+- Absensi dari HP: absen masuk dan absen pulang dengan lokasi dan foto langsung dari kamera; izin, sakit, dan pulang lebih awal dengan foto dari kamera atau galeri (misalnya surat dokter); riwayat absensi sendiri; notifikasi saat absensi tercatat atau dikoreksi.
+- Izin per modul dari Kepala Sekolah, level lihat atau kelola: keuangan, konten website, laporan absensi, data murid (termasuk status murid, alumni, dan import), dan pengumuman. Bagian lain di luar kelima modul itu, termasuk jenis tagihan dan rekening sekolah, tetap khusus Kepala Sekolah.
 
 **Kepala Sekolah**
+- Login dengan akun Google, atau email + password sebagai cadangan.
 - Beranda: statistik sekolah, keuangan bulan ini, grafik pemasukan 12 bulan, dan panel "Perlu Tindakan".
-- Guru (persetujuan, izin keuangan, tampil di website), tahun ajaran dan kenaikan kelas, kelas, murid (kartu akun wali), wali murid (ubah data, reset ke password awal).
+- Guru: tambah dengan nama + email Google, ubah data, aktifkan atau nonaktifkan, tampil di website, reset tautan Google. Hak Akses Guru: izin per modul dan preset (Bendahara, Admin Website, Admin Absensi, Tata Usaha).
+- Tahun ajaran dan kenaikan kelas, kelas, murid (kartu akun wali, ubah status per murid, massal, atau meluluskan satu kelas, riwayat status, import dari Excel/CSV), alumni per tahun lulus, wali murid (ubah data, reset ke password awal).
 - Keuangan: jenis tagihan, keringanan, tagihan bulanan dan sekali bayar, verifikasi dan pencatatan pembayaran, laporan dengan ekspor Excel, tunggakan.
 - Review dan penerbitan rapor, pengumuman semua sasaran, agenda sekolah (hanya Kepala Sekolah yang mengelola agenda).
+- Absensi: ikut absen seperti guru; Rekap Absensi (harian dan bulanan 1–3 bulan, koreksi status, mencatat absen masuk atau pulang yang terlupa, unduh CSV); Pengaturan Absensi (titik sekolah di peta, radius, batas akurasi, jam masuk dan pulang, hari kerja, tanggal libur, tanggal mulai, masa simpan foto).
 - PPDB (verifikasi, terima, tolak), CMS website, galeri, pengaturan, log aktivitas.
-
-Proyek ini tidak memiliki modul absensi.
 
 ## Deploy
 
@@ -76,5 +81,6 @@ Tempat deploy belum ditentukan. Syarat yang sudah pasti (rinciannya di bagian "D
 1. Reverse proxy di depan Next.js yang menambahkan IP klien ke `X-Forwarded-For` (nginx: `proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;`), supaya rate limit backend per IP tidak bisa diakali.
 2. `TRUSTED_PROXIES` di backend berisi IP server Next.js, ditambah reverse proxy di depan backend kalau ada.
 3. `BE_API_URL` berisi alamat backend yang bisa dibuka browser, bukan hostname jaringan internal.
-4. HTTPS dan `NODE_ENV=production`: cookie sesi `tk_token` (httpOnly) memakai flag `Secure`.
+4. HTTPS dan `NODE_ENV=production`: cookie sesi `tk_token` (httpOnly) memakai flag `Secure`. Absensi juga butuh HTTPS, karena browser hanya membuka kamera dan lokasi di alamat https (atau `localhost`).
 5. Batas unggahan: satu kegiatan bisa mengunggah 10 foto × 5 MB. Batas body reverse proxy minimal 55 MB (nginx `client_max_body_size 55M;`), dan PHP backend `upload_max_filesize` minimal `5M` serta `post_max_size` minimal `55M`.
+6. Masuk dengan Google: `NEXT_PUBLIC_GOOGLE_CLIENT_ID` diisi sebelum `npm run build`, dan origin FE produksi didaftarkan di Authorized JavaScript origins Client ID itu di Google Cloud Console. Backend memakai Client ID yang sama di `GOOGLE_CLIENT_ID`.
