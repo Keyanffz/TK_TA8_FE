@@ -9,7 +9,17 @@ import { punyaIzin } from "@/lib/auth/role";
 import { useSession } from "@/lib/auth/use-session";
 import { formatRupiah } from "@/lib/format";
 
-const KOSONG: NilaiPengumuman = { judul: "", isi: "", target: "semua", kelas_ids: [], murid: [], is_publik: false, is_pinned: false };
+const KOSONG: NilaiPengumuman = {
+  judul: "",
+  isi: "",
+  target: "semua",
+  kelas_ids: [],
+  murid: [],
+  is_publik: false,
+  is_pinned: false,
+  lampiran: [],
+  hapus_lampiran: false,
+};
 
 const ISI_TUNGGAKAN =
   "<p>Assalamu'alaikum, Bapak/Ibu wali murid.</p>" +

@@ -43,6 +43,9 @@ export type GaleriAlbum = Schemas["GaleriAlbumResource"];
 export type GuruPublik = Schemas["GuruPublikResource"];
 export type PengumumanPublik = Schemas["PengumumanPublikResource"];
 export type Pengumuman = Schemas["PengumumanResource"];
+/** Bentuknya sama di `PengumumanResource` dan `PengumumanPublikResource`; hanya `url`-nya yang berbeda. */
+export type LampiranPengumuman = NonNullable<Pengumuman["lampiran"]>;
+export type JenisLampiran = LampiranPengumuman["jenis"];
 export type Notifikasi = Schemas["NotifikasiResource"];
 export type AnakWali = Schemas["AnakWaliResource"];
 export type Guru = Schemas["GuruResource"];

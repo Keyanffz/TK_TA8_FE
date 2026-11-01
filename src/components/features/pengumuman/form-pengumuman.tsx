@@ -6,6 +6,7 @@ import { Controller, useForm, useWatch } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 
+import { KolomLampiran } from "@/components/features/pengumuman/kolom-lampiran";
 import { PilihKelas } from "@/components/features/pengumuman/pilih-kelas";
 import { EditorTeks } from "@/components/shared/editor-teks";
 import { KolomRadio } from "@/components/shared/kolom-radio";
@@ -19,7 +20,7 @@ import { useSimpanPengumuman } from "@/lib/api/pengumuman";
 import { punyaIzin } from "@/lib/auth/role";
 import { useSession } from "@/lib/auth/use-session";
 import { teksDariHtml } from "@/lib/html";
-import type { Pengumuman, TargetPengumuman } from "@/types/domain";
+import type { LampiranPengumuman, Pengumuman, TargetPengumuman } from "@/types/domain";
 
 const OPSI_SEMUA = [
   { nilai: "semua", label: "Semua", keterangan: "Semua guru dan wali murid." },
@@ -39,6 +40,9 @@ const skema = z
     murid: z.array(z.custom<MuridTerpilih>()),
     is_publik: z.boolean(),
     is_pinned: z.boolean(),
+    // Jenis dan ukuran file sudah diperiksa ZonaUnggah sebelum file masuk ke form.
+    lampiran: z.array(z.custom<File>()),
+    hapus_lampiran: z.boolean(),
   })
   .refine((nilai) => nilai.target !== "kelas" || nilai.kelas_ids.length > 0, { path: ["kelas_ids"], message: "Pilih minimal satu kelas." })
   .refine((nilai) => nilai.target !== "murid" || nilai.murid.length > 0, { path: ["murid"], message: "Pilih minimal satu murid." });
@@ -54,6 +58,8 @@ export function nilaiDariPengumuman(pengumuman: Pengumuman): NilaiPengumuman {
     murid: (pengumuman.murid ?? []).map((murid) => ({ id: murid.id, nama_lengkap: murid.nama_lengkap, nis: "" })),
     is_publik: pengumuman.is_publik,
     is_pinned: pengumuman.is_pinned,
+    lampiran: [],
+    hapus_lampiran: false,
   };
 }
 
@@ -62,15 +68,18 @@ type FormPengumumanProps = {
   id: number | null;
   awal: NilaiPengumuman;
   sudahTerbit: boolean;
+  /** Lampiran yang sudah tersimpan, saat mengubah pengumuman. */
+  lampiranTersimpan?: LampiranPengumuman | null;
 };
 
-export function FormPengumuman({ id, awal, sudahTerbit }: FormPengumumanProps) {
+export function FormPengumuman({ id, awal, sudahTerbit, lampiranTersimpan = null }: FormPengumumanProps) {
   const router = useRouter();
   const bebasTarget = punyaIzin(useSession(), "pengumuman", "kelola");
   const simpan = useSimpanPengumuman(id);
   const form = useForm<NilaiPengumuman>({ resolver: zodResolver(skema), defaultValues: awal });
   const { errors, isSubmitting } = form.formState;
   const target = useWatch({ control: form.control, name: "target" });
+  const hapusLampiran = useWatch({ control: form.control, name: "hapus_lampiran" });
 
   const kirim = (publish: boolean) =>
     form.handleSubmit(async (nilai) => {
@@ -84,6 +93,8 @@ export function FormPengumuman({ id, awal, sudahTerbit }: FormPengumumanProps) {
           is_publik: bebasTarget && nilai.target === "semua" ? nilai.is_publik : false,
           is_pinned: nilai.is_pinned,
           publish,
+          // File baru sudah menggantikan lampiran lama, jadi hapus_lampiran tidak dikirim bersamanya (backend menolak keduanya).
+          ...(nilai.lampiran[0] ? { lampiran: nilai.lampiran[0] } : nilai.hapus_lampiran ? { hapus_lampiran: true } : {}),
         });
         toast.success(message);
         router.replace(`/mudarris/pengumuman/${data.id}`);
@@ -93,7 +104,7 @@ export function FormPengumuman({ id, awal, sudahTerbit }: FormPengumumanProps) {
         const pesanKelas = Object.entries(errorsApi).find(([kunci]) => kunci.startsWith("kelas_ids"))?.[1][0];
         if (pesanMurid) form.setError("murid", { type: "server", message: pesanMurid });
         if (pesanKelas) form.setError("kelas_ids", { type: "server", message: pesanKelas });
-        const terpasang = terapkanErrorValidasi(error, form.setError, ["judul", "isi", "target", "is_publik"]);
+        const terpasang = terapkanErrorValidasi(error, form.setError, ["judul", "isi", "target", "is_publik", "lampiran"]);
         if (!terpasang && !pesanMurid && !pesanKelas) toast.error(pesanError(error));
       }
     });
@@ -134,6 +145,20 @@ export function FormPengumuman({ id, awal, sudahTerbit }: FormPengumumanProps) {
             render={({ field }) => <PilihMurid dipilih={field.value} onUbah={field.onChange} error={errors.murid?.message} />}
           />
         ) : null}
+        <Controller
+          control={form.control}
+          name="lampiran"
+          render={({ field }) => (
+            <KolomLampiran
+              tersimpan={lampiranTersimpan}
+              nilai={field.value}
+              onUbah={field.onChange}
+              dihapus={hapusLampiran}
+              onUbahDihapus={(dihapus) => form.setValue("hapus_lampiran", dihapus, { shouldDirty: true })}
+              error={errors.lampiran?.message}
+            />
+          )}
+        />
         <Controller
           control={form.control}
           name="is_pinned"
