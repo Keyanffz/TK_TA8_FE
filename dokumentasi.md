@@ -30,7 +30,7 @@ Website publik dan dashboard sistem informasi TK Tarbiyathul Athfal 8 (TK Muslim
 | Tampilan error (sambungan, server sekolah, halaman) dan halaman 404 yang disamakan (branch `ccr-b869340b-k7sh7n`) | Selesai, diuji di browser, di-merge (PR #20; lihat "Keputusan tampilan error") |
 | Foto absen masuk dan pulang hanya dari kamera dengan tampilan error kamera, galeri untuk izin, sakit, dan pulang lebih awal (branch `claude/modest-clarke-625zwd`) | Selesai, diuji di browser dengan backend tiruan, di-merge ke `main` tanpa PR atas permintaan pemilik repo (lihat "Keputusan absensi" nomor 14–16); diuji ulang dengan backend asli di branch `fe/lampiran-pengumuman` |
 | README, `package-lock.json`, dan perapian dokumentasi (branch `claude/modest-clarke-625zwd`) | Selesai, di-merge ke `main` tanpa PR atas permintaan pemilik repo |
-| Lampiran pengumuman (kontrak di branch `claude/modest-clarke-625zwd`, kode di `fe/lampiran-pengumuman`; backend `be/lampiran-pengumuman`) | Selesai, diuji di browser bersama backend asli (backend di-merge lewat PR #17; lihat "Keputusan lampiran pengumuman") |
+| Lampiran pengumuman (kontrak di branch `claude/modest-clarke-625zwd`, kode di `fe/lampiran-pengumuman`; backend `be/lampiran-pengumuman`) | Selesai, diuji di browser bersama backend asli, di-merge (PR #21; backend PR #17; lihat "Keputusan lampiran pengumuman") |
 
 Mode mock tidak dipakai: `api.json` final dari backend sudah tersedia sejak Fase 1, jadi semua request memakai backend asli dan tipe hasil generate. Tidak ada endpoint mock.
 
@@ -599,7 +599,7 @@ Menu sidebar dibangun dari satu konfigurasi (`src/lib/navigation.ts`) berisi rol
 ## Rencana perbaikan berikutnya
 
 - **File gambar pengaturan yang tidak jadi disimpan (F7-3)**: dikerjakan di backend (branch `be/bersihkan-gambar`). `POST /pengaturan/upload` langsung menyimpan file ke folder `pengaturan/`, sedangkan path-nya baru tercatat saat tab CMS disimpan, jadi gambar yang batal disimpan tertinggal. Perintah `pengaturan:bersihkan-gambar` berjalan harian pukul 02:00 WIB dan menghapus file di folder itu yang tidak dipakai pengaturan mana pun dan terakhir diubah lebih dari sehari lalu; batas sehari menjaga gambar yang masih menunggu disimpan di form yang terbuka. FE tidak berubah.
-- **Lampiran di Pengumuman**: selesai. Disetujui pemilik repo: satu file PDF atau gambar, maksimal 5 MB, dan lampiran pengumuman publik bisa diunduh pengunjung website. Kontraknya di `docs/kontrak-api-lampiran-pengumuman.md` dan ringkasannya di A2.9, A3, A4, A7, dan B4 `PROMPT_FE_TK.md`. Backend selesai lewat PR #17 (`be/lampiran-pengumuman`, test SQLite dan MariaDB, `api.json` sudah memuat lampiran). FE dikerjakan di branch `fe/lampiran-pengumuman` dan diuji bersama backend asli (lihat "Keputusan lampiran pengumuman" dan Changelog).
+- **Lampiran di Pengumuman**: selesai. Disetujui pemilik repo: satu file PDF atau gambar, maksimal 5 MB, dan lampiran pengumuman publik bisa diunduh pengunjung website. Kontraknya di `docs/kontrak-api-lampiran-pengumuman.md` dan ringkasannya di A2.9, A3, A4, A7, dan B4 `PROMPT_FE_TK.md`. Backend selesai lewat PR #17 (`be/lampiran-pengumuman`, test SQLite dan MariaDB, `api.json` sudah memuat lampiran). FE selesai lewat PR #21 (`fe/lampiran-pengumuman`) dan diuji bersama backend asli (lihat "Keputusan lampiran pengumuman" dan Changelog).
 
 ## Saran dari Claude
 
@@ -621,7 +621,7 @@ Tempat deploy belum ditentukan. Syarat yang sudah pasti:
 
 ## Changelog
 
-### Lampiran pengumuman di FE dan uji bersama backend asli (branch `fe/lampiran-pengumuman`)
+### Lampiran pengumuman di FE dan uji bersama backend asli (branch `fe/lampiran-pengumuman`, PR #21)
 
 Diminta pemilik repo: menyelesaikan langkah 7 kontrak lampiran setelah backend di-merge (PR #17, `2a62d32`), lalu menguji FE bersama backend asli, termasuk uji ulang absensi yang sebelumnya hanya memakai backend tiruan. Branch dibuat dari `claude/modest-clarke-625zwd` (dua commit kontrak); `main` FE belum bergerak sejak itu, jadi tidak perlu rebase. Keputusan ada di "Keputusan lampiran pengumuman".
 
