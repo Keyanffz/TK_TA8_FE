@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
+import { KartuLampiran } from "@/components/features/pengumuman/kartu-lampiran";
 import { DialogKonfirmasi } from "@/components/shared/dialog-konfirmasi";
 import { GalatMuat } from "@/components/shared/galat-muat";
 import { KontenHtml } from "@/components/shared/konten-html";
@@ -54,6 +55,7 @@ export function DetailPengumuman({ id }: { id: number }) {
         ) : null}
       </header>
       <KontenHtml html={pengumuman.isi} />
+      {pengumuman.lampiran ? <KartuLampiran lampiran={pengumuman.lampiran} /> : null}
       {bolehKelola ? (
         <footer className="flex flex-wrap gap-2 border-t border-border pt-4">
           <Link href={`/mudarris/pengumuman/${pengumuman.id}/ubah`} className={buttonVariants({ variant: "outline" })}>
@@ -68,7 +70,11 @@ export function DetailPengumuman({ id }: { id: number }) {
               </Button>
             }
             judul={`Hapus pengumuman "${pengumuman.judul}"?`}
-            deskripsi="Pengumuman hilang dari feed semua penerima dan dari website kalau ditampilkan di sana."
+            deskripsi={
+              pengumuman.lampiran
+                ? "Pengumuman hilang dari feed semua penerima dan dari website kalau ditampilkan di sana. File lampirannya ikut dihapus."
+                : "Pengumuman hilang dari feed semua penerima dan dari website kalau ditampilkan di sana."
+            }
             labelAksi="Hapus Pengumuman"
             berbahaya
             onKonfirmasi={async () => {

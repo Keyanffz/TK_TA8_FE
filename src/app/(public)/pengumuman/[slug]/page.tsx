@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { KartuLampiran } from "@/components/features/pengumuman/kartu-lampiran";
 import { KontenHtml } from "@/components/shared/konten-html";
 import { ambilDetailPengumuman } from "@/lib/api/publik";
 import { formatTanggal } from "@/lib/format";
@@ -31,6 +32,7 @@ export default async function DetailPengumumanPage({ params }: PageProps<"/pengu
         </p>
       ) : null}
       <KontenHtml html={pengumuman.isi} className="mt-8" />
+      {pengumuman.lampiran ? <KartuLampiran lampiran={pengumuman.lampiran} className="mt-8 max-w-3xl" /> : null}
     </article>
   );
 }
