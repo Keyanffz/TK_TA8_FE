@@ -622,6 +622,14 @@ Tempat deploy belum ditentukan. Syarat yang sudah pasti:
 
 ## Changelog
 
+### Judul tab beranda tidak dobel (branch `fe/judul-beranda`)
+
+Judul beranda tertulis "TK Tarbiyatul Athfal 8 | TK Tarbiyatul Athfal 8". Template judul root layout (`%s | nama sekolah`) ikut membungkus `title.default` layout publik. Layout publik kini memakai `title.absolute`, jadi beranda berjudul nama sekolah saja; halaman publik lain tetap "Judul | nama sekolah".
+
+Diubah:
+
+- `src/app/(public)/layout.tsx`: `title.default` menjadi `title.absolute`.
+
 ### Ejaan nama sekolah "Tarbiyatul" (branch `fe/ejaan-nama-sekolah`)
 
 Diminta pemilik repo: nama sekolah yang benar "TK Tarbiyatul Athfal 8", tanpa h setelah t. Semua teks yang tampil ke pengguna diganti. Nama repo lama (`BE_TK_Tarbiyathul_athfal_8`, `FE_TK_Tarbiyathul_athfal_8`) di PROMPT tidak diubah karena berupa pengenal. Bagian A tetap identik dengan PROMPT BE.

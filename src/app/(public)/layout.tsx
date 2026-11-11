@@ -7,7 +7,8 @@ import { ambilProfilSekolah } from "@/lib/api/publik";
 export async function generateMetadata(): Promise<Metadata> {
   const profil = await ambilProfilSekolah();
   return {
-    title: { default: profil.namaSekolah, template: `%s | ${profil.namaSekolah}` },
+    // `absolute`, bukan `default`: template root layout ikut membungkus `default` sehingga judul beranda dobel.
+    title: { absolute: profil.namaSekolah, template: `%s | ${profil.namaSekolah}` },
     description: profil.hero.subjudul ?? undefined,
   };
 }
