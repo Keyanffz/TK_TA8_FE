@@ -1,6 +1,6 @@
-# TK Tarbiyathul Athfal 8 — Frontend
+# TK Tarbiyatul Athfal 8 — Frontend
 
-Website publik dan dashboard sistem informasi TK Tarbiyathul Athfal 8 (TK Muslimat NU Kota Semarang). Next.js 16 (App Router), React 19, TypeScript strict, Tailwind CSS 4, shadcn/ui. Semua data berasal dari backend Laravel di repo terpisah (`TK_TA8_BE`), lewat REST API `/api/v1`.
+Website publik dan dashboard sistem informasi TK Tarbiyatul Athfal 8 (TK Muslimat NU Kota Semarang). Next.js 16 (App Router), React 19, TypeScript strict, Tailwind CSS 4, shadcn/ui. Semua data berasal dari backend Laravel di repo terpisah (`TK_TA8_BE`), lewat REST API `/api/v1`.
 
 Rincian arsitektur, keputusan teknis, peta route, dan changelog per fase ada di [`dokumentasi.md`](dokumentasi.md). Acuan desain dan kontrak API: [`PROMPT_FE_TK.md`](PROMPT_FE_TK.md).
 

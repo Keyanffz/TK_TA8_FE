@@ -1,6 +1,6 @@
-# Dokumentasi Frontend TK Tarbiyathul Athfal 8
+# Dokumentasi Frontend TK Tarbiyatul Athfal 8
 
-Website publik dan dashboard sistem informasi TK Tarbiyathul Athfal 8 (TK Muslimat NU Kota Semarang). Acuan desain dan kontrak API: `PROMPT_FE_TK.md`. Backend Laravel ada di repo terpisah (`../TK_TA8_BE`), dengan dokumentasi di `../TK_TA8_BE/dokumentasi.md`.
+Website publik dan dashboard sistem informasi TK Tarbiyatul Athfal 8 (TK Muslimat NU Kota Semarang). Acuan desain dan kontrak API: `PROMPT_FE_TK.md`. Backend Laravel ada di repo terpisah (`../TK_TA8_BE`), dengan dokumentasi di `../TK_TA8_BE/dokumentasi.md`.
 
 ## Status
 
@@ -621,6 +621,16 @@ Tempat deploy belum ditentukan. Syarat yang sudah pasti:
 6. **Masuk dengan Google**: `NEXT_PUBLIC_GOOGLE_CLIENT_ID` diisi sebelum `npm run build`, dan origin FE produksi (misalnya `https://tkta8.sch.id`) didaftarkan di Authorized JavaScript origins Client ID itu di Google Cloud Console. Backend memakai Client ID yang sama di `GOOGLE_CLIENT_ID`.
 
 ## Changelog
+
+### Ejaan nama sekolah "Tarbiyatul" (branch `fe/ejaan-nama-sekolah`)
+
+Diminta pemilik repo: nama sekolah yang benar "TK Tarbiyatul Athfal 8", tanpa h setelah t. Semua teks yang tampil ke pengguna diganti. Nama repo lama (`BE_TK_Tarbiyathul_athfal_8`, `FE_TK_Tarbiyathul_athfal_8`) di PROMPT tidak diubah karena berupa pengenal. Bagian A tetap identik dengan PROMPT BE.
+
+Diubah:
+
+- `src/app/layout.tsx`: judul bawaan dan template judul halaman.
+- `docs/review/font/index.html`: pratinjau font.
+- README, PROMPT, dokumentasi.
 
 ### Pesan unggahan yang ditolak PHP dari backend (branch `ccr-321f1c6b-kacabx`, PR #22)
 
