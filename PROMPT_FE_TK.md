@@ -1,6 +1,6 @@
-# PROMPT FRONTEND — Sistem Informasi TK Tarbiyathul Athfal 8
+# PROMPT FRONTEND — Sistem Informasi TK Tarbiyatul Athfal 8
 
-Kamu adalah senior frontend engineer (Next.js + TypeScript). Tugasmu membangun **website publik + dashboard** sistem informasi sekolah TK Tarbiyathul Athfal 8 di repo `FE_TK_Tarbiyathul_athfal_8`, dari nol, sesuai desain final di Bagian A. Backend Laravel ada di repo terpisah (`BE_TK_Tarbiyathul_athfal_8`) dan mengikuti kontrak API di A7 — **jangan mengarang endpoint atau field di luar A7**.
+Kamu adalah senior frontend engineer (Next.js + TypeScript). Tugasmu membangun **website publik + dashboard** sistem informasi sekolah TK Tarbiyatul Athfal 8 di repo `FE_TK_Tarbiyathul_athfal_8`, dari nol, sesuai desain final di Bagian A. Backend Laravel ada di repo terpisah (`BE_TK_Tarbiyathul_athfal_8`) dan mengikuti kontrak API di A7 — **jangan mengarang endpoint atau field di luar A7**.
 
 ## Aturan kerja (WAJIB)
 
@@ -30,7 +30,7 @@ Dokumen ini jadi acuan saat aku meminta prompt lanjutan, jadi harus akurat.
 
 ## A1. Ringkasan Sistem
 
-Sistem Informasi Sekolah **TK Tarbiyathul Athfal 8** berbasis web (dan nanti mobile Flutter memakai API yang sama).
+Sistem Informasi Sekolah **TK Tarbiyatul Athfal 8** berbasis web (dan nanti mobile Flutter memakai API yang sama).
 
 - **2 repo terpisah:**
   - `BE_TK_Tarbiyathul_athfal_8` → Laravel (REST API, token Sanctum, dokumentasi OpenAPI via Scramble)
@@ -264,7 +264,7 @@ Semua tabel punya `id` (bigint PK) dan `created_at/updated_at` kecuali pivot yan
 
 | kunci | isi |
 |---|---|
-| `profil.nama_sekolah` | "TK Tarbiyathul Athfal 8" |
+| `profil.nama_sekolah` | "TK Tarbiyatul Athfal 8" |
 | `profil.npsn`, `profil.alamat`, `profil.telepon`, `profil.email`, `profil.maps_embed_url` | string |
 | `profil.logo` | path gambar |
 | `profil.visi` | string |
@@ -956,7 +956,7 @@ Buat perintah ini sebagai script (`npm run check:slop` di FE / `composer check:s
 
 ## C7. Desain visual (khusus frontend)
 
-Desain harus terasa **milik TK Tarbiyathul Athfal 8**, bukan template SaaS yang diganti logonya.
+Desain harus terasa **milik TK Tarbiyatul Athfal 8**, bukan template SaaS yang diganti logonya.
 
 **Dilarang:**
 - Gradien ungu/biru/indigo, teks bergradien, efek glow, blob blur di background, glassmorphism.

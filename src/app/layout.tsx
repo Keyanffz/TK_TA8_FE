@@ -8,8 +8,8 @@ import "./globals.css";
 // Nilai cadangan. Halaman publik mengganti judul dengan profil.nama_sekolah dari CMS.
 export const metadata: Metadata = {
   title: {
-    default: "TK Tarbiyathul Athfal 8",
-    template: "%s | TK Tarbiyathul Athfal 8",
+    default: "TK Tarbiyatul Athfal 8",
+    template: "%s | TK Tarbiyatul Athfal 8",
   },
   description: "Sistem informasi sekolah untuk wali murid, guru, dan Kepala Sekolah.",
 };
