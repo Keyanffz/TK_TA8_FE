@@ -47,6 +47,11 @@ export function proxy(request: NextRequest) {
   if (!areaStaff && isRoleStaff(role)) {
     return NextResponse.redirect(new URL(`${BERANDA_STAFF}${pathname.slice(BERANDA_WALI.length)}${search}`, request.url));
   }
+  // Wali murid tidak lagi membuka rapor di aplikasi (A2.8); notifikasi rapor terbit
+  // yang tersimpan sebelum itu masih menaut ke /dashboard/rapor/{id}.
+  if (diBawah(pathname, `${BERANDA_WALI}/rapor`)) {
+    return NextResponse.redirect(new URL(BERANDA_WALI, request.url));
+  }
   if (areaStaff && role === "wali_murid") {
     return NextResponse.redirect(new URL(urlAksesDitolak(BERANDA_WALI), request.url));
   }

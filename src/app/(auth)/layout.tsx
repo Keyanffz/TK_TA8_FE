@@ -44,7 +44,7 @@ export default async function AuthLayout({ children }: LayoutProps<"/">) {
             <LogoSekolah logoUrl={profil.logoUrl} namaSekolah={profil.namaSekolah} ukuran={240} prioritas className="size-full p-[8%]" />
           </OrbitLogo>
           <p className="mt-10 max-w-sm font-heading text-xl leading-snug font-bold">
-            Tagihan, kegiatan kelas, pengumuman, dan rapor anak dalam satu tempat.
+            Tagihan, kegiatan kelas, dan pengumuman sekolah dalam satu tempat.
           </p>
         </div>
         <p className="text-sm text-primary-foreground/90">{NAUNGAN_SEKOLAH}</p>

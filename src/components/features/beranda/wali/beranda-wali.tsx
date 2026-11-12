@@ -9,7 +9,6 @@ import { PanelBeranda } from "@/components/features/beranda/panel-beranda";
 import { SapaanBeranda } from "@/components/features/beranda/sapaan-beranda";
 import { InfoSekolah } from "@/components/features/beranda/wali/info-sekolah";
 import { KartuAnak } from "@/components/features/beranda/wali/kartu-anak";
-import { KartuRapor } from "@/components/features/beranda/wali/kartu-rapor";
 import { KartuTagihan } from "@/components/features/beranda/wali/kartu-tagihan";
 import { useAnakAktif } from "@/components/layout/dashboard/anak-aktif";
 import { GalatMuat } from "@/components/shared/galat-muat";
@@ -58,14 +57,11 @@ function BerandaAnak({ namaWali, anak }: { namaWali: string; anak: AnakRingkas }
               />
             ) : null}
             <div className="grid gap-6 lg:grid-cols-[1.3fr_1fr] lg:items-start">
-              <div className="flex flex-col gap-6">
-                <KartuTagihan
-                  namaAnak={data.anak?.nama_panggilan ?? anak.nama_panggilan}
-                  tagihan={data.tagihan_aktif}
-                  totalBelumBayar={data.total_belum_bayar}
-                />
-                {data.rapor_terbaru ? <KartuRapor rapor={data.rapor_terbaru} /> : null}
-              </div>
+              <KartuTagihan
+                namaAnak={data.anak?.nama_panggilan ?? anak.nama_panggilan}
+                tagihan={data.tagihan_aktif}
+                totalBelumBayar={data.total_belum_bayar}
+              />
               {/* Di desktop agenda mengisi kolom samping tagihan; di HP pindah ke paling bawah (B5). */}
               <PanelBeranda judul="Agenda Sekolah" tautan={{ href: "/dashboard/agenda", label: "Kalender" }} className="hidden lg:block">
                 <AgendaRingkas agenda={data.agenda_mendatang} />

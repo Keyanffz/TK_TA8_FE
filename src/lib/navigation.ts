@@ -71,7 +71,7 @@ const MENU: readonly { judul: string; item: readonly ItemMenuDasar[] }[] = [
       { path: "/murid", label: "Murid", ikon: UsersRound, roles: [SA, G] },
       { path: "/alumni", label: "Alumni", ikon: BookUser, roles: [SA], izin: ["data_murid", "lihat"] },
       { path: "/kegiatan", label: "Kegiatan Kelas", labelPendek: "Kegiatan", ikon: Images, roles: [SA, G, W] },
-      { path: "/rapor", label: "Rapor", ikon: BookOpenText, roles: [SA, G, W] },
+      { path: "/rapor", label: "Rapor", ikon: BookOpenText, roles: [SA, G] },
       { path: "/pengumuman", label: "Pengumuman", ikon: Megaphone, roles: [SA, G, W] },
       { path: "/agenda", label: "Agenda", ikon: CalendarDays, roles: [SA, G, W] },
     ],

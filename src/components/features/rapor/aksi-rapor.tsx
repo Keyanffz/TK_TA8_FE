@@ -6,7 +6,6 @@ import { TombolPdfRapor } from "@/components/features/rapor/tombol-pdf-rapor";
 import { DialogKonfirmasi } from "@/components/shared/dialog-konfirmasi";
 import { Button } from "@/components/ui/button";
 import { useAjukanRapor, useMintaRevisiRapor, useTarikRapor, useTerbitkanRapor } from "@/lib/api/rapor";
-import { namaFileRapor } from "@/lib/rapor";
 import type { RaporDetail } from "@/types/domain";
 
 type AksiRaporProps = {
@@ -48,7 +47,7 @@ export function AksiRapor({ rapor, pembuat, kepalaSekolah, adaPerubahan }: AksiR
           <DialogKonfirmasi
             pemicu={<Button disabled={adaPerubahan}>Terbitkan Rapor</Button>}
             judul={`Terbitkan rapor ${nama}?`}
-            deskripsi="Wali murid menerima notifikasi dan bisa melihat serta mengunduh rapor ini."
+            deskripsi="Rapor terbit adalah rapor final yang dicetak sekolah dan dibagikan langsung ke wali murid."
             labelAksi="Terbitkan Rapor"
             onKonfirmasi={async () => {
               toast.success((await terbitkan.mutateAsync()).message);
@@ -70,7 +69,7 @@ export function AksiRapor({ rapor, pembuat, kepalaSekolah, adaPerubahan }: AksiR
         <DialogKonfirmasi
           pemicu={<Button variant="outline">Tarik Rapor</Button>}
           judul={`Tarik rapor ${nama}?`}
-          deskripsi="Rapor kembali ke guru untuk direvisi. Wali murid tidak bisa melihat atau mengunduhnya sampai diterbitkan ulang."
+          deskripsi="Rapor kembali ke guru untuk direvisi dan perlu diterbitkan ulang sebelum dicetak."
           labelAksi="Tarik Rapor"
           labelAlasan="Catatan untuk guru"
           berbahaya
@@ -79,7 +78,7 @@ export function AksiRapor({ rapor, pembuat, kepalaSekolah, adaPerubahan }: AksiR
           }}
         />
       ) : null}
-      <TombolPdfRapor id={rapor.id} namaFile={namaFileRapor(rapor)} mode="pratinjau" />
+      <TombolPdfRapor id={rapor.id} />
     </div>
   );
 }
