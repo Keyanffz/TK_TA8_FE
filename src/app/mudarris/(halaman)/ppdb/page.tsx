@@ -12,7 +12,7 @@ export default async function PpdbMudarrisPage() {
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
-      <KepalaHalaman judul="PPDB" deskripsi="Periksa dokumen pendaftar, lalu terima dengan memilih kelas atau tolak dengan alasan." />
+      <KepalaHalaman judul="PPDB" deskripsi="Periksa berkas yang dibawa pendaftar ke sekolah, lalu terima dengan memilih kelas atau tolak dengan alasan." />
       <div className="flex flex-col gap-6">
         <RingkasanPpdb />
         <DaftarPendaftar />

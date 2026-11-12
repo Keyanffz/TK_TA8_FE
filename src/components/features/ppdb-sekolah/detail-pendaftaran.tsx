@@ -4,8 +4,8 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { toast } from "sonner";
 
+import { BerkasDibawa } from "@/components/features/ppdb/berkas-dibawa";
 import { DialogTerima } from "@/components/features/ppdb-sekolah/dialog-terima";
-import { DokumenPendaftaran } from "@/components/features/ppdb-sekolah/dokumen-pendaftaran";
 import { DialogKonfirmasi } from "@/components/shared/dialog-konfirmasi";
 import { GalatMuat } from "@/components/shared/galat-muat";
 import { KotakPesan } from "@/components/shared/kotak-pesan";
@@ -49,10 +49,10 @@ function AksiKepalaSekolah({ pendaftaran }: { pendaftaran: PendaftaranDetail }) 
     <div className="flex flex-col gap-2">
       {pendaftaran.status === "diajukan" ? (
         <DialogKonfirmasi
-          pemicu={<Button>Dokumen Sudah Sesuai</Button>}
-          judul="Tandai dokumen sudah diverifikasi?"
-          deskripsi="Pastikan akta kelahiran, Kartu Keluarga, dan pas foto terbaca dan datanya sama dengan isian formulir. Keputusan terima atau tolak diambil setelah ini."
-          labelAksi="Verifikasi Dokumen"
+          pemicu={<Button>Berkas Sudah Sesuai</Button>}
+          judul="Tandai berkas sudah diverifikasi?"
+          deskripsi="Pastikan akta kelahiran, Kartu Keluarga, dan pas foto sudah dibawa pendaftar ke sekolah dan datanya sama dengan isian formulir. Keputusan terima atau tolak diambil setelah ini."
+          labelAksi="Verifikasi Berkas"
           onKonfirmasi={async () => {
             toast.success((await verifikasi.mutateAsync()).message);
           }}
@@ -117,9 +117,7 @@ export function DetailPendaftaran({ id, kepalaSekolah }: { id: number; kepalaSek
             ]}
           />
         </Bagian>
-        <Bagian judul="Dokumen">
-          <DokumenPendaftaran dokumen={pendaftaran.dokumen} />
-        </Bagian>
+        {pendaftaran.status === "diajukan" ? <BerkasDibawa className="rounded-xl p-5 shadow-sm" /> : null}
       </div>
 
       <aside className="flex flex-col gap-4 lg:sticky lg:top-24">

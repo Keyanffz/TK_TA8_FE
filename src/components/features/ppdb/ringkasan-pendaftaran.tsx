@@ -27,8 +27,6 @@ function Bagian({ judul, baris, onUbah }: { judul: string; baris: readonly Baris
 
 /** Langkah terakhir: isian dibaca ulang sebelum dikirim, dengan tombol kembali ke langkahnya. */
 export function RingkasanPendaftaran({ nilai, keLangkah }: { nilai: NilaiPendaftaran; keLangkah: (indeks: number) => void }) {
-  const dokumen = [...nilai.akta_kelahiran, ...nilai.kartu_keluarga, ...nilai.pas_foto, ...nilai.lainnya];
-
   return (
     <div className="flex flex-col gap-4">
       <Bagian
@@ -56,11 +54,6 @@ export function RingkasanPendaftaran({ nilai, keLangkah }: { nilai: NilaiPendaft
           { label: "Pekerjaan ibu", nilai: nilai.pekerjaan_ibu },
           { label: "Alamat", nilai: nilai.alamat },
         ]}
-      />
-      <Bagian
-        judul="Dokumen"
-        onUbah={() => keLangkah(2)}
-        baris={dokumen.map((file, indeks) => ({ label: `File ${indeks + 1}`, nilai: file.name }))}
       />
     </div>
   );

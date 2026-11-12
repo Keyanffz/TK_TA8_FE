@@ -1,7 +1,6 @@
 import type {
   Hubungan,
   JenisAgenda,
-  JenisDokumen,
   JenisKelamin,
   JenisLampiran,
   LevelIzin,
@@ -150,16 +149,9 @@ export const LABEL_STATUS_RAPOR: Record<StatusRapor, string> = {
 
 export const LABEL_STATUS_PENDAFTARAN: Record<StatusPendaftaran, string> = {
   diajukan: "Diajukan",
-  diverifikasi: "Dokumen diverifikasi",
+  diverifikasi: "Berkas diverifikasi",
   diterima: "Diterima",
   ditolak: "Ditolak",
-};
-
-export const LABEL_JENIS_DOKUMEN: Record<JenisDokumen, string> = {
-  akta_kelahiran: "Akta kelahiran",
-  kartu_keluarga: "Kartu Keluarga",
-  pas_foto: "Pas foto",
-  lainnya: "Dokumen lain",
 };
 
 export const LABEL_STATUS_ABSENSI: Record<StatusAbsensi, string> = {

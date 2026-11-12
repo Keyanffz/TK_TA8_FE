@@ -18,9 +18,9 @@ import type { Pendaftaran } from "@/types/domain";
 function keterangan(pendaftaran: Pendaftaran): string {
   switch (pendaftaran.status) {
     case "diajukan":
-      return "Menunggu pemeriksaan dokumen oleh sekolah.";
+      return "Bawa akta kelahiran, Kartu Keluarga, dan pas foto anak ke sekolah untuk diperiksa.";
     case "diverifikasi":
-      return "Dokumen sudah diperiksa. Tunggu keputusan akhir.";
+      return "Berkas sudah diperiksa sekolah. Tunggu keputusan akhir.";
     case "diterima":
       return pendaftaran.murid
         ? `Diterima dengan NIS ${pendaftaran.murid.nis} dan sudah tertaut ke akun Anda. Silakan datang ke sekolah untuk daftar ulang.`

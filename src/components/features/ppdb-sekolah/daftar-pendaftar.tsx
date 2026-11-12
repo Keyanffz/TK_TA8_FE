@@ -17,7 +17,7 @@ import { formatTanggal } from "@/lib/format";
 import type { Pendaftaran } from "@/types/domain";
 
 const TAB = ["diajukan", "diverifikasi", "diterima", "ditolak", "semua"] as const;
-const LABEL_TAB = { diajukan: "Baru", diverifikasi: "Dokumen OK", diterima: "Diterima", ditolak: "Ditolak", semua: "Semua" } as const;
+const LABEL_TAB = { diajukan: "Baru", diverifikasi: "Berkas OK", diterima: "Diterima", ditolak: "Ditolak", semua: "Semua" } as const;
 
 function orangTua(pendaftaran: Pendaftaran): string {
   return [pendaftaran.nama_ayah, pendaftaran.nama_ibu].filter(Boolean).join(" & ") || "-";
