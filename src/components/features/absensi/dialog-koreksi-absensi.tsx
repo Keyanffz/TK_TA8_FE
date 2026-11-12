@@ -2,12 +2,13 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useState } from "react";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 
 import { KotakPesan } from "@/components/shared/kotak-pesan";
 import { KolomArea, KolomPilih } from "@/components/shared/kolom-teks";
+import { ZonaUnggah } from "@/components/shared/zona-unggah";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useCatatAbsen, useKoreksiAbsensi, type IsianAbsenBaru } from "@/lib/api/absensi";
@@ -19,10 +20,13 @@ import type { Absensi, JenisAbsensi } from "@/types/domain";
 const MAKS_CATATAN = 500;
 
 const catatan = z.string().trim().min(1, "Catatan wajib diisi.").max(MAKS_CATATAN, `Catatan maksimal ${MAKS_CATATAN} karakter.`);
-const skema = z.object({ status: z.enum(["hadir", "terlambat", "izin", "sakit", "tidak_hadir"]), catatan });
+const lampiran = z.array(z.instanceof(File)).max(1);
+const skema = z.object({ status: z.enum(["hadir", "terlambat", "izin", "sakit", "tidak_hadir"]), catatan, lampiran });
 // Absen masuk baru tidak pernah berstatus tidak hadir (yang tidak absen ditandai scheduler); pilihan itu tidak
 // ditampilkan, dan skema ini mempersempit tipenya saat dikirim.
-const skemaMasukBaru = z.object({ status: z.enum(["hadir", "terlambat", "izin", "sakit"]), catatan });
+const skemaMasukBaru = z.object({ status: z.enum(["hadir", "terlambat", "izin", "sakit"]) });
+
+const ATURAN_LAMPIRAN = "Opsional. Foto atau PDF, misalnya surat dokter atau surat tugas, maksimal 5 MB.";
 
 type NilaiForm = z.infer<typeof skema>;
 
@@ -52,8 +56,8 @@ function keterangan(props: DialogKoreksiAbsensiProps): string {
 }
 
 function isianBaru(sasaran: { jenis: JenisAbsensi; userId: number; tanggal: string }, nilai: NilaiForm): IsianAbsenBaru {
-  const dasar = { user_id: sasaran.userId, tanggal: sasaran.tanggal };
-  return sasaran.jenis === "masuk" ? { ...dasar, jenis: "masuk", ...skemaMasukBaru.parse(nilai) } : { ...dasar, jenis: "pulang", catatan: nilai.catatan };
+  const dasar = { user_id: sasaran.userId, tanggal: sasaran.tanggal, catatan: nilai.catatan, lampiran: nilai.lampiran[0] };
+  return sasaran.jenis === "masuk" ? { ...dasar, jenis: "masuk", ...skemaMasukBaru.parse(nilai) } : { ...dasar, jenis: "pulang" };
 }
 
 /**
@@ -68,25 +72,27 @@ export function DialogKoreksiAbsensi(props: DialogKoreksiAbsensiProps) {
   const catat = useCatatAbsen();
   const menyimpan = koreksi.isPending || catat.isPending;
   const opsiStatus = OPSI_STATUS_ABSENSI.filter((opsi) => (absensi === null ? opsi.nilai !== "tidak_hadir" : opsi.nilai !== absensi.status));
-  const form = useForm<NilaiForm>({ resolver: zodResolver(skema), defaultValues: { status: opsiStatus[0].nilai, catatan: "" } });
+  const form = useForm<NilaiForm>({ resolver: zodResolver(skema), defaultValues: { status: opsiStatus[0].nilai, catatan: "", lampiran: [] } });
   const [galat, setGalat] = useState<string | null>(null);
 
   const ubahTerbuka = (buka: boolean) => {
     setTerbuka(buka);
     setGalat(null);
     // Status sekarang bisa sudah berubah oleh koreksi sebelumnya, jadi pilihan awal dihitung ulang dari props terbaru.
-    form.reset({ status: opsiStatus[0].nilai, catatan: "" });
+    form.reset({ status: opsiStatus[0].nilai, catatan: "", lampiran: [] });
   };
 
   const kirim = form.handleSubmit(async (nilai) => {
     setGalat(null);
     try {
       const hasil =
-        props.absensi !== null ? await koreksi.mutateAsync({ id: props.absensi.id, ...nilai }) : await catat.mutateAsync(isianBaru(props, nilai));
+        props.absensi !== null
+          ? await koreksi.mutateAsync({ id: props.absensi.id, status: nilai.status, catatan: nilai.catatan, lampiran: nilai.lampiran[0] })
+          : await catat.mutateAsync(isianBaru(props, nilai));
       toast.success(hasil.message);
       ubahTerbuka(false);
     } catch (error) {
-      if (!terapkanErrorValidasi(error, form.setError, ["status", "catatan"])) setGalat(pesanError(error));
+      if (!terapkanErrorValidasi(error, form.setError, ["status", "catatan", "lampiran"])) setGalat(pesanError(error));
     }
   });
 
@@ -119,6 +125,20 @@ export function DialogKoreksiAbsensi(props: DialogKoreksiAbsensiProps) {
             deskripsi={TEKS[mode].deskripsiCatatan}
             error={form.formState.errors.catatan?.message}
             {...form.register("catatan")}
+          />
+          <Controller
+            control={form.control}
+            name="lampiran"
+            render={({ field, fieldState }) => (
+              <ZonaUnggah
+                label="Lampiran"
+                deskripsi={absensi?.lampiran ? `${ATURAN_LAMPIRAN} Lampiran yang sudah ada diganti kalau Anda memilih file baru.` : ATURAN_LAMPIRAN}
+                terimaPdf
+                nilai={field.value}
+                onUbah={field.onChange}
+                error={fieldState.error?.message}
+              />
+            )}
           />
           {galat ? <KotakPesan nada="bahaya">{galat}</KotakPesan> : null}
           <DialogFooter>
