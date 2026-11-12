@@ -35,6 +35,7 @@ Website publik dan dashboard sistem informasi TK Tarbiyatul Athfal 8 (TK Muslima
 | Revisi sekolah R1: penolakan saat menyimpan murid terlihat di formulir (branch `fe/perbaikan-tambah-murid`; backend `be/perbaikan-tambah-murid`) | Selesai, menunggu review; lint, typecheck, build, `check:slop`; belum diuji di browser |
 | Revisi sekolah R2: PPDB tanpa unggah berkas, halaman rapor wali murid dihapus, contoh "uang pendidikan" (branch `fe/revisi-kecil`; backend `be/revisi-kecil`) | Selesai, menunggu review; lint, typecheck, build, `check:slop`; belum diuji di browser |
 | Revisi sekolah R3: pembayaran tunai dengan cicilan, wali kelas ikut mencatat, pembatalan pembayaran (branch `fe/pembayaran-tunai-cicilan`, di atas `fe/revisi-kecil`; backend `be/pembayaran-tunai-cicilan`) | Selesai, menunggu review; lint, typecheck, build, `check:slop`, uji curl lewat proxy `next start`; belum diuji di browser |
+| Revisi sekolah R4: ekspor rekap absensi Excel dan PDF, lampiran koreksi, akses absen susulan (branch `fe/absensi-ekspor-susulan`, di atas `fe/pembayaran-tunai-cicilan`; backend `be/absensi-ekspor-susulan`) | Selesai, menunggu review; lint, typecheck, build, `check:slop`, uji curl lewat proxy `next start`; belum diuji di browser |
 
 Mode mock tidak dipakai: `api.json` final dari backend sudah tersedia sejak Fase 1, jadi semua request memakai backend asli dan tipe hasil generate. Tidak ada endpoint mock.
 
@@ -372,7 +373,7 @@ Pengecekan Catat Absen Pulang: `npm run lint`, `npm run typecheck`, `npm run bui
 26. `langkahAbsen()` menganggap peserta sudah masuk hanya kalau statusnya hadir atau terlambat; hari izin atau sakit menampilkan "Hari ini Anda tercatat izin, jadi tidak perlu absen pulang." dan baris pulang ditulis "Tidak perlu" (kartu status dan kartu harian).
 27. Keterangan dari peserta tampil sebagai "Keterangan izin/sakit: ..." atau "Alasan pulang lebih awal: ...", terpisah dari catatan koreksi Kepala Sekolah. Absen pulang lebih awal diberi badge "Lebih awal" di kartu status dan "Pulang lebih awal" di kartu harian; di Riwayat Terbaru jam pulangnya diberi "(lebih awal)".
 28. Warna status: izin `proses`, sakit `netral`. Ringkasan tab Harian sekarang tujuh kotak (Hadir, Terlambat, Izin, Sakit, Tidak hadir, Belum absen, Belum absen pulang). Ringkasan riwayat pribadi ikut menampilkan Izin dan Sakit karena memakai `OPSI_STATUS_ABSENSI`.
-29. Rentang rekap dipilih lewat select di sebelah pemilih bulan (`?rentang=1|2|3`, bawaan 1) dan berarti N bulan yang berakhir di bulan terpilih. Detail per hari dan nama berkas CSV mengikuti rentang (`rekap-absensi-YYYY-MM-sampai-YYYY-MM.csv`, sama dengan backend).
+29. Rentang rekap dipilih lewat select di sebelah pemilih bulan (`?rentang=1|2|3`, bawaan 1) dan berarti N bulan yang berakhir di bulan terpilih. Detail per hari dan nama berkas ekspor mengikuti rentang (`rekap-absensi-YYYY-MM-sampai-YYYY-MM.xlsx` atau `.pdf` sejak revisi R4, sama dengan backend).
 30. Notifikasi `absensi_tercatat` (ikon `MapPinCheck`, sukses) dan `absensi_dikoreksi` (ikon `CalendarCheck`, proses) ditambahkan ke `TAMPILAN_NOTIFIKASI`; tidak ada perubahan lain karena daftar notifikasi sudah membuka `url` dari backend.
 
 Pengecekan nomor 24–30: `npm run lint`, `npm run typecheck`, `npm run build`, dan `npm run check:slop` tanpa temuan. Uji di browser (backend lokal branch `be/absensi-lanjutan`, migration sudah dijalankan). Karena hari uji Sabtu, `absensi.hari_kerja` sementara ditambah Sabtu dan jam masuk tutup sementara 23:00, lalu dikembalikan ke `[1,2,3,4,5]` dan 09:30/10:15/12:00 setelah uji; baris uji hari itu, fotonya, dan notifikasinya dihapus.
@@ -446,6 +447,17 @@ Revisi 5 dari sekolah: pembayaran hanya tunai, boleh dicicil, wali kelas ikut me
 - **Pengaturan**: tab Rekening dihapus; tab bawaan Kepala Sekolah menjadi Tagihan.
 - **Riwayat transfer lama** tetap tampil apa adanya (bukti, bank, nama pengirim, alasan penolakan). `BuktiTransfer` dipertahankan, juga dipakai foto absensi. Label dan ikon untuk `menunggu_verifikasi`, `menunggu`, `ditolak`, `transfer`, `pembayaran_masuk`, dan `pembayaran_ditolak` tetap ada karena tipenya masih dikirim backend.
 - Templat pengumuman tunggakan menyebut pembayaran tunai di sekolah.
+
+## Keputusan revisi sekolah R4 (menunggu review)
+
+Revisi 7 dan 8 dari sekolah.
+
+- **Ekspor rekap**: tombol "Unduh CSV" diganti "Unduh Excel" dan "Unduh PDF". Nama berkas sama dengan backend (`rekap-absensi-YYYY-MM.xlsx`, `rekap-absensi-YYYY-MM-sampai-YYYY-MM.pdf`). Saat satu sedang disiapkan, keduanya nonaktif.
+- **Lampiran koreksi**: dialog Koreksi Status, Catat Absen Masuk, dan Catat Absen Pulang memakai `ZonaUnggah` (satu foto atau PDF, gambar dikompres di browser). Koreksi dan pencatatan selalu dikirim multipart karena `api.json` hanya mencatat body multipart. Error backend di `lampiran` dipasang ke kolomnya. Catatan koreksi di kartu absensi diberi tautan "Buka lampiran (PDF/Gambar)" ke signed URL, buka di tab baru.
+- **Beri akses susulan** ada di tab Harian, bukan Bulanan: tombol hanya tampil kalau backend menyatakan `bisa_beri_susulan` untuk tanggal itu, untuk Kepala Sekolah, dan bukan untuk dirinya sendiri. Satu tombol per jenis: masuk (belum absen masuk, atau tidak hadir otomatis: `tidak_hadir` tanpa waktu, foto, dan koreksi, sama dengan backend) dan pulang (belum absen pulang dan bukan izin/sakit), masing-masing kalau belum ada akses yang belum dipakai. Dialognya `DialogKonfirmasi` dengan alasan wajib. Akses yang sudah ada tampil di kartu peserta beserta keadaannya; yang belum dipakai bisa dicabut.
+- **Absen susulan peserta**: kartu akses di `/mudarris/absensi` di bawah kartu status, dengan tombol "Absen Masuk Susulan"/"Absen Pulang Susulan". Alurnya hanya kamera depan (tanpa galeri dan tanpa lokasi), memakai `useKamera`, `KameraSwafoto`, dan `TampilanGalatKamera` yang sudah ada. Alur ditutup kalau aksesnya hilang dari status hari ini (dipakai atau kedaluwarsa).
+- **Penanda "Susulan"** di kartu status hari ini dan kartu absensi harian (riwayat dan rekap).
+- Notifikasi `absensi_susulan_diberikan`: ikon `CalendarPlus`, nada menunggu.
 
 ## Keputusan lampiran pengumuman
 
@@ -623,9 +635,9 @@ Andika hanya punya bobot 400 dan 700, jadi `font-semibold` tampil sebagai 700.
 | `/mudarris/pengumuman/baru` | SA, G | Form Tiptap + sasaran + lampiran opsional (satu PDF atau gambar, maksimal 5 MB); `?dari=tunggakan&kelas=` terisi murid penunggak (K) |
 | `/dashboard/pengumuman/[id]` (W); `/mudarris/pengumuman/[id]`, `/[id]/ubah` (SA, G) | SA, G, W / penulis, SA | Detail dengan kartu lampiran; ubah (termasuk ganti atau hapus lampiran) dan hapus untuk penulis dan SA |
 | `/dashboard/agenda` (W); `/mudarris/agenda` (SA, G) | SA (kelola), G, W | Kalender bulanan + daftar (`?bulan=`, `?hari=`); SA tambah/ubah/hapus |
-| `/mudarris/absensi` | SA, G | Status hari ini, tombol Absen Masuk / Absen Pulang, Izin atau Sakit, Pulang Lebih Awal, alur lokasi + foto (kamera; galeri untuk izin, sakit, pulang lebih awal), tampilan error kamera, lima hari terakhir |
+| `/mudarris/absensi` | SA, G | Status hari ini, tombol Absen Masuk / Absen Pulang, Izin atau Sakit, Pulang Lebih Awal, kartu akses absen susulan (swafoto tanpa lokasi), alur lokasi + foto (kamera; galeri untuk izin, sakit, pulang lebih awal), tampilan error kamera, lima hari terakhir |
 | `/mudarris/absensi/riwayat` | SA, G | Riwayat pribadi per bulan (`?bulan=`) dengan foto |
-| `/mudarris/absensi/rekap` | SA, G (`laporan_absensi` `lihat`; koreksi untuk `kelola`, kecuali absensi sendiri) | Tab Harian (bawaan, `?tanggal=`): semua peserta di satu tanggal, koreksi status, Catat Absen Masuk, Catat Absen Pulang. Tab Bulanan (`?tab=bulanan`): rekap per peserta untuk 1–3 bulan (`?bulan=`, `?rentang=`), detail per hari (`?peserta=`), koreksi status, Catat Absen Pulang, unduh CSV |
+| `/mudarris/absensi/rekap` | SA, G (`laporan_absensi` `lihat`; koreksi untuk `kelola`, kecuali absensi sendiri) | Tab Harian (bawaan, `?tanggal=`): semua peserta di satu tanggal, koreksi status, Catat Absen Masuk, Catat Absen Pulang. Tab Harian juga memuat akses absen susulan (beri dan cabut untuk Kepala Sekolah). Tab Bulanan (`?tab=bulanan`): rekap per peserta untuk 1–3 bulan (`?bulan=`, `?rentang=`), detail per hari (`?peserta=`), koreksi status, Catat Absen Pulang, Unduh Excel dan Unduh PDF. Koreksi dan pencatatan boleh membawa lampiran foto atau PDF |
 | `/mudarris/pengaturan/absensi` | SA | Peta lokasi sekolah, radius, batas akurasi, jam, tanggal mulai, hari kerja, tanggal libur, masa simpan foto |
 | `/dashboard/*`, `/mudarris/*` lain | | 404 di dalam kerangka area masing-masing (`[...lainnya]`), status HTTP 404 |
 | `/api/auth/staff/google`, `/api/auth/staff/login`, `/api/auth/wali/login`, `/api/auth/logout`, `/api/auth/sesi-habis` | route handler | BFF sesi |
@@ -660,6 +672,23 @@ Tempat deploy belum ditentukan. Syarat yang sudah pasti:
 6. **Masuk dengan Google**: `NEXT_PUBLIC_GOOGLE_CLIENT_ID` diisi sebelum `npm run build`, dan origin FE produksi (misalnya `https://tkta8.sch.id`) didaftarkan di Authorized JavaScript origins Client ID itu di Google Cloud Console. Backend memakai Client ID yang sama di `GOOGLE_CLIENT_ID`.
 
 ## Changelog
+
+### Revisi sekolah R4: ekspor rekap absensi, lampiran koreksi, akses absen susulan (branch `fe/absensi-ekspor-susulan`)
+
+Pasangan backend `be/absensi-ekspor-susulan`. `api.d.ts` di-generate ulang dari `api.json` backend. Keputusan di "Keputusan revisi sekolah R4".
+
+Baru:
+
+- `src/components/features/absensi/absen-susulan.tsx` (`DaftarAksesSusulan`, `AlurAbsenSusulan`), `akses-susulan-harian.tsx` (`AksesSusulanHarian`).
+
+Diubah:
+
+- `src/lib/api/absensi.ts`: ekspor dengan `format`, koreksi dan pencatatan multipart dengan `lampiran`, `useBeriAksesSusulan`, `useCabutAksesSusulan`, `useAbsenSusulan`.
+- `rekap-absensi.tsx` (Unduh Excel dan Unduh PDF, `pemberiSusulanId`), `rekap-harian.tsx` (akses susulan per peserta), `dialog-koreksi-absensi.tsx` (lampiran), `daftar-absensi-harian.tsx` (tautan lampiran, penanda Susulan, aksi bertumpuk), `halaman-absensi.tsx` (akses dan alur susulan, penanda Susulan), halaman `/mudarris/absensi/rekap`.
+- `src/types/domain.ts` (`AksesAbsenSusulan`), `src/lib/constants/notifikasi.ts`.
+- `PROMPT_FE_TK.md` Bagian A (identik dengan backend) dan Bagian B (B4, B9).
+
+Pengecekan: lint, typecheck, build, `check:slop` bersih. Uji curl ke `next start` yang diarahkan ke backend berdatabase uji: `/mudarris/absensi/rekap` (Harian dan Bulanan), `/mudarris/absensi`, `/mudarris/absensi/riwayat` untuk Kepala Sekolah dan guru membalas 200; lewat `/api/proxy`: ekspor .xlsx dan PDF, beri akses pulang susulan (201), absen pulang susulan multipart sebagai guru (201), dan `PATCH` koreksi multipart dengan lampiran foto yang menggantikan lampiran PDF. Tampilan, dialog, dan kamera belum diuji di browser.
 
 ### Revisi sekolah R3: pembayaran tunai dengan cicilan (branch `fe/pembayaran-tunai-cicilan`)
 
