@@ -34,6 +34,7 @@ Website publik dan dashboard sistem informasi TK Tarbiyatul Athfal 8 (TK Muslima
 | Pesan unggahan yang ditolak PHP dari backend PR #19 (branch `ccr-321f1c6b-kacabx`) | Selesai; kode FE tidak berubah, hanya kutipan pesan di dokumen; di-merge (PR #22) |
 | Revisi sekolah R1: penolakan saat menyimpan murid terlihat di formulir (branch `fe/perbaikan-tambah-murid`; backend `be/perbaikan-tambah-murid`) | Selesai, menunggu review; lint, typecheck, build, `check:slop`; belum diuji di browser |
 | Revisi sekolah R2: PPDB tanpa unggah berkas, halaman rapor wali murid dihapus, contoh "uang pendidikan" (branch `fe/revisi-kecil`; backend `be/revisi-kecil`) | Selesai, menunggu review; lint, typecheck, build, `check:slop`; belum diuji di browser |
+| Revisi sekolah R3: pembayaran tunai dengan cicilan, wali kelas ikut mencatat, pembatalan pembayaran (branch `fe/pembayaran-tunai-cicilan`, di atas `fe/revisi-kecil`; backend `be/pembayaran-tunai-cicilan`) | Selesai, menunggu review; lint, typecheck, build, `check:slop`, uji curl lewat proxy `next start`; belum diuji di browser |
 
 Mode mock tidak dipakai: `api.json` final dari backend sudah tersedia sejak Fase 1, jadi semua request memakai backend asli dan tipe hasil generate. Tidak ada endpoint mock.
 
@@ -429,6 +430,23 @@ Revisi 1, 4, dan 6 dari sekolah. Menggantikan keputusan F6-5 dan F6-6 (rapor unt
 - **Notifikasi rapor terbit lama**: notifikasi yang tersimpan sebelum revisi ini masih menaut ke `/dashboard/rapor/{id}`. `src/proxy.ts` mengarahkan alamat itu ke `/dashboard`. Jenis `rapor_terbit` tetap ada di `TAMPILAN_NOTIFIKASI` karena backend masih mengirim baris lamanya.
 - **Contoh tagihan sekali bayar**: "uang pangkal" diganti "uang pendidikan" di teks kosong jenis tagihan.
 
+## Keputusan revisi sekolah R3 (menunggu review)
+
+Revisi 5 dari sekolah: pembayaran hanya tunai, boleh dicicil, wali kelas ikut mencatat. Menggantikan alur unggah bukti transfer dan verifikasi.
+
+- **Wali murid tidak membayar lewat aplikasi**: form unggah bukti dan daftar rekening sekolah dihapus. Detail tagihan wali menampilkan sisa, keterangan bahwa pembayaran tunai di sekolah dan boleh dicicil, serta riwayat pembayaran dengan kwitansi. Kartu tagihan di beranda wali: tombol "Bayar Sekarang" menjadi "Lihat Tagihan", ditambah "Riwayat Pembayaran".
+- **Catat Pembayaran**: dialog berisi jumlah (bawaan sisa tagihan, boleh dikurangi untuk cicilan) dan tanggal bayar. Batas jumlah dicek di browser dan diulang backend. Pesan suksesnya dari backend, yang menyebut sisa atau lunas.
+- **Wali kelas**: sesi (`kelas_diampu`) tidak membedakan wali kelas dan guru pendamping. Untuk guru tanpa izin kelola keuangan, `DetailTagihan` membaca `GET /kelas/{id}` kelas murid itu dan membandingkan `wali_kelas.id` dengan `guru.id` di sesi; hanya wali kelas yang mendapat tombol Catat Pembayaran. Ia tidak mendapat Ubah Tagihan, Batalkan, atau menu Pembayaran. Otorisasi tetap di backend.
+- **Batalkan Pembayaran**: tombol di tiap pembayaran `diterima` pada riwayat di detail tagihan, hanya untuk Kepala Sekolah, dengan alasan wajib. Pembayaran yang dibatalkan tetap tampil dengan alasan dan pembatalnya.
+- **Sisa di tampilan**: tabel tagihan staff mendapat kolom Sisa; kartu tagihan wali, tagihan di detail murid, dan daftar tunggakan menampilkan sisa. Label status `belum_bayar` menjadi "Belum lunas" karena tagihan yang baru dicicil juga berstatus itu.
+- **Halaman Pembayaran staff**: tinggal satu tabel semua pembayaran; tab antrean verifikasi dihapus. Saringan status: diterima, dibatalkan, ditolak (yang terakhir hanya ada di riwayat lama).
+- **Batalkan Tagihan** disembunyikan kalau tagihan sudah punya pembayaran diterima, karena backend menolaknya.
+- **Kwitansi untuk guru**: tombol Unduh Kwitansi tampil untuk semua yang bisa membuka detail tagihan, termasuk guru pengampu kelas, mengikuti backend.
+- **Beranda**: kartu "Pembayaran menunggu verifikasi" (Kepala Sekolah) dan "Verifikasi Pembayaran" (guru berizin keuangan) dihapus.
+- **Pengaturan**: tab Rekening dihapus; tab bawaan Kepala Sekolah menjadi Tagihan.
+- **Riwayat transfer lama** tetap tampil apa adanya (bukti, bank, nama pengirim, alasan penolakan). `BuktiTransfer` dipertahankan, juga dipakai foto absensi. Label dan ikon untuk `menunggu_verifikasi`, `menunggu`, `ditolak`, `transfer`, `pembayaran_masuk`, dan `pembayaran_ditolak` tetap ada karena tipenya masih dikirim backend.
+- Templat pengumuman tunggakan menyebut pembayaran tunai di sekolah.
+
 ## Keputusan lampiran pengumuman
 
 Disetujui pemilik repo: satu file PDF atau gambar, maksimal 5 MB, dan lampiran pengumuman publik bisa diunduh pengunjung website. Kontrak di `docs/kontrak-api-lampiran-pengumuman.md`, ringkasannya di A2.9, A3, A4, A7, dan baris pengumuman B4. Backend di-merge lewat PR #17. Yang diputuskan saat pengerjaan FE:
@@ -642,6 +660,27 @@ Tempat deploy belum ditentukan. Syarat yang sudah pasti:
 6. **Masuk dengan Google**: `NEXT_PUBLIC_GOOGLE_CLIENT_ID` diisi sebelum `npm run build`, dan origin FE produksi (misalnya `https://tkta8.sch.id`) didaftarkan di Authorized JavaScript origins Client ID itu di Google Cloud Console. Backend memakai Client ID yang sama di `GOOGLE_CLIENT_ID`.
 
 ## Changelog
+
+### Revisi sekolah R3: pembayaran tunai dengan cicilan (branch `fe/pembayaran-tunai-cicilan`)
+
+Pasangan backend `be/pembayaran-tunai-cicilan`. `api.d.ts` di-generate ulang dari `api.json` backend. Keputusan di "Keputusan revisi sekolah R3".
+
+Dihapus:
+
+- `src/components/features/tagihan/form-bukti-transfer.tsx`, `rekening-sekolah.tsx`.
+- `src/components/features/pembayaran/aksi-verifikasi.tsx`, `antrean-verifikasi.tsx`, `pembayaran-sekolah.tsx`.
+- `src/components/features/pengaturan/form-rekening.tsx`; `useTerimaPembayaran`, `useTolakPembayaran`; kunci `keuangan.rekening` di `skemaKeuangan`.
+
+Diubah:
+
+- `dialog-catat-pembayaran.tsx` (jumlah dan tanggal), `aksi-tagihan.tsx` (`bisaCatat`, `bisaUbah`), `detail-tagihan.tsx` (sisa, wali kelas, keterangan untuk wali), `riwayat-pembayaran.tsx` (Batalkan Pembayaran, pembayaran dibatalkan).
+- `tabel-tagihan.tsx`, `tagihan-wali.tsx`, `tagihan-murid.tsx`, `daftar-tunggakan.tsx`, `kartu-tagihan.tsx`: memakai `sisa`.
+- `riwayat-pembayaran-sekolah.tsx`, `pembayaran-wali.tsx`, halaman `/mudarris/pembayaran`, `/dashboard/tagihan`, `/mudarris/pengaturan`, `halaman-pengaturan.tsx`.
+- `perlu-tindakan.tsx`, `beranda-guru.tsx`: tanpa pembayaran menunggu.
+- `src/lib/api/tagihan.ts` (body JSON), `pembayaran.ts` (`useBatalkanPembayaran`), `kelas.ts` (`useDetailKelas` bisa dinonaktifkan), `pengaturan-dashboard.ts`, `label.ts`, `status.ts`, `pengumuman-baru.tsx`.
+- `PROMPT_FE_TK.md` Bagian A (identik dengan backend) dan Bagian B (B4, B5, B6).
+
+Pengecekan: lint, typecheck, build, `check:slop` bersih. Uji curl ke `next start` yang diarahkan ke backend berdatabase uji: detail tagihan (ada `terbayar` dan `sisa`, tanpa `rekening`), wali kelas mencatat cicilan lewat `/api/proxy` (201), jumlah di atas sisa (422), kwitansi (PDF), Kepala Sekolah membatalkan (200), wali murid mencatat (403), dan enam halaman terkait membalas 200. Tampilan dan dialog belum diuji di browser.
 
 ### Revisi sekolah R2: PPDB tanpa unggah berkas dan rapor tertutup untuk wali murid (branch `fe/revisi-kecil`)
 
