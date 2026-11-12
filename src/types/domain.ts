@@ -69,6 +69,7 @@ export type Pendaftaran = Schemas["PendaftaranResource"];
 export type PendaftaranDetail = Schemas["PendaftaranDetailResource"];
 export type PendaftaranPublik = Schemas["PendaftaranPublikResource"];
 export type Absensi = Schemas["AbsensiResource"];
+export type AksesAbsenSusulan = Schemas["AksesAbsenSusulanResource"];
 export type RiwayatStatusMurid = MuridDetail["riwayat_status"][number];
 /** Izin per modul dari `/auth/me` (A2.13): `lihat`, `kelola`, atau null. */
 export type IzinEfektif = User["izin"];

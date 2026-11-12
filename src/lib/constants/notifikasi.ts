@@ -3,6 +3,7 @@ import {
   BookOpenText,
   CalendarCheck,
   CalendarClock,
+  CalendarPlus,
   CircleAlert,
   CircleCheck,
   CircleX,
@@ -35,4 +36,5 @@ export const TAMPILAN_NOTIFIKASI: Record<JenisNotifikasi, { ikon: LucideIcon; na
   anak_tertaut: { ikon: Link2, nada: "sukses" },
   absensi_tercatat: { ikon: MapPinCheck, nada: "sukses" },
   absensi_dikoreksi: { ikon: CalendarCheck, nada: "proses" },
+  absensi_susulan_diberikan: { ikon: CalendarPlus, nada: "menunggu" },
 };
