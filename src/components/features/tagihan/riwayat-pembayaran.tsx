@@ -1,25 +1,43 @@
 "use client";
 
-import { AksiVerifikasi } from "@/components/features/pembayaran/aksi-verifikasi";
+import { toast } from "sonner";
+
 import { BuktiTransfer } from "@/components/features/pembayaran/bukti-transfer";
 import { TombolKwitansi } from "@/components/features/pembayaran/tombol-kwitansi";
+import { DialogKonfirmasi } from "@/components/shared/dialog-konfirmasi";
 import { KotakPesan } from "@/components/shared/kotak-pesan";
 import { StatusBadge } from "@/components/shared/status-badge";
+import { Button } from "@/components/ui/button";
+import { useBatalkanPembayaran } from "@/lib/api/pembayaran";
 import { LABEL_METODE_BAYAR, LABEL_STATUS_PEMBAYARAN } from "@/lib/constants/label";
 import { NADA_STATUS_PEMBAYARAN } from "@/lib/constants/status";
 import { formatRupiah, formatTanggal, formatTanggalWaktu } from "@/lib/format";
-import { namaTagihan } from "@/lib/tagihan";
-import type { TagihanDetail } from "@/types/domain";
+import type { RiwayatPembayaran as Bayar, TagihanDetail } from "@/types/domain";
 
-type RiwayatPembayaranProps = {
-  tagihan: TagihanDetail;
-  bisaVerifikasi: boolean;
-  /** Backend hanya melayani kwitansi untuk petugas keuangan dan wali; guru lain mendapat 403. */
-  bisaUnduhKwitansi: boolean;
-};
+function TombolBatalkan({ bayar }: { bayar: Bayar }) {
+  const batalkan = useBatalkanPembayaran();
+  return (
+    <DialogKonfirmasi
+      pemicu={
+        <Button variant="ghost" size="sm">
+          Batalkan Pembayaran
+        </Button>
+      }
+      judul={`Batalkan pembayaran ${formatRupiah(bayar.jumlah)}?`}
+      deskripsi="Untuk pembayaran yang salah dicatat. Sisa tagihan dihitung ulang dan tagihan yang sudah lunas kembali belum lunas. Setelah itu catat lagi jumlah yang benar."
+      labelAksi="Batalkan Pembayaran"
+      labelAlasan="Alasan pembatalan"
+      berbahaya
+      onKonfirmasi={async (alasan) => {
+        const hasil = await batalkan.mutateAsync({ id: bayar.id, alasan });
+        toast.success(hasil.message);
+      }}
+    />
+  );
+}
 
-/** Semua percobaan pembayaran satu tagihan, terbaru di atas. */
-export function RiwayatPembayaran({ tagihan, bisaVerifikasi, bisaUnduhKwitansi }: RiwayatPembayaranProps) {
+/** Semua pembayaran satu tagihan, terbaru di atas, termasuk yang dibatalkan dan transfer dari riwayat lama. */
+export function RiwayatPembayaran({ tagihan, bisaBatalkan }: { tagihan: TagihanDetail; bisaBatalkan: boolean }) {
   if (tagihan.pembayaran.length === 0) return <p className="text-sm text-muted-foreground">Belum ada pembayaran untuk tagihan ini.</p>;
 
   return (
@@ -42,7 +60,7 @@ export function RiwayatPembayaran({ tagihan, bisaVerifikasi, bisaUnduhKwitansi }
                 <span className="tabular-nums">{bayar.kode}</span>
                 {bayar.dibayar_oleh ? ` · dikirim ${bayar.dibayar_oleh.nama}` : ""}
                 {bayar.diverifikasi_oleh && bayar.diverifikasi_at
-                  ? ` · diperiksa ${bayar.diverifikasi_oleh.nama}, ${formatTanggalWaktu(bayar.diverifikasi_at)}`
+                  ? ` · ${bayar.metode === "tunai" ? "dicatat" : "diperiksa"} ${bayar.diverifikasi_oleh.nama}, ${formatTanggalWaktu(bayar.diverifikasi_at)}`
                   : ""}
               </p>
             </div>
@@ -52,12 +70,19 @@ export function RiwayatPembayaran({ tagihan, bisaVerifikasi, bisaUnduhKwitansi }
               Ditolak: {bayar.alasan_penolakan}
             </KotakPesan>
           ) : null}
-          <div className="mt-3 flex flex-wrap gap-2">
-            {bayar.status === "diterima" && bisaUnduhKwitansi ? <TombolKwitansi id={bayar.id} kode={bayar.kode} /> : null}
-            {bayar.status === "menunggu" && bisaVerifikasi ? (
-              <AksiVerifikasi id={bayar.id} jumlah={bayar.jumlah} namaTagihan={namaTagihan(tagihan)} namaMurid={tagihan.murid.nama_panggilan} />
-            ) : null}
-          </div>
+          {bayar.status === "dibatalkan" ? (
+            <p className="mt-3 rounded-md bg-muted px-3 py-2 text-sm">
+              Dibatalkan{bayar.dibatalkan_oleh ? ` oleh ${bayar.dibatalkan_oleh.nama}` : ""}
+              {bayar.dibatalkan_at ? `, ${formatTanggalWaktu(bayar.dibatalkan_at)}` : ""}
+              {bayar.alasan_pembatalan ? `: ${bayar.alasan_pembatalan}` : "."} Pembayaran ini tidak dihitung.
+            </p>
+          ) : null}
+          {bayar.status === "diterima" ? (
+            <div className="mt-3 flex flex-wrap gap-2">
+              <TombolKwitansi id={bayar.id} kode={bayar.kode} />
+              {bisaBatalkan ? <TombolBatalkan bayar={bayar} /> : null}
+            </div>
+          ) : null}
         </li>
       ))}
     </ol>

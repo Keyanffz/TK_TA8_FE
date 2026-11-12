@@ -22,10 +22,11 @@ export function useDaftarKelas(tahunAjaranId: number | null) {
   });
 }
 
-export function useDetailKelas(id: number) {
+export function useDetailKelas(id: number, aktif = true) {
   return useQuery({
     queryKey: queryKeys.kelas.detail(id),
     queryFn: async () => (await ambilData(api.GET("/kelas/{id}", { params: { path: { id } } }))).data,
+    enabled: aktif,
   });
 }
 

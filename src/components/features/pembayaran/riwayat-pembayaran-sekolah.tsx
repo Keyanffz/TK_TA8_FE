@@ -17,7 +17,8 @@ import { formatRupiah, formatTanggal } from "@/lib/format";
 import { namaTagihan } from "@/lib/tagihan";
 import type { Pembayaran } from "@/types/domain";
 
-const STATUS = ["menunggu", "diterima", "ditolak"] as const;
+// "ditolak" dan cara bayar transfer hanya ada di riwayat dari sebelum pembayaran hanya tunai.
+const STATUS = ["diterima", "dibatalkan", "ditolak"] as const;
 const METODE = ["transfer", "tunai"] as const;
 
 const KOLOM: ColumnDef<Pembayaran>[] = [
@@ -49,7 +50,7 @@ const KOLOM: ColumnDef<Pembayaran>[] = [
   },
 ];
 
-/** Semua pembayaran untuk petugas keuangan, dengan saringan status, cara bayar, dan tanggal. */
+/** Semua pembayaran untuk pemegang izin keuangan, dengan saringan status, cara bayar, dan tanggal. */
 export function RiwayatPembayaranSekolah() {
   const [cari, setCari] = useQueryState("cari", parseAsString.withDefault(""));
   const [status, setStatus] = useQueryState("status", parseAsStringLiteral(STATUS));

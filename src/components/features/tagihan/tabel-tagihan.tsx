@@ -21,7 +21,7 @@ import { namaTagihan } from "@/lib/tagihan";
 import { cn } from "@/lib/utils";
 import type { Tagihan } from "@/types/domain";
 
-const STATUS = ["belum_bayar", "terlambat", "menunggu_verifikasi", "lunas", "dibatalkan"] as const;
+const STATUS = ["belum_bayar", "terlambat", "lunas", "dibatalkan"] as const;
 
 const KOLOM: ColumnDef<Tagihan>[] = [
   {
@@ -51,7 +51,8 @@ const KOLOM: ColumnDef<Tagihan>[] = [
       <span className={cn(row.original.status === "terlambat" && "font-bold text-destructive")}>{formatTanggal(row.original.jatuh_tempo)}</span>
     ),
   },
-  { id: "total", header: "Total", cell: ({ row }) => <span className="font-bold tabular-nums">{formatRupiah(row.original.total)}</span> },
+  { id: "total", header: "Total", cell: ({ row }) => <span className="tabular-nums">{formatRupiah(row.original.total)}</span> },
+  { id: "sisa", header: "Sisa", cell: ({ row }) => <span className="font-bold tabular-nums">{formatRupiah(row.original.sisa)}</span> },
   {
     id: "status",
     header: "Status",
@@ -135,7 +136,7 @@ export function TabelTagihan({ petugasKeuangan }: { petugasKeuangan: boolean }) 
         redup={daftar.isPlaceholderData}
         idBaris={(tagihan) => tagihan.id}
         onUbahHalaman={(nomor) => void setHalaman(nomor)}
-        kelasKolom={{ total: "text-right" }}
+        kelasKolom={{ total: "text-right", sisa: "text-right" }}
         kosong={<EmptyState judul={adaFilter ? "Tidak ada tagihan yang cocok dengan saringan." : "Belum ada tagihan."} />}
         kartu={(tagihan) => (
           <Link href={`/mudarris/tagihan/${tagihan.id}`} className="flex items-center gap-3 rounded-xl border border-border bg-card p-4 shadow-sm">
@@ -148,6 +149,7 @@ export function TabelTagihan({ petugasKeuangan }: { petugasKeuangan: boolean }) 
             </span>
             <span className="flex flex-col items-end gap-1">
               <span className="font-bold tabular-nums">{formatRupiah(tagihan.total)}</span>
+              {tagihan.terbayar > 0 && tagihan.sisa > 0 ? <span className="text-xs text-muted-foreground tabular-nums">sisa {formatRupiah(tagihan.sisa)}</span> : null}
               <StatusBadge nada={NADA_STATUS_TAGIHAN[tagihan.status]}>{LABEL_STATUS_TAGIHAN[tagihan.status]}</StatusBadge>
             </span>
           </Link>

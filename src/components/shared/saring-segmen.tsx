@@ -9,7 +9,7 @@ type SaringSegmenProps<T extends string | boolean> = {
   onUbah: (nilai: T) => void;
 };
 
-/** Pilihan saringan berbentuk pil (status guru, notifikasi belum dibaca, antrean pembayaran). */
+/** Pilihan saringan berbentuk pil (status guru, notifikasi belum dibaca, kelompok tagihan). */
 export function SaringSegmen<T extends string | boolean>({ label, opsi, nilai, onUbah }: SaringSegmenProps<T>) {
   return (
     <div role="group" aria-label={label} className="inline-flex max-w-full flex-wrap gap-1 rounded-2xl bg-muted p-1">

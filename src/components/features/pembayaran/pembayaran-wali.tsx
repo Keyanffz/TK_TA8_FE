@@ -17,7 +17,7 @@ import { formatRupiah, formatTanggal } from "@/lib/format";
 import { namaTagihan } from "@/lib/tagihan";
 import { cn } from "@/lib/utils";
 
-/** Riwayat pembayaran semua anak wali, dengan kwitansi untuk yang diterima. */
+/** Riwayat pembayaran semua anak wali yang dicatat sekolah, dengan kwitansi untuk yang diterima. */
 export function PembayaranWali() {
   const [halaman, setHalaman] = useQueryState("page", parseAsInteger.withDefault(1));
   const { data, isPending, isError, error, refetch, isPlaceholderData } = useDaftarPembayaran({ halaman });
@@ -25,7 +25,7 @@ export function PembayaranWali() {
   if (isPending) return <Skeleton aria-label="Memuat pembayaran" className="h-60 rounded-xl" />;
   if (isError) return <GalatMuat error={error} onCobaLagi={() => void refetch()} />;
   if (data.data.length === 0) {
-    return <EmptyState judul="Belum ada pembayaran." deskripsi="Pembayaran yang Anda kirim dari halaman tagihan muncul di sini." />;
+    return <EmptyState judul="Belum ada pembayaran." deskripsi="Pembayaran tunai yang dicatat sekolah muncul di sini beserta kwitansinya." />;
   }
 
   return (
@@ -45,8 +45,13 @@ export function PembayaranWali() {
             </p>
             {bayar.status === "ditolak" && bayar.alasan_penolakan ? (
               <KotakPesan nada="bahaya" className="mt-3">
-                Ditolak: {bayar.alasan_penolakan} Unggah ulang bukti dari halaman tagihan.
+                Ditolak: {bayar.alasan_penolakan}
               </KotakPesan>
+            ) : null}
+            {bayar.status === "dibatalkan" ? (
+              <p className="mt-3 rounded-md bg-muted px-3 py-2 text-sm">
+                Dibatalkan sekolah{bayar.alasan_pembatalan ? `: ${bayar.alasan_pembatalan}` : "."} Pembayaran ini tidak dihitung.
+              </p>
             ) : null}
             <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
               <StatusBadge nada={NADA_STATUS_PEMBAYARAN[bayar.status]}>{LABEL_STATUS_PEMBAYARAN[bayar.status]}</StatusBadge>

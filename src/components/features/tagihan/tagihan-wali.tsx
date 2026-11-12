@@ -25,12 +25,13 @@ const TAB = ["belum", "lunas"] as const;
 
 function KartuTagihanWali({ tagihan }: { tagihan: Tagihan }) {
   const terlambat = tagihan.status === "terlambat";
+  const terbuka = tagihanTerbuka(tagihan.status);
   return (
     <Link
       href={`/dashboard/tagihan/${tagihan.id}`}
       className={cn(
         "angkat flex min-h-20 items-center gap-3 rounded-xl border-2 bg-card p-4 shadow-sm",
-        terlambat ? "border-destructive" : tagihanTerbuka(tagihan.status) ? "border-primary" : "border-border",
+        terlambat ? "border-destructive" : terbuka ? "border-primary" : "border-border",
       )}
     >
       <span className="min-w-0 flex-1">
@@ -42,13 +43,16 @@ function KartuTagihanWali({ tagihan }: { tagihan: Tagihan }) {
           {LABEL_STATUS_TAGIHAN[tagihan.status]}
         </StatusBadge>
       </span>
-      <span className="font-heading text-lg font-extrabold tabular-nums">{formatRupiah(tagihan.total)}</span>
+      <span className="text-right">
+        <span className="block font-heading text-lg font-extrabold tabular-nums">{formatRupiah(terbuka ? tagihan.sisa : tagihan.total)}</span>
+        {terbuka && tagihan.terbayar > 0 ? <span className="block text-xs text-muted-foreground">sisa dari {formatRupiah(tagihan.total)}</span> : null}
+      </span>
       <ChevronRight aria-hidden="true" className="size-5 text-muted-foreground" />
     </Link>
   );
 }
 
-/** Tagihan anak aktif untuk wali (B4): yang belum lunas di atas, total yang harus dibayar menonjol. */
+/** Tagihan anak aktif untuk wali (B4): yang belum lunas di atas, sisa yang harus dibayar menonjol. */
 export function TagihanWali() {
   const { anakAktif } = useAnakAktif();
   const [tab, setTab] = useQueryState("tab", parseAsStringLiteral(TAB).withDefault("belum"));
@@ -61,11 +65,9 @@ export function TagihanWali() {
   if (isPending) return <Skeleton aria-label="Memuat tagihan" className="h-60 rounded-xl" />;
   if (isError) return <GalatMuat error={error} onCobaLagi={() => void refetch()} />;
 
-  const belumLunas = data.data
-    .filter((item) => tagihanTerbuka(item.status) || item.status === "menunggu_verifikasi")
-    .sort((a, b) => a.jatuh_tempo.localeCompare(b.jatuh_tempo));
+  const belumLunas = data.data.filter((item) => tagihanTerbuka(item.status)).sort((a, b) => a.jatuh_tempo.localeCompare(b.jatuh_tempo));
   const lunas = data.data.filter((item) => item.status === "lunas");
-  const totalBelum = belumLunas.filter((item) => tagihanTerbuka(item.status)).reduce((jumlah, item) => jumlah + item.total, 0);
+  const totalBelum = belumLunas.reduce((jumlah, item) => jumlah + item.sisa, 0);
   const tampil = tab === "belum" ? belumLunas : lunas;
   const adaTerlambat = belumLunas.some((item) => item.status === "terlambat");
 

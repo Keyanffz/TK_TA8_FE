@@ -4,7 +4,6 @@ import { keepPreviousData, useMutation, useQuery } from "@tanstack/react-query";
 
 import { ambilData } from "@/lib/api/ambil-data";
 import { api } from "@/lib/api/client";
-import { keFormData } from "@/lib/api/multipart";
 import { queryKeys } from "@/lib/api/query-keys";
 import { useSegarkanKeuangan } from "@/lib/api/segarkan-keuangan";
 import type { components } from "@/types/api";
@@ -94,12 +93,11 @@ export function useGenerateTagihan() {
   });
 }
 
-/** Wali mengunggah bukti transfer; petugas keuangan mencatat tunai/transfer (langsung diterima). */
+/** Petugas keuangan atau wali kelas mencatat pembayaran tunai; langsung diterima, boleh sebagian dari sisa. */
 export function useBayarTagihan(id: number) {
   const segarkan = useSegarkanKeuangan();
   return useMutation({
-    mutationFn: (body: BodyBayar) =>
-      ambilData(api.POST("/tagihan/{id}/pembayaran", { params: { path: { id } }, body, bodySerializer: keFormData })),
+    mutationFn: (body: BodyBayar) => ambilData(api.POST("/tagihan/{id}/pembayaran", { params: { path: { id } }, body })),
     onSuccess: segarkan,
   });
 }

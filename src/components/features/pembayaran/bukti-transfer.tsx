@@ -6,7 +6,7 @@ import Image from "next/image";
 import { Dialog, DialogContent, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 
-/** Pratinjau bukti transfer (signed URL); klik untuk memperbesar. */
+/** Pratinjau bukti transfer dari riwayat lama (signed URL) dan foto absensi; klik untuk memperbesar. */
 export function BuktiTransfer({ url, label, className }: { url: string; label: string; className?: string }) {
   return (
     <Dialog>

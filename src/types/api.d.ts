@@ -981,7 +981,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Murid yang punya tagihan terlambat, urut total tunggakan terbesar, beserta kontak utama walinya */
+        /**
+         * Murid yang punya tagihan terlambat, urut tunggakan terbesar, beserta kontak utama walinya. Tunggakan
+         *     dihitung dari sisa tagihan: `total` murid dan `total_tunggakan` menjumlahkan `sisa` tiap tagihan
+         */
         get: operations["laporan.tunggakan"];
         put?: never;
         post?: never;
@@ -1197,24 +1200,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/pembayaran/{id}/terima": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Menerima pembayaran yang menunggu verifikasi; tagihan menjadi lunas dan wali diberi tahu */
-        post: operations["pembayaran.terima"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/pembayaran/{id}/tolak": {
+    "/pembayaran/{id}/batalkan": {
         parameters: {
             query?: never;
             header?: never;
@@ -1224,10 +1210,11 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Menolak bukti transfer beserta alasannya. Tagihan kembali belum dibayar (atau terlambat jika sudah
-         *     lewat jatuh tempo) dan wali diberi tahu
+         * Membatalkan pembayaran yang salah catat, dengan alasan. Hanya pembayaran yang diterima. Sisa tagihan
+         *     dihitung ulang: tagihan yang tadinya lunas kembali belum bayar, atau terlambat kalau sudah lewat jatuh
+         *     tempo. Setelah itu petugas bisa mencatat ulang jumlah yang benar
          */
-        post: operations["pembayaran.tolak"];
+        post: operations["pembayaran.batalkan"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1244,10 +1231,9 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Membayar tagihan. Wali murid mengunggah bukti transfer (`multipart/form-data`: `bukti`, `tanggal_bayar`,
-         *     `bank_pengirim`, `nama_pengirim`) dan pembayaran menunggu verifikasi. Petugas keuangan mencatat pembayaran
-         *     yang langsung diterima: `metode: tunai`, atau `metode: transfer` dengan `bukti`, `bank_pengirim`, dan
-         *     `nama_pengirim` opsional
+         * Mencatat pembayaran tunai yang diterima di sekolah (`jumlah`, `tanggal_bayar`). Untuk petugas keuangan,
+         *     dan wali kelas untuk murid kelasnya. Pembayaran langsung diterima; `jumlah` boleh sebagian dari tagihan
+         *     (cicilan) dan tidak boleh melebihi sisa. Tagihan lunas saat sisanya habis
          */
         post: operations["pembayaran.bayar"];
         delete?: never;
@@ -1264,7 +1250,7 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Daftar pembayaran. Petugas keuangan melihat semua pembayaran, wali murid pembayaran tagihan anaknya
+         * Daftar pembayaran. Pemegang izin keuangan melihat semua pembayaran, wali murid pembayaran tagihan anaknya
          * @description Filter `filter[status]`, `filter[metode]`, `filter[tanggal]` (tanggal bayar, YYYY-MM-DD). `search` mencari
          *     kode pembayaran dan nama murid. Urutan `sort` = `tanggal_bayar` | `created_at` (bawaan `-created_at`).
          */
@@ -1284,7 +1270,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Detail pembayaran. Guru tanpa izin keuangan ditolak 403 untuk pembayaran murid kelasnya */
+        /** Detail pembayaran. Guru tanpa izin keuangan hanya bisa membuka pembayaran murid kelasnya */
         get: operations["pembayaran.show"];
         put?: never;
         post?: never;
@@ -1302,8 +1288,8 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * File bukti transfer. Pembayaran tunai atau transfer tanpa bukti dibalas 404. Guru tanpa izin keuangan
-         *     ditolak 403 untuk pembayaran murid kelasnya
+         * File bukti transfer dari riwayat lama. Pembayaran tanpa bukti (semua pembayaran tunai) dibalas 404. Guru
+         *     tanpa izin keuangan ditolak 403 untuk pembayaran murid kelasnya
          */
         get: operations["pembayaran.bukti"];
         put?: never;
@@ -1322,8 +1308,8 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Kwitansi PDF, hanya untuk pembayaran yang sudah diterima. Guru tanpa izin keuangan ditolak 403 untuk
-         *     pembayaran murid kelasnya
+         * Kwitansi PDF satu pembayaran, memuat total tagihan, yang sudah dibayar sebelumnya, dan sisa setelah
+         *     pembayaran ini. Hanya untuk pembayaran yang diterima
          */
         get: operations["pembayaran.kwitansi"];
         put?: never;
@@ -1570,7 +1556,7 @@ export interface paths {
          * Menyimpan sebagian pengaturan `{ items: { kunci: nilai } }`. Kunci yang tidak dikirim tidak berubah;
          *     field `*_url` diabaikan. `ppdb.dibuka = true` ditolak kalau `ppdb.tahun_ajaran_id` belum diisi
          * @description Guru dengan izin kelola konten website hanya boleh mengirim kunci grup `profil`, `landing`, dan `beranda`;
-         *     kunci grup lain (rekening dan aturan tagihan, PPDB, absensi) membuat seluruh permintaan ditolak 403.
+         *     kunci grup lain (aturan tagihan, PPDB, absensi) membuat seluruh permintaan ditolak 403.
          */
         put: operations["pengaturan.update"];
         post?: never;
@@ -2138,8 +2124,8 @@ export interface paths {
         options?: never;
         head?: never;
         /**
-         * Membatalkan tagihan. Ditolak untuk tagihan yang sudah lunas atau masih punya bukti transfer yang
-         *     menunggu verifikasi. Alasan disimpan di `catatan`
+         * Membatalkan tagihan. Ditolak untuk tagihan yang sudah lunas atau sudah punya pembayaran yang diterima
+         *     (batalkan dulu pembayarannya). Alasan disimpan di `catatan`
          */
         patch: operations["tagihan.batalkan"];
         trace?: never;
@@ -2174,8 +2160,8 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Daftar tagihan. Petugas keuangan melihat semua tagihan, guru lain hanya tagihan murid kelasnya
-         *     (read-only), wali murid hanya tagihan anaknya
+         * Daftar tagihan beserta `terbayar` dan `sisa`. Pemegang izin keuangan melihat semua tagihan, guru lain
+         *     hanya tagihan murid kelasnya, wali murid hanya tagihan anaknya
          * @description Filter `filter[status]`, `filter[periode]` (YYYY-MM), `filter[kelas_id]`, `filter[murid_id]`,
          *     `filter[jenis_tagihan_id]`. `search` mencari kode tagihan dan nama murid.
          *     Urutan `sort` = `jatuh_tempo` | `periode` | `created_at` (bawaan `-created_at`).
@@ -2201,12 +2187,12 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Detail tagihan beserta riwayat pembayaran dan rekening sekolah untuk transfer */
+        /** Detail tagihan beserta riwayat pembayarannya, termasuk pembayaran yang dibatalkan */
         get: operations["tagihan.show"];
         /**
          * Mengubah jatuh tempo, potongan, atau catatan tagihan; `total` dihitung ulang dari nominal dikurangi
-         *     potongan. Ditolak untuk tagihan yang lunas, dibatalkan, atau punya bukti transfer yang menunggu
-         *     verifikasi. Tagihan terlambat yang jatuh temponya dimundurkan kembali berstatus belum bayar
+         *     potongan dan tidak boleh di bawah yang sudah dibayar. Ditolak untuk tagihan yang lunas atau dibatalkan.
+         *     Tagihan terlambat yang jatuh temponya dimundurkan kembali berstatus belum bayar
          */
         put: operations["tagihan.update"];
         post?: never;
@@ -2454,21 +2440,13 @@ export interface components {
         };
         /**
          * BayarTagihanRequest
-         * @description `POST /tagihan/{id}/pembayaran`. Wali murid selalu transfer dan wajib mengirim bukti (multipart). Petugas
-         *     keuangan mencatat pembayaran tunai atau transfer yang sudah masuk ke rekening sekolah; untuk transfer,
-         *     bukti, bank, dan nama pengirim boleh dikosongkan. Jumlah tidak dikirim karena selalu sama dengan total tagihan.
+         * @description `POST /tagihan/{id}/pembayaran`: pembayaran tunai yang diterima petugas di sekolah. `jumlah` boleh sebagian
+         *     dari tagihan (cicilan); batas atasnya, sisa tagihan, dicek di service terhadap data tagihan.
          */
         BayarTagihanRequest: {
-            metode: components["schemas"]["MetodeBayar"];
+            jumlah: number;
             /** Format: date */
             tanggal_bayar: string;
-            /**
-             * Format: binary
-             * @description Maximum file size: 5120 kilobytes.
-             */
-            bukti?: Blob | null;
-            bank_pengirim?: string | null;
-            nama_pengirim?: string | null;
         };
         /**
          * BuatPendaftaranRequest
@@ -3057,6 +3035,12 @@ export interface components {
             } | null;
             /** Format: date-time */
             diverifikasi_at: string | null;
+            alasan_pembatalan: string;
+            dibatalkan_oleh: {
+                id: number;
+                nama: string;
+            } | null;
+            dibatalkan_at: string;
             /** Format: date-time */
             created_at: string | null;
             tagihan: components["schemas"]["TagihanResource"];
@@ -3411,6 +3395,12 @@ export interface components {
             } | null;
             /** Format: date-time */
             diverifikasi_at: string | null;
+            alasan_pembatalan: string;
+            dibatalkan_oleh: {
+                id: number;
+                nama: string;
+            } | null;
+            dibatalkan_at: string;
             /** Format: date-time */
             created_at: string | null;
         };
@@ -3648,9 +3638,10 @@ export interface components {
         StatusMurid: "aktif" | "lulus" | "pindah" | "keluar";
         /**
          * StatusPembayaran
+         * @description `menunggu` dan `ditolak` hanya ada di riwayat transfer lama; sejak pembayaran dicatat tunai oleh petugas, pembayaran baru langsung `diterima` dan hanya bisa berubah menjadi `dibatalkan`.
          * @enum {string}
          */
-        StatusPembayaran: "menunggu" | "diterima" | "ditolak";
+        StatusPembayaran: "menunggu" | "diterima" | "ditolak" | "dibatalkan";
         /**
          * StatusPendaftaran
          * @enum {string}
@@ -3690,6 +3681,8 @@ export interface components {
             nominal: number;
             potongan: number;
             total: number;
+            terbayar: number;
+            sisa: number;
             jatuh_tempo: string;
             status: components["schemas"]["StatusTagihan"];
             /** Format: date-time */
@@ -3698,11 +3691,6 @@ export interface components {
             /** Format: date-time */
             created_at: string | null;
             pembayaran: components["schemas"]["RiwayatPembayaranResource"][];
-            rekening: {
-                bank: string;
-                nomor: string;
-                atas_nama: string;
-            }[];
         };
         /** TagihanResource */
         TagihanResource: {
@@ -3728,6 +3716,8 @@ export interface components {
             nominal: number;
             potongan: number;
             total: number;
+            terbayar: number;
+            sisa: number;
             jatuh_tempo: string;
             status: components["schemas"]["StatusTagihan"];
             /** Format: date-time */
@@ -5780,7 +5770,6 @@ export interface operations {
                                 total: number;
                             }[];
                             tertunda: {
-                                pembayaran_menunggu: number;
                                 rapor_diajukan: number;
                                 pendaftaran_baru: number;
                             };
@@ -5806,7 +5795,6 @@ export interface operations {
                                 lunas: number;
                                 belum: number;
                             };
-                            pembayaran_menunggu: number | null;
                         } | {
                             anak: components["schemas"]["AnakWaliResource"] | null;
                             tagihan_aktif: components["schemas"]["TagihanResource"][];
@@ -10664,6 +10652,7 @@ export interface operations {
                                     nama: string;
                                     jatuh_tempo: string;
                                     total: number;
+                                    sisa: number;
                                 }[];
                             }[];
                         };
@@ -12018,110 +12007,7 @@ export interface operations {
             };
         };
     };
-    "pembayaran.terima": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                        data: components["schemas"]["PembayaranResource"];
-                        meta: null;
-                    };
-                };
-            };
-            /** @description UNAUTHENTICATED */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                        /** @enum {string} */
-                        code: "UNAUTHENTICATED";
-                        errors: null;
-                    };
-                };
-            };
-            /** @description FORBIDDEN / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                        /** @enum {string} */
-                        code: "FORBIDDEN" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
-                        errors: null;
-                    };
-                };
-            };
-            /** @description NOT_FOUND */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                        /** @enum {string} */
-                        code: "NOT_FOUND";
-                        errors: null;
-                    };
-                };
-            };
-            /** @description BUSINESS_RULE */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                        /** @enum {string} */
-                        code: "BUSINESS_RULE";
-                        errors: null;
-                    };
-                };
-            };
-            /** @description TOO_MANY_REQUESTS */
-            429: {
-                headers: {
-                    /** @description Jumlah detik sampai boleh mencoba lagi. */
-                    "Retry-After": number;
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                        /** @enum {string} */
-                        code: "TOO_MANY_REQUESTS";
-                        errors: null;
-                    };
-                };
-            };
-        };
-    };
-    "pembayaran.tolak": {
+    "pembayaran.batalkan": {
         parameters: {
             query?: never;
             header?: never;
@@ -12241,7 +12127,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "multipart/form-data": components["schemas"]["BayarTagihanRequest"];
+                "application/json": components["schemas"]["BayarTagihanRequest"];
             };
         };
         responses: {
@@ -12481,7 +12367,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description FORBIDDEN / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            /** @description ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -12491,7 +12377,7 @@ export interface operations {
                         success: boolean;
                         message: string;
                         /** @enum {string} */
-                        code: "FORBIDDEN" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        code: "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
                         errors: null;
                     };
                 };
@@ -12649,7 +12535,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description FORBIDDEN / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            /** @description ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -12659,7 +12545,7 @@ export interface operations {
                         success: boolean;
                         message: string;
                         /** @enum {string} */
-                        code: "FORBIDDEN" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        code: "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
                         errors: null;
                     };
                 };

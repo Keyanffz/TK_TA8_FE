@@ -10,24 +10,32 @@ import { useAktifkanTagihan, useBatalkanTagihan } from "@/lib/api/tagihan";
 import { namaTagihan, tagihanTerbuka } from "@/lib/tagihan";
 import type { TagihanDetail } from "@/types/domain";
 
-/** Aksi petugas keuangan; batalkan dan aktifkan kembali hanya untuk Kepala Sekolah (A7). */
-export function AksiTagihan({ tagihan, kepalaSekolah }: { tagihan: TagihanDetail; kepalaSekolah: boolean }) {
+type AksiTagihanProps = {
+  tagihan: TagihanDetail;
+  /** Petugas keuangan dan wali kelas murid itu. */
+  bisaCatat: boolean;
+  /** Petugas keuangan. */
+  bisaUbah: boolean;
+  kepalaSekolah: boolean;
+};
+
+/** Catat pembayaran, ubah tagihan, dan batalkan atau aktifkan kembali (hanya Kepala Sekolah, A7). */
+export function AksiTagihan({ tagihan, bisaCatat, bisaUbah, kepalaSekolah }: AksiTagihanProps) {
   const batalkan = useBatalkanTagihan(tagihan.id);
   const aktifkan = useAktifkanTagihan(tagihan.id);
   const nama = `${namaTagihan(tagihan)} ${tagihan.murid.nama_panggilan}`;
   const terbuka = tagihanTerbuka(tagihan.status);
+  // Backend menolak membatalkan tagihan yang sudah punya pembayaran diterima.
+  const bisaBatalkan = terbuka && kepalaSekolah && tagihan.terbayar === 0;
+  const bisaAktifkan = kepalaSekolah && tagihan.status === "dibatalkan";
 
-  if (!terbuka && !(kepalaSekolah && tagihan.status === "dibatalkan")) return null;
+  if (!(terbuka && (bisaCatat || bisaUbah)) && !bisaAktifkan) return null;
 
   return (
     <div className="flex flex-wrap gap-2">
-      {terbuka ? (
-        <>
-          <DialogCatatPembayaran tagihan={tagihan} />
-          <DialogUbahTagihan tagihan={tagihan} />
-        </>
-      ) : null}
-      {terbuka && kepalaSekolah ? (
+      {terbuka && bisaCatat ? <DialogCatatPembayaran tagihan={tagihan} /> : null}
+      {terbuka && bisaUbah ? <DialogUbahTagihan tagihan={tagihan} /> : null}
+      {bisaBatalkan ? (
         <DialogKonfirmasi
           pemicu={<Button variant="ghost">Batalkan Tagihan</Button>}
           judul={`Batalkan ${nama}?`}
@@ -41,11 +49,11 @@ export function AksiTagihan({ tagihan, kepalaSekolah }: { tagihan: TagihanDetail
           }}
         />
       ) : null}
-      {kepalaSekolah && tagihan.status === "dibatalkan" ? (
+      {bisaAktifkan ? (
         <DialogKonfirmasi
           pemicu={<Button variant="secondary">Aktifkan Kembali</Button>}
           judul={`Aktifkan kembali ${nama}?`}
-          deskripsi="Status kembali belum dibayar, atau terlambat kalau jatuh temponya sudah lewat. Wali tidak diberi notifikasi. Ditolak kalau murid sudah punya tagihan aktif lain untuk jenis dan periode yang sama."
+          deskripsi="Status kembali belum lunas, atau terlambat kalau jatuh temponya sudah lewat. Wali tidak diberi notifikasi. Ditolak kalau murid sudah punya tagihan aktif lain untuk jenis dan periode yang sama."
           labelAksi="Aktifkan Kembali"
           onKonfirmasi={async () => {
             const hasil = await aktifkan.mutateAsync();

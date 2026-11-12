@@ -101,7 +101,8 @@ export const LABEL_TIPE_KERINGANAN: Record<TipeKeringanan, string> = {
 };
 
 export const LABEL_STATUS_TAGIHAN: Record<StatusTagihan, string> = {
-  belum_bayar: "Belum dibayar",
+  // Tagihan yang baru dicicil juga berstatus ini, jadi labelnya tidak menyebut "belum dibayar".
+  belum_bayar: "Belum lunas",
   menunggu_verifikasi: "Menunggu verifikasi",
   lunas: "Lunas",
   terlambat: "Terlambat",
@@ -117,6 +118,7 @@ export const LABEL_STATUS_PEMBAYARAN: Record<StatusPembayaran, string> = {
   menunggu: "Menunggu verifikasi",
   diterima: "Diterima",
   ditolak: "Ditolak",
+  dibatalkan: "Dibatalkan",
 };
 
 export const LABEL_TARGET_PENGUMUMAN: Record<TargetPengumuman, string> = {

@@ -24,8 +24,7 @@ export function useDaftarPembayaran(filter: FilterPembayaran) {
     page: filter.halaman,
     per_page: filter.perHalaman ?? PEMBAYARAN_PER_HALAMAN,
     search: filter.search || undefined,
-    // Antrean verifikasi diurutkan dari yang paling lama menunggu.
-    sort: filter.status === "menunggu" ? ("created_at" as const) : ("-created_at" as const),
+    sort: "-created_at" as const,
     "filter[status]": filter.status ?? undefined,
     "filter[metode]": filter.metode ?? undefined,
     "filter[tanggal]": filter.tanggal ?? undefined,
@@ -37,19 +36,12 @@ export function useDaftarPembayaran(filter: FilterPembayaran) {
   });
 }
 
-export function useTerimaPembayaran() {
-  const segarkan = useSegarkanKeuangan();
-  return useMutation({
-    mutationFn: (id: number) => ambilData(api.POST("/pembayaran/{id}/terima", { params: { path: { id } } })),
-    onSuccess: segarkan,
-  });
-}
-
-export function useTolakPembayaran() {
+/** Kepala Sekolah membatalkan pembayaran yang salah catat; sisa tagihan dihitung ulang. */
+export function useBatalkanPembayaran() {
   const segarkan = useSegarkanKeuangan();
   return useMutation({
     mutationFn: ({ id, alasan }: { id: number; alasan: string }) =>
-      ambilData(api.POST("/pembayaran/{id}/tolak", { params: { path: { id } }, body: { alasan } })),
+      ambilData(api.POST("/pembayaran/{id}/batalkan", { params: { path: { id } }, body: { alasan } })),
     onSuccess: segarkan,
   });
 }

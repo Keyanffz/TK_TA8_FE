@@ -38,9 +38,9 @@ export function TagihanMurid({ muridId }: { muridId: number }) {
       ) : (
         <>
           <p className="mb-3 text-sm">
-            Belum dibayar:{" "}
+            Sisa belum dibayar:{" "}
             <span className="font-bold tabular-nums">
-              {formatRupiah(data.data.filter((item) => tagihanTerbuka(item.status)).reduce((jumlah, item) => jumlah + item.total, 0))}
+              {formatRupiah(data.data.filter((item) => tagihanTerbuka(item.status)).reduce((jumlah, item) => jumlah + item.sisa, 0))}
             </span>
           </p>
           <ul className="divide-y divide-border rounded-lg border border-border">
@@ -51,7 +51,7 @@ export function TagihanMurid({ muridId }: { muridId: number }) {
                     <span className="block truncate font-bold">{namaTagihan(tagihan)}</span>
                     <span className="block text-xs text-muted-foreground">Jatuh tempo {formatTanggal(tagihan.jatuh_tempo)}</span>
                   </span>
-                  <span className="tabular-nums">{formatRupiah(tagihan.total)}</span>
+                  <span className="tabular-nums">{formatRupiah(tagihanTerbuka(tagihan.status) ? tagihan.sisa : tagihan.total)}</span>
                   <StatusBadge nada={NADA_STATUS_TAGIHAN[tagihan.status]}>{LABEL_STATUS_TAGIHAN[tagihan.status]}</StatusBadge>
                 </Link>
               </li>

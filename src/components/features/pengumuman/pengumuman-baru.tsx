@@ -24,7 +24,7 @@ const KOSONG: NilaiPengumuman = {
 const ISI_TUNGGAKAN =
   "<p>Assalamu'alaikum, Bapak/Ibu wali murid.</p>" +
   "<p>Kami mengingatkan bahwa ada tagihan sekolah ananda yang sudah lewat jatuh tempo. Rincian tagihan bisa dilihat di menu Tagihan. " +
-  "Pembayaran dilakukan dengan transfer ke rekening sekolah lalu mengunggah bukti transfer, atau tunai di kantor sekolah.</p>" +
+  "Pembayaran dilakukan tunai di sekolah, ke wali kelas atau petugas keuangan, dan boleh dicicil.</p>" +
   "<p>Kalau ada kendala, silakan menghubungi sekolah. Terima kasih.</p>";
 
 /**
