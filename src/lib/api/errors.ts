@@ -17,6 +17,10 @@ const KODE_ERROR: readonly KodeError[] = [
 const PESAN_SERVER_TIDAK_TERJANGKAU =
   "Server sekolah sedang tidak bisa dihubungi. Coba lagi beberapa saat lagi.";
 
+// 413 dikirim web server sebelum permintaan sampai ke backend, jadi balasannya bukan JSON berisi pesan.
+const PESAN_KIRIMAN_TERLALU_BESAR =
+  "File yang dikirim terlalu besar untuk server sekolah. Pilih file yang lebih kecil, lalu coba lagi.";
+
 const PESAN_TIDAK_TERSAMBUNG =
   "Perangkat Anda sedang tidak tersambung ke internet. Periksa Wi-Fi atau data seluler, lalu coba lagi.";
 
@@ -101,7 +105,7 @@ export function buatApiError(response: Response, body: unknown): ApiError {
   return new ApiError({
     status: response.status,
     code: kodeDariStatus(response.status),
-    message: PESAN_SERVER_TIDAK_TERJANGKAU,
+    message: response.status === 413 ? PESAN_KIRIMAN_TERLALU_BESAR : PESAN_SERVER_TIDAK_TERJANGKAU,
   });
 }
 
@@ -133,6 +137,8 @@ export function pesanError(error: unknown): string {
 /**
  * Memasang pesan VALIDATION_ERROR ke field form. Mengembalikan true kalau ada
  * pesan yang terpasang, supaya pemanggil tahu tidak perlu menampilkan toast.
+ * Field pertama yang ditolak diberi fokus: di form panjang pesannya bisa berada
+ * jauh di atas tombol simpan, dan tanpa fokus penolakan server tidak terlihat.
  */
 export function terapkanErrorValidasi<T extends FieldValues>(
   error: unknown,
@@ -146,7 +152,7 @@ export function terapkanErrorValidasi<T extends FieldValues>(
   for (const field of fields) {
     const pesan = error.errors[field]?.[0];
     if (pesan) {
-      setError(field, { type: "server", message: pesan });
+      setError(field, { type: "server", message: pesan }, { shouldFocus: !terpasang });
       terpasang = true;
     }
   }

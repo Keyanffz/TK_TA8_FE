@@ -2,11 +2,11 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Controller, useForm, type DefaultValues } from "react-hook-form";
-import { toast } from "sonner";
 import { z } from "zod";
 
 import { FotoProfil } from "@/components/shared/foto-profil";
 import { KolomRadio } from "@/components/shared/kolom-radio";
+import { KotakPesan } from "@/components/shared/kotak-pesan";
 import { KolomArea, KolomPilih, KolomTeks } from "@/components/shared/kolom-teks";
 import { ZonaUnggah } from "@/components/shared/zona-unggah";
 import { Button } from "@/components/ui/button";
@@ -74,7 +74,8 @@ export function FormMurid({ murid, kirim, labelSimpan }: FormMuridProps) {
       await kirim(keBody(nilai));
       form.reset({ ...nilai, foto: [] });
     } catch (error) {
-      if (!terapkanErrorValidasi(error, form.setError, FIELD)) toast.error(pesanError(error));
+      // Pesan menetap di atas tombol simpan; toast yang hilang sendiri bisa terlewat lalu data dikira tersimpan.
+      if (!terapkanErrorValidasi(error, form.setError, FIELD)) form.setError("root", { message: pesanError(error) });
     }
   });
 
@@ -137,6 +138,7 @@ export function FormMurid({ murid, kirim, labelSimpan }: FormMuridProps) {
             </div>
           )}
         />
+        {errors.root?.message ? <KotakPesan nada="bahaya">{errors.root.message}</KotakPesan> : null}
         <Button type="submit" size="lg" disabled={isSubmitting} className="self-start">
           {isSubmitting ? "Menyimpan..." : labelSimpan}
         </Button>
