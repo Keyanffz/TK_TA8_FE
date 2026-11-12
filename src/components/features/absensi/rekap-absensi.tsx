@@ -16,7 +16,14 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { kelompokkanPerHari } from "@/lib/absensi";
-import { ambilEksporRekapAbsensi, JUMLAH_BULAN_REKAP, useRekapAbsensi, useRiwayatAbsensi, type JumlahBulanRekap } from "@/lib/api/absensi";
+import {
+  ambilEksporRekapAbsensi,
+  JUMLAH_BULAN_REKAP,
+  useRekapAbsensi,
+  useRiwayatAbsensi,
+  type FormatEksporRekap,
+  type JumlahBulanRekap,
+} from "@/lib/api/absensi";
 import { pesanError } from "@/lib/api/errors";
 import { simpanBlob } from "@/lib/api/unduh";
 import { formatBulan } from "@/lib/format";
@@ -92,24 +99,29 @@ function KartuPeserta({ baris, dipilih, onPilih }: { baris: BarisRekap; dipilih:
   );
 }
 
-/** Rekap 1 sampai 3 bulan per peserta, dengan detail per hari, koreksi, dan ekspor CSV. */
+const EKSPOR: { format: FormatEksporRekap; label: string }[] = [
+  { format: "xlsx", label: "Unduh Excel" },
+  { format: "pdf", label: "Unduh PDF" },
+];
+
+/** Rekap 1 sampai 3 bulan per peserta, dengan detail per hari, koreksi, dan ekspor Excel atau PDF. */
 function RekapBulanan({ hak }: { hak: HakKoreksi }) {
   const { bulan, bulanIni, setBulan } = useBulanDipilih();
   const [jumlahBulan, setJumlahBulan] = useQueryState("rentang", parseAsNumberLiteral(JUMLAH_BULAN_REKAP).withDefault(1));
   const [pesertaId, setPesertaId] = useQueryState("peserta", parseAsInteger);
-  const [mengunduh, setMengunduh] = useState(false);
+  const [mengunduh, setMengunduh] = useState<FormatEksporRekap | null>(null);
   const { data, isPending, isError, error, refetch, isPlaceholderData } = useRekapAbsensi(bulan, jumlahBulan);
   const dipilih = data?.find((baris) => baris.user.id === pesertaId) ?? null;
 
-  const unduh = async () => {
-    setMengunduh(true);
+  const unduh = async (format: FormatEksporRekap) => {
+    setMengunduh(format);
     try {
-      const namaBerkas = jumlahBulan === 1 ? `rekap-absensi-${bulan}.csv` : `rekap-absensi-${bulanAwal(bulan, jumlahBulan)}-sampai-${bulan}.csv`;
-      simpanBlob(await ambilEksporRekapAbsensi(bulan, jumlahBulan), namaBerkas);
+      const rentang = jumlahBulan === 1 ? bulan : `${bulanAwal(bulan, jumlahBulan)}-sampai-${bulan}`;
+      simpanBlob(await ambilEksporRekapAbsensi(bulan, jumlahBulan, format), `rekap-absensi-${rentang}.${format}`);
     } catch (galat) {
       toast.error(pesanError(galat));
     } finally {
-      setMengunduh(false);
+      setMengunduh(null);
     }
   };
 
@@ -137,10 +149,14 @@ function RekapBulanan({ hak }: { hak: HakKoreksi }) {
             </p>
           ) : null}
         </div>
-        <Button variant="outline" disabled={mengunduh || !data || data.length === 0} onClick={() => void unduh()}>
-          <Download aria-hidden="true" />
-          {mengunduh ? "Menyiapkan..." : "Unduh CSV"}
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          {EKSPOR.map(({ format, label }) => (
+            <Button key={format} variant="outline" disabled={mengunduh !== null || !data || data.length === 0} onClick={() => void unduh(format)}>
+              <Download aria-hidden="true" />
+              {mengunduh === format ? "Menyiapkan..." : label}
+            </Button>
+          ))}
+        </div>
       </div>
 
       {isPending ? (
@@ -177,10 +193,10 @@ function RekapBulanan({ hak }: { hak: HakKoreksi }) {
 const TAB = ["harian", "bulanan"] as const;
 
 /**
- * Rekap absensi untuk Kepala Sekolah dan guru berizin laporan absensi: Harian untuk mengecek satu tanggal, Bulanan
- * untuk jumlah per peserta.
+ * Rekap absensi untuk Kepala Sekolah dan guru berizin laporan absensi: Harian untuk mengecek satu tanggal dan memberi
+ * akses absen susulan, Bulanan untuk jumlah per peserta.
  */
-export function RekapAbsensi({ hak }: { hak: HakKoreksi }) {
+export function RekapAbsensi({ hak, pemberiSusulanId }: { hak: HakKoreksi; pemberiSusulanId: number | null }) {
   const [tab, setTab] = useQueryState("tab", parseAsStringLiteral(TAB).withDefault("harian"));
 
   return (
@@ -194,7 +210,7 @@ export function RekapAbsensi({ hak }: { hak: HakKoreksi }) {
         </TabsTrigger>
       </TabsList>
       <TabsContent value="harian">
-        <RekapHarian hak={hak} />
+        <RekapHarian hak={hak} pemberiSusulanId={pemberiSusulanId} />
       </TabsContent>
       <TabsContent value="bulanan">
         <RekapBulanan hak={hak} />
