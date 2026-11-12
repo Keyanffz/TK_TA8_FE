@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowRight, UsersRound, Wallet } from "lucide-react";
+import { UsersRound } from "lucide-react";
 import Link from "next/link";
 import type { CSSProperties } from "react";
 
@@ -60,9 +60,9 @@ export function BerandaGuru({ namaGuru }: { namaGuru: string }) {
   );
 }
 
-/** Kartu kelas yang diampu, ditambah antrean verifikasi untuk guru petugas keuangan. */
+/** Kartu kelas yang diampu. */
 function KelasSaya({ data }: { data: DashboardGuru }) {
-  if (data.kelas_saya.length === 0 && data.pembayaran_menunggu === null) {
+  if (data.kelas_saya.length === 0) {
     return (
       <EmptyState
         ringkas
@@ -90,23 +90,6 @@ function KelasSaya({ data }: { data: DashboardGuru }) {
           </Link>
         </li>
       ))}
-      {data.pembayaran_menunggu !== null ? (
-        <li className="gerak-masuk" style={{ "--i": data.kelas_saya.length + 2 } as CSSProperties}>
-          <Link
-            href="/mudarris/pembayaran"
-            className="angkat group flex h-full flex-col rounded-xl bg-highlight p-4 text-highlight-foreground shadow-sm"
-          >
-            <span className="flex items-center gap-2 font-heading font-extrabold">
-              <Wallet aria-hidden="true" className="size-5" />
-              Verifikasi Pembayaran
-            </span>
-            <span className="mt-2 flex items-center gap-1 text-sm">
-              <AngkaNaik nilai={data.pembayaran_menunggu} className="font-bold" /> menunggu
-              <ArrowRight aria-hidden="true" className="ml-auto size-4 transition-transform duration-200 group-hover:translate-x-1" />
-            </span>
-          </Link>
-        </li>
-      ) : null}
     </ul>
   );
 }
