@@ -45,15 +45,15 @@ Build tidak membutuhkan backend. Kalau backend tidak bisa dihubungi saat `npm ru
 **Pengunjung (tanpa login)**
 - Halaman depan dari CMS: profil, sambutan Kepala Sekolah, visi-misi, program, keunggulan, fasilitas, guru, galeri, pengumuman, agenda, info PPDB, kontak dan peta.
 - Daftar dan detail pengumuman publik beserta lampirannya (PDF atau gambar, bisa dibuka tanpa login), galeri album.
-- PPDB: info, pendaftaran tanpa login dengan unggah dokumen, cek status dengan kode pendaftaran + tanggal lahir anak.
+- PPDB: info, pendaftaran tanpa login (berkas dibawa ke sekolah, tidak diunggah), cek status dengan kode pendaftaran + tanggal lahir anak.
 - Halaman login terpisah: wali murid di `/login`, guru dan Kepala Sekolah di `/mudarris/login`. Lupa dan reset password hanya untuk Kepala Sekolah.
 
 **Wali Murid**
 - Login dengan NIS anak + password. Password awal adalah tanggal lahir anak (DDMMYYYY) dan wajib diganti saat pertama masuk, lalu melengkapi profil.
 - Menambahkan kakak/adik dengan NIS + tanggal lahir anak, dan memilih anak aktif.
-- Beranda dengan info dari sekolah, tagihan yang belum dibayar, kegiatan, pengumuman, agenda, dan rapor terbaru.
+- Beranda dengan info dari sekolah, tagihan yang belum dibayar, kegiatan, pengumuman, dan agenda.
 - Tagihan anak, bayar dengan unggah bukti transfer, riwayat pembayaran dan kwitansi.
-- Kegiatan kelas anak (foto), rapor yang sudah terbit dan PDF-nya, pengumuman beserta lampirannya, agenda, pendaftaran PPDB kakak/adik, notifikasi, profil.
+- Kegiatan kelas anak (foto), pengumuman beserta lampirannya, agenda, pendaftaran PPDB kakak/adik, notifikasi, profil.
 
 **Guru**
 - Login dengan akun Google yang emailnya didaftarkan Kepala Sekolah. Guru tidak punya password.
