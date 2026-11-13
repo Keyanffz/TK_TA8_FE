@@ -21,14 +21,14 @@ import type { AbsensiPerTanggal } from "@/types/domain";
 const POLA_TANGGAL = /^\d{4}-\d{2}-\d{2}$/;
 
 /** Tanggal dari `?tanggal=YYYY-MM-DD`, bawaan hari ini; tanggal yang belum datang tidak bisa dipilih. */
-function useTanggalDipilih(): { tanggal: string; hariIni: string; setTanggal: (tanggal: string) => void } {
+export function useTanggalDipilih(): { tanggal: string; hariIni: string; setTanggal: (tanggal: string) => void } {
   const [tanggalUrl, setTanggalUrl] = useQueryState("tanggal", parseAsString);
   const hariIni = hariIniJakarta();
   const tanggal = tanggalUrl && POLA_TANGGAL.test(tanggalUrl) && tanggalUrl <= hariIni ? tanggalUrl : hariIni;
   return { tanggal, hariIni, setTanggal: (tujuan) => void setTanggalUrl(tujuan === hariIni ? null : tujuan) };
 }
 
-function PilihTanggal({ tanggal, hariIni, onUbah }: { tanggal: string; hariIni: string; onUbah: (tanggal: string) => void }) {
+export function PilihTanggal({ tanggal, hariIni, onUbah }: { tanggal: string; hariIni: string; onUbah: (tanggal: string) => void }) {
   return (
     <div className="flex items-center gap-1">
       <Button variant="outline" size="icon" aria-label="Hari sebelumnya" onClick={() => onUbah(geserHari(tanggal, -1))}>

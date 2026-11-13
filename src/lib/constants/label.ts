@@ -9,6 +9,7 @@ import type {
   PeriodeTagihan,
   Role,
   StatusAbsensi,
+  StatusAbsensiMurid,
   StatusAkun,
   StatusKelasMurid,
   StatusMurid,
@@ -162,6 +163,13 @@ export const LABEL_STATUS_ABSENSI: Record<StatusAbsensi, string> = {
   tidak_hadir: "Tidak Hadir",
   izin: "Izin",
   sakit: "Sakit",
+};
+
+export const LABEL_STATUS_ABSENSI_MURID: Record<StatusAbsensiMurid, string> = {
+  hadir: "Hadir",
+  izin: "Izin",
+  sakit: "Sakit",
+  alpa: "Alpa",
 };
 
 export const OPSI_STATUS_ABSENSI = (["hadir", "terlambat", "izin", "sakit", "tidak_hadir"] as const satisfies readonly StatusAbsensi[]).map((nilai) => ({

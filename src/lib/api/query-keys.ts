@@ -89,6 +89,11 @@ export const queryKeys = {
     rekap: (bulan: string, jumlahBulan: number) => ["absensi", "rekap", bulan, jumlahBulan] as const,
     harian: (tanggal: string) => ["absensi", "harian", tanggal] as const,
   },
+  absensiMurid: {
+    semua: (kelasId: number) => ["absensi-murid", kelasId] as const,
+    harian: (kelasId: number, tanggal: string) => ["absensi-murid", kelasId, "harian", tanggal] as const,
+    rekap: (kelasId: number, bulan: string) => ["absensi-murid", kelasId, "rekap", bulan] as const,
+  },
   laporan: {
     keuangan: (filter: object) => ["laporan", "keuangan", filter] as const,
     tunggakan: (kelasId: number | null) => ["laporan", "tunggakan", kelasId] as const,
