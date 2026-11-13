@@ -712,6 +712,16 @@ Tempat deploy belum ditentukan. Syarat yang sudah pasti:
 
 ## Changelog
 
+### Usulan tampilan dari audit AI-slop (branch `fe/usulan-tampilan`)
+
+Disetujui pemilik repo dari usulan audit (`fe/anti-slop`, nomor 7–9). Backend tidak berubah.
+
+- Beranda Kepala Sekolah: empat kartu angka berikon yang sama (`kartu-angka.tsx`, dihapus) diganti `RingkasanSekolah` (`beranda/kepala-sekolah/ringkasan-sekolah.tsx`): satu kartu berisi murid aktif, guru aktif, kelas, dan wali murid, tanpa ikon, kotak 2 × 2 di HP dan satu baris di layar lebar. Tiap angka menaut ke daftarnya (Murid, Guru, Kelas, Wali Murid). Panel Perlu Tindakan di atasnya tetap yang paling menonjol.
+- Landing: pil kuning nama yayasan di atas judul hero menjadi baris teks di bawah judul; label Visi dan Misi tidak lagi huruf kapital berjarak lebar.
+- Rekap Absensi tab Bulanan: di layar di bawah breakpoint `lg` (64rem), detail per hari dibuka di dalam kartu peserta yang dipilih, bukan di bawah semua kartu. Di layar lebar tetap di kolom kanan. Lebar layar dibaca lewat `matchMedia` (`useDuaKolom`, `useSyncExternalStore`), supaya detail hanya dirender sekali dan tidak ada judul ganda.
+
+Pengecekan: `npm run lint`, `npm run typecheck`, `npm run build`, `npm run check:slop` bersih. Chromium 390 px dan 1280 px dengan backend lokal: hero dan Visi/Misi di HP, ringkasan sekolah di HP dan desktop, Lihat per Hari di HP (detail di dalam kartu) dan desktop (kolom kanan, satu judul detail), tanpa error di console.
+
 ### Keputusan pemilik repo atas pertanyaan R3–R6 (branch `fe/keputusan-revisi`)
 
 Pasangan backend `be/keputusan-revisi`. `api.d.ts` di-generate ulang. Keputusan di "Keputusan pemilik repo atas pertanyaan R3–R6".
