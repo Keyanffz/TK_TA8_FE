@@ -106,15 +106,14 @@ export const skemaAbsensi = z.object({
 export type PengaturanAbsensi = z.infer<typeof skemaAbsensi>;
 
 /**
- * Pesan VALIDATION_ERROR untuk satu kunci pengaturan, sebagai pasangan [sisa path, pesan].
- * Backend memakai kunci "items.<kunci>.<field>", misalnya "items.landing.program.0.judul" → "0.judul".
+ * Pesan VALIDATION_ERROR untuk satu kunci pengaturan, sebagai pasangan [sisa path, pesan]. Backend memakai kunci
+ * pengaturan itu sendiri tanpa awalan, misalnya "landing.program.0.judul" → "0.judul" dan "ppdb.kuota" → "".
  */
 export function pesanErrorPengaturan(error: unknown, kunci: string): [string, string][] {
   if (!(error instanceof ApiError) || !error.errors) return [];
-  const awalan = `items.${kunci}`;
   return Object.entries(error.errors)
-    .filter(([nama]) => nama === awalan || nama.startsWith(`${awalan}.`))
-    .map(([nama, pesan]) => [nama.slice(awalan.length + 1), pesan[0] ?? ""]);
+    .filter(([nama]) => nama === kunci || nama.startsWith(`${kunci}.`))
+    .map(([nama, pesan]) => [nama.slice(kunci.length + 1), pesan[0] ?? ""]);
 }
 
 /** `aktif` false untuk grup yang tidak boleh dibaca pengguna ini (A2.13), supaya tidak memancing 403. */

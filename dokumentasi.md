@@ -776,6 +776,11 @@ Pasangan backend `be/anti-slop`. Temuan dan usulan di "Audit AI-slop".
 Diubah: `beranda-kepala-sekolah.tsx`, `kelola-foto.tsx`, `daftar-tanggal-libur.tsx`, `wizard-kenaikan.tsx`, `dialog-konfirmasi.tsx`, `form-info-wali.tsx`, `src/types/domain.ts`, `src/lib/api/dashboard.ts`, `src/lib/format.ts`, `scripts/check-slop.sh`.
 
 Pengecekan: `npm run lint`, `npm run typecheck`, `npm run build`, `npm run check:slop` bersih. Chromium 390 px dengan backend lokal: beranda Kepala Sekolah bulan November (tanpa tagihan jatuh tempo) menampilkan keadaan kosong, tombol Tambah Tanggal di Pengaturan Absensi, tanpa error di console. Label lain dicek lewat kode.
+### Pesan error per kolom di tab pengaturan (branch `fe/pesan-error-pengaturan`)
+
+Disetujui pemilik repo dari usulan audit AI-slop. `pesanErrorPengaturan()` (`src/lib/api/pengaturan-dashboard.ts`) mencari kunci error berawalan `items.`, padahal backend mengirim kunci pengaturan tanpa awalan (`keuangan.hari_pengingat`, `landing.program.0.judul`). Akibatnya pesan VALIDATION_ERROR di tab Tagihan, PPDB, Hero, Program, Keunggulan, dan Fasilitas tidak pernah terpasang di kolomnya dan hanya muncul sebagai toast umum. Sekarang awalannya kunci itu sendiri.
+
+Pengecekan: `npm run lint`, `npm run typecheck`, `npm run build`, `npm run check:slop` bersih. Chromium 390 px, masuk sebagai Kepala Sekolah, balasan `PUT /pengaturan` dicegat Playwright dan diganti 422 dengan kunci error berbentuk sama dengan backend (`keuangan.hari_pengingat`): pesan tampil di bawah kolom Hari pengingat, tidak sebagai toast. Bentuk kunci error backend dijaga test `PengaturanTest` di backend.
 
 ### Keputusan pemilik repo atas pertanyaan R3–R6 (branch `fe/keputusan-revisi`)
 
