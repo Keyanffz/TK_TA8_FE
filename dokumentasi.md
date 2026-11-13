@@ -36,6 +36,7 @@ Website publik dan dashboard sistem informasi TK Tarbiyatul Athfal 8 (TK Muslima
 | Revisi sekolah R2: PPDB tanpa unggah berkas, halaman rapor wali murid dihapus, contoh "uang pendidikan" (branch `fe/revisi-kecil`; backend `be/revisi-kecil`) | Selesai, menunggu review; lint, typecheck, build, `check:slop`; belum diuji di browser |
 | Revisi sekolah R3: pembayaran tunai dengan cicilan, wali kelas ikut mencatat, pembatalan pembayaran (branch `fe/pembayaran-tunai-cicilan`, di atas `fe/revisi-kecil`; backend `be/pembayaran-tunai-cicilan`) | Selesai, menunggu review; lint, typecheck, build, `check:slop`, uji curl lewat proxy `next start`; belum diuji di browser |
 | Revisi sekolah R4: ekspor rekap absensi Excel dan PDF, lampiran koreksi, akses absen susulan (branch `fe/absensi-ekspor-susulan`, di atas `fe/pembayaran-tunai-cicilan`; backend `be/absensi-ekspor-susulan`) | Selesai, menunggu review; lint, typecheck, build, `check:slop`, uji curl lewat proxy `next start`; belum diuji di browser |
+| Revisi sekolah R5: absensi murid di detail kelas (branch `fe/absensi-murid`, di atas `fe/absensi-ekspor-susulan`; backend `be/absensi-murid`) | Selesai, menunggu review; lint, typecheck, build, `check:slop`, uji curl lewat proxy `next start`; belum diuji di browser |
 
 Mode mock tidak dipakai: `api.json` final dari backend sudah tersedia sejak Fase 1, jadi semua request memakai backend asli dan tipe hasil generate. Tidak ada endpoint mock.
 
@@ -459,6 +460,12 @@ Revisi 7 dan 8 dari sekolah.
 - **Penanda "Susulan"** di kartu status hari ini dan kartu absensi harian (riwayat dan rekap).
 - Notifikasi `absensi_susulan_diberikan`: ikon `CalendarPlus`, nada menunggu.
 
+## Keputusan revisi sekolah R5 (menunggu review)
+
+- Absensi murid ada di detail kelas `/mudarris/kelas/[id]` sebagai tab Absensi dan Rekap Absensi, tanpa menu baru. Tab hanya muncul untuk Kepala Sekolah dan untuk guru yang `guru.id`-nya sama dengan wali kelas atau guru pendamping kelas itu di tahun ajaran aktif; guru berizin data murid yang membuka kelas lain hanya melihat tab Murid. Otorisasi tetap di backend.
+- Isian harian: satu baris per murid dengan empat tombol status (Hadir, Izin, Sakit, Alpa; target sentuh 44 px) dan kolom keterangan yang muncul untuk selain hadir. Murid yang belum dicatat diisi hadir. Satu tombol Simpan Absensi untuk semua murid. Tanggal yang tidak bisa dicatat menampilkan alasan dari backend dan isiannya terkunci.
+- Pemilih tanggal (`PilihTanggal`, `useTanggalDipilih`) dan bulan (`PilihBulan`) dipakai ulang dari rekap absensi guru.
+
 ## Keputusan lampiran pengumuman
 
 Disetujui pemilik repo: satu file PDF atau gambar, maksimal 5 MB, dan lampiran pengumuman publik bisa diunduh pengunjung website. Kontrak di `docs/kontrak-api-lampiran-pengumuman.md`, ringkasannya di A2.9, A3, A4, A7, dan baris pengumuman B4. Backend di-merge lewat PR #17. Yang diputuskan saat pengerjaan FE:
@@ -672,6 +679,16 @@ Tempat deploy belum ditentukan. Syarat yang sudah pasti:
 6. **Masuk dengan Google**: `NEXT_PUBLIC_GOOGLE_CLIENT_ID` diisi sebelum `npm run build`, dan origin FE produksi (misalnya `https://tkta8.sch.id`) didaftarkan di Authorized JavaScript origins Client ID itu di Google Cloud Console. Backend memakai Client ID yang sama di `GOOGLE_CLIENT_ID`.
 
 ## Changelog
+
+### Revisi sekolah R5: absensi murid di detail kelas (branch `fe/absensi-murid`)
+
+Pasangan backend `be/absensi-murid`. `api.d.ts` di-generate ulang. Keputusan di "Keputusan revisi sekolah R5".
+
+Baru: `src/lib/api/absensi-murid.ts`, `src/components/features/kelas/isian-absensi-murid.tsx`, `rekap-absensi-murid.tsx`.
+
+Diubah: `detail-kelas.tsx` (tab), halaman `/mudarris/kelas/[id]` (`guruId`), `rekap-harian.tsx` (ekspor `PilihTanggal` dan `useTanggalDipilih`), `query-keys.ts`, `label.ts` (`LABEL_STATUS_ABSENSI_MURID`), `domain.ts`, `PROMPT_FE_TK.md` (Bagian A identik dengan backend, B4).
+
+Pengecekan: lint, typecheck, build, `check:slop` bersih. Uji curl ke `next start` yang diarahkan ke backend berdatabase uji: `/mudarris/kelas/[id]` dengan `?tab=absensi` dan `?tab=rekap-absensi` membalas 200 untuk Kepala Sekolah dan wali kelas; lewat `/api/proxy`: simpan absensi satu kelas sebagai wali kelas, ekspor .xlsx dan PDF. Tampilan belum diuji di browser.
 
 ### Revisi sekolah R4: ekspor rekap absensi, lampiran koreksi, akses absen susulan (branch `fe/absensi-ekspor-susulan`)
 
