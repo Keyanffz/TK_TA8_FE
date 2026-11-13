@@ -38,6 +38,7 @@ Website publik dan dashboard sistem informasi TK Tarbiyatul Athfal 8 (TK Muslima
 | Revisi sekolah R4: ekspor rekap absensi Excel dan PDF, lampiran koreksi, akses absen susulan (branch `fe/absensi-ekspor-susulan`, di atas `fe/pembayaran-tunai-cicilan`; backend `be/absensi-ekspor-susulan`) | Selesai, menunggu review; lint, typecheck, build, `check:slop`, uji curl lewat proxy `next start`; belum diuji di browser |
 | Revisi sekolah R5: absensi murid di detail kelas (branch `fe/absensi-murid`, di atas `fe/absensi-ekspor-susulan`; backend `be/absensi-murid`) | Selesai, menunggu review; lint, typecheck, build, `check:slop`, uji curl lewat proxy `next start`; belum diuji di browser |
 | Revisi sekolah R6: unduh rapor satu kelas (branch `fe/ekspor-rapor-kelas`, di atas `fe/absensi-murid`; backend `be/ekspor-rapor-kelas`) | Selesai, menunggu review; lint, typecheck, build, `check:slop`, uji curl lewat proxy `next start`; belum diuji di browser. Template kertas rapor menunggu contoh dari sekolah |
+| Revisi sekolah R7: image Docker (branch `fe/docker`, di atas `fe/ekspor-rapor-kelas`; compose di backend `be/docker`) | Selesai, menunggu review; lint, typecheck, build, `check:slop`, build image dan `docker compose up` diuji di laptop. Pindah ke VPS belum |
 
 Mode mock tidak dipakai: `api.json` final dari backend sudah tersedia sejak Fase 1, jadi semua request memakai backend asli dan tipe hasil generate. Tidak ada endpoint mock.
 
@@ -472,6 +473,13 @@ Revisi 7 dan 8 dari sekolah.
 - Tombol "Unduh Rapor <kelas> (PDF)" di halaman rapor guru, muncul setelah ada minimal satu rapor terbit di kelas dan semester terpilih. Kepala Sekolah mendapatkannya di tab Semua Rapor saat saringan kelas dan semester dipilih (dan di Kelas Saya kalau ia mengampu kelas). File diunduh, bukan dibuka di tab baru, karena untuk dicetak.
 - Template kertas rapor menunggu contoh dari sekolah; tampilan PDF ditentukan backend.
 
+## Keputusan revisi sekolah R7 (menunggu review)
+
+- `output: "standalone"` di `next.config.ts`; image `tkta8-fe` hanya membawa `.next/standalone`, `.next/static`, dan `public`, berjalan sebagai user `node` di `127.0.0.1:3000`.
+- `BE_API_URL` dan `NEXT_PUBLIC_GOOGLE_CLIENT_ID` adalah build arg karena dibaca saat build (`next.config.ts` dan bundle browser). `BE_API_URL` juga diberikan saat berjalan. Mengubah salah satunya berarti build ulang image.
+- `.env*` tidak masuk image (`.dockerignore`); nilainya datang dari `deploy/.env` backend.
+- Service `fe` ada di `deploy/compose.yaml` backend dengan jaringan host, supaya `BE_API_URL` yang dibuka browser juga terjangkau dari server FE. Langkah pindah dan rollback di `docs/docker.md` backend.
+
 ## Keputusan lampiran pengumuman
 
 Disetujui pemilik repo: satu file PDF atau gambar, maksimal 5 MB, dan lampiran pengumuman publik bisa diunduh pengunjung website. Kontrak di `docs/kontrak-api-lampiran-pengumuman.md`, ringkasannya di A2.9, A3, A4, A7, dan baris pengumuman B4. Backend di-merge lewat PR #17. Yang diputuskan saat pengerjaan FE:
@@ -685,6 +693,14 @@ Tempat deploy belum ditentukan. Syarat yang sudah pasti:
 6. **Masuk dengan Google**: `NEXT_PUBLIC_GOOGLE_CLIENT_ID` diisi sebelum `npm run build`, dan origin FE produksi (misalnya `https://tkta8.sch.id`) didaftarkan di Authorized JavaScript origins Client ID itu di Google Cloud Console. Backend memakai Client ID yang sama di `GOOGLE_CLIENT_ID`.
 
 ## Changelog
+
+### Revisi sekolah R7: image Docker (branch `fe/docker`)
+
+Pasangan backend `be/docker` (compose, contoh env, `docs/docker.md`).
+
+Baru: `Dockerfile`, `.dockerignore`. Diubah: `next.config.ts` (`output: "standalone"`). `allowedDevOrigins` untuk trycloudflare tetap perubahan lokal.
+
+Pengecekan: lint, typecheck, build, `check:slop`. Build image lewat `docker compose build` dan `docker compose up` di laptop: `/`, `/login`, `/mudarris/login`, `/ppdb`, `/ppdb/status`, `/pengumuman` 200; login Kepala Sekolah lewat BFF lalu `/mudarris` 200; unggah gambar lewat `/api/proxy`; `/_next/image` untuk gambar dari `/storage` backend 200. Tampilan belum dilihat di browser.
 
 ### Revisi sekolah R6: unduh rapor satu kelas (branch `fe/ekspor-rapor-kelas`)
 
