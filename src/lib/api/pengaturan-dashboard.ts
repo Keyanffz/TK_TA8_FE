@@ -61,7 +61,6 @@ export const skemaLanding = z.object({
 });
 
 export const skemaKeuangan = z.object({
-  "keuangan.rekening": z.array(z.object({ bank: z.string(), nomor: z.string(), atas_nama: z.string() })).catch([]),
   "keuangan.tanggal_jatuh_tempo": z.number().catch(10),
   "keuangan.hari_pengingat": z.number().catch(3),
 });

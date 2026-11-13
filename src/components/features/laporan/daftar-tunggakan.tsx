@@ -13,7 +13,7 @@ import { useLaporanTunggakan } from "@/lib/api/laporan";
 import { formatRupiah, formatTanggal } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
-/** Murid dengan tagihan terlambat, total terbesar di atas, beserta kontak utama walinya. */
+/** Murid dengan tagihan terlambat, sisa terbesar di atas, beserta kontak utama walinya. */
 export function DaftarTunggakan() {
   const [kelasId, setKelasId] = useQueryState("kelas", parseAsInteger);
   const kelas = useDaftarKelas(null);
@@ -59,7 +59,7 @@ export function DaftarTunggakan() {
       ) : isError ? (
         <GalatMuat error={error} onCobaLagi={() => void refetch()} />
       ) : data.murid.length === 0 ? (
-        <EmptyState judul="Tidak ada tunggakan." deskripsi="Tagihan yang lewat jatuh tempo dan belum dibayar akan muncul di sini." />
+        <EmptyState judul="Tidak ada tunggakan." deskripsi="Tagihan yang lewat jatuh tempo dan belum lunas akan muncul di sini." />
       ) : (
         <ul className={cn("grid gap-4 lg:grid-cols-2", isPlaceholderData && "opacity-60")}>
           {data.murid.map((murid) => (
@@ -86,7 +86,7 @@ export function DaftarTunggakan() {
                         <span className="block font-bold">{tagihan.nama}</span>
                         <span className="block text-xs text-destructive">Jatuh tempo {formatTanggal(tagihan.jatuh_tempo)}</span>
                       </span>
-                      <span className="tabular-nums">{formatRupiah(tagihan.total)}</span>
+                      <span className="tabular-nums">{formatRupiah(tagihan.sisa)}</span>
                     </Link>
                   </li>
                 ))}

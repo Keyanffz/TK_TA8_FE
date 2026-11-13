@@ -7,18 +7,17 @@ import { ElemenPenilaianSekolah } from "@/components/features/pengaturan/elemen-
 import { FormAturanTagihan } from "@/components/features/pengaturan/form-aturan-tagihan";
 import { FormInfoWali } from "@/components/features/pengaturan/form-info-wali";
 import { FormPpdb } from "@/components/features/pengaturan/form-ppdb";
-import { FormRekening } from "@/components/features/pengaturan/form-rekening";
 import { GalatMuat } from "@/components/shared/galat-muat";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { skemaKeuangan, skemaPpdb, usePengaturan } from "@/lib/api/pengaturan-dashboard";
 import { PESAN_BELUM_DISIMPAN, usePeringatanBelumDisimpan } from "@/lib/use-peringatan-belum-disimpan";
 
-const TAB = ["rekening", "tagihan", "ppdb", "beranda", "elemen"] as const;
+const TAB = ["tagihan", "ppdb", "beranda", "elemen"] as const;
 type Tab = (typeof TAB)[number];
 /** Guru dengan izin konten website hanya mengurus banner beranda wali; tab lain khusus Kepala Sekolah. */
 const TAB_KONTEN = ["beranda"] as const satisfies readonly Tab[];
-const LABEL_TAB: Record<Tab, string> = { rekening: "Rekening", tagihan: "Tagihan", ppdb: "PPDB", beranda: "Beranda Wali", elemen: "Elemen Penilaian" };
+const LABEL_TAB: Record<Tab, string> = { tagihan: "Tagihan", ppdb: "PPDB", beranda: "Beranda Wali", elemen: "Elemen Penilaian" };
 
 function Muat<T>({ hasil, children }: { hasil: { data: T | undefined; isPending: boolean; isError: boolean; error: unknown; refetch: () => unknown }; children: (data: T) => ReactNode }) {
   if (hasil.isPending) return <Skeleton className="h-72 rounded-xl" />;
@@ -31,7 +30,7 @@ type HalamanPengaturanProps = { kepalaSekolah: boolean; bisaKelolaKonten: boolea
 /** Pengaturan sistem (B4), satu tab per kelompok; tiap tab disimpan sendiri. */
 export function HalamanPengaturan({ kepalaSekolah, bisaKelolaKonten }: HalamanPengaturanProps) {
   const tabTersedia: readonly Tab[] = kepalaSekolah ? TAB : TAB_KONTEN;
-  const tabAwal: Tab = kepalaSekolah ? "rekening" : "beranda";
+  const tabAwal: Tab = kepalaSekolah ? "tagihan" : "beranda";
   const [tabDiminta, setTab] = useQueryState("tab", parseAsStringLiteral(TAB).withDefault(tabAwal));
   const tab = tabTersedia.includes(tabDiminta) ? tabDiminta : tabAwal;
   const [kotor, setKotor] = useState(false);
@@ -60,9 +59,6 @@ export function HalamanPengaturan({ kepalaSekolah, bisaKelolaKonten }: HalamanPe
           ))}
         </TabsList>
       </div>
-      <TabsContent value="rekening">
-        <Muat hasil={keuangan}>{(data) => <FormRekening awal={data["keuangan.rekening"]} onUbahKotor={ubahKotor} />}</Muat>
-      </TabsContent>
       <TabsContent value="tagihan">
         <Muat hasil={keuangan}>
           {(data) => (

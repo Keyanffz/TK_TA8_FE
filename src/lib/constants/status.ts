@@ -32,6 +32,7 @@ export const NADA_STATUS_PEMBAYARAN: Record<StatusPembayaran, NadaStatus> = {
   menunggu: "menunggu",
   diterima: "sukses",
   ditolak: "bahaya",
+  dibatalkan: "netral",
 };
 
 export const NADA_STATUS_RAPOR: Record<StatusRapor, NadaStatus> = {

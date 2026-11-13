@@ -22,14 +22,12 @@ type KartuTagihanProps = {
 };
 
 /**
- * Hal terpenting di beranda wali (C7): total yang belum dibayar dan tombol
- * bayar. Merah kalau ada tagihan terlambat.
+ * Hal terpenting di beranda wali (C7): sisa yang belum dibayar dan cara
+ * membayarnya (tunai di sekolah). Merah kalau ada tagihan terlambat.
  */
 export function KartuTagihan({ namaAnak, tagihan, totalBelumBayar }: KartuTagihanProps) {
   const adaTerlambat = tagihan.some((item) => item.status === "terlambat");
   const perluDibayar = tagihan.filter((item) => item.status === "belum_bayar" || item.status === "terlambat");
-  const diperiksa = tagihan.filter((item) => item.status === "menunggu_verifikasi");
-  const tujuanBayar = perluDibayar.length === 1 && perluDibayar[0] ? `/dashboard/tagihan/${perluDibayar[0].id}` : "/dashboard/tagihan";
 
   if (tagihan.length === 0) {
     return (
@@ -42,7 +40,7 @@ export function KartuTagihan({ namaAnak, tagihan, totalBelumBayar }: KartuTagiha
             <h2 id="judul-tagihan" className="text-lg font-extrabold">
               Semua tagihan {namaAnak} sudah lunas
             </h2>
-            <p className="text-sm text-muted-foreground">Tagihan baru akan muncul di sini beserta tombol bayarnya.</p>
+            <p className="text-sm text-muted-foreground">Tagihan baru akan muncul di sini.</p>
           </div>
         </Muncul>
         <Link
@@ -75,7 +73,7 @@ export function KartuTagihan({ namaAnak, tagihan, totalBelumBayar }: KartuTagiha
         <h2 id="judul-tagihan">{adaTerlambat ? "Ada tagihan yang lewat jatuh tempo" : `Tagihan ${namaAnak}`}</h2>
       </div>
       <div className="p-5">
-        <p className="text-sm text-muted-foreground">Total belum dibayar</p>
+        <p className="text-sm text-muted-foreground">Sisa belum dibayar</p>
         <p className={cn("font-heading text-2xl leading-tight font-extrabold tabular-nums", adaTerlambat ? "text-destructive" : "text-primary-deep")}>
           {formatRupiah(totalBelumBayar)}
         </p>
@@ -88,7 +86,7 @@ export function KartuTagihan({ namaAnak, tagihan, totalBelumBayar }: KartuTagiha
                   <span className="block text-xs text-muted-foreground">Jatuh tempo {formatTanggal(item.jatuh_tempo)}</span>
                 </span>
                 <span className="text-right">
-                  <span className="block text-sm font-bold tabular-nums">{formatRupiah(item.total)}</span>
+                  <span className="block text-sm font-bold tabular-nums">{formatRupiah(item.sisa)}</span>
                   <StatusBadge nada={NADA_STATUS_TAGIHAN[item.status]}>{LABEL_STATUS_TAGIHAN[item.status]}</StatusBadge>
                 </span>
               </Link>
@@ -98,23 +96,16 @@ export function KartuTagihan({ namaAnak, tagihan, totalBelumBayar }: KartuTagiha
         {tagihan.length > MAKS_BARIS ? (
           <p className="mt-2 text-sm text-muted-foreground">dan {tagihan.length - MAKS_BARIS} tagihan lainnya.</p>
         ) : null}
-        {diperiksa.length > 0 ? (
-          <p className="mt-3 rounded-md bg-status-proses-soft px-3 py-2 text-sm text-status-proses">
-            Bukti transfer untuk {diperiksa.length} tagihan sedang diperiksa sekolah.
-          </p>
+        {perluDibayar.length > 0 ? (
+          <p className="mt-3 rounded-md bg-muted px-3 py-2 text-sm">Pembayaran dilakukan tunai di sekolah, ke wali kelas atau petugas keuangan. Boleh dicicil.</p>
         ) : null}
         <div className="mt-4 flex flex-col gap-2 sm:flex-row">
-          {perluDibayar.length > 0 ? (
-            <Link
-              href={tujuanBayar}
-              className={buttonVariants({ size: "lg", variant: adaTerlambat ? "destructive" : "default", className: "group" })}
-            >
-              Bayar Sekarang
-              <ArrowRight aria-hidden="true" className="transition-transform duration-200 group-hover:translate-x-1" />
-            </Link>
-          ) : null}
-          <Link href="/dashboard/tagihan" className={buttonVariants({ size: "lg", variant: "outline" })}>
-            Semua Tagihan
+          <Link href="/dashboard/tagihan" className={buttonVariants({ size: "lg", variant: adaTerlambat ? "destructive" : "default", className: "group" })}>
+            Lihat Tagihan
+            <ArrowRight aria-hidden="true" className="transition-transform duration-200 group-hover:translate-x-1" />
+          </Link>
+          <Link href="/dashboard/pembayaran" className={buttonVariants({ size: "lg", variant: "outline" })}>
+            Riwayat Pembayaran
           </Link>
         </div>
       </div>

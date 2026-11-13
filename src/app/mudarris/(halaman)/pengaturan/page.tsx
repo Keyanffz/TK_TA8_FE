@@ -14,7 +14,7 @@ export default async function PengaturanPage() {
     <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
       <KepalaHalaman
         judul="Pengaturan"
-        deskripsi={sesi.isSuperAdmin ? "Rekening dan aturan tagihan, PPDB, banner beranda wali, dan elemen penilaian rapor." : "Banner info sekolah di beranda wali murid."}
+        deskripsi={sesi.isSuperAdmin ? "Aturan tagihan, PPDB, banner beranda wali, dan elemen penilaian rapor." : "Banner info sekolah di beranda wali murid."}
       />
       <HalamanPengaturan kepalaSekolah={sesi.isSuperAdmin} bisaKelolaKonten={punyaIzin(sesi, "konten_website", "kelola")} />
     </div>

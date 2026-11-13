@@ -52,7 +52,7 @@ Build tidak membutuhkan backend. Kalau backend tidak bisa dihubungi saat `npm ru
 - Login dengan NIS anak + password. Password awal adalah tanggal lahir anak (DDMMYYYY) dan wajib diganti saat pertama masuk, lalu melengkapi profil.
 - Menambahkan kakak/adik dengan NIS + tanggal lahir anak, dan memilih anak aktif.
 - Beranda dengan info dari sekolah, tagihan yang belum dibayar, kegiatan, pengumuman, dan agenda.
-- Tagihan anak, bayar dengan unggah bukti transfer, riwayat pembayaran dan kwitansi.
+- Tagihan anak beserta sisanya, riwayat pembayaran tunai yang dicatat sekolah, dan kwitansi.
 - Kegiatan kelas anak (foto), pengumuman beserta lampirannya, agenda, pendaftaran PPDB kakak/adik, notifikasi, profil.
 
 **Guru**
@@ -60,16 +60,16 @@ Build tidak membutuhkan backend. Kalau backend tidak bisa dihubungi saat `npm ru
 - Kelas yang diampu dan murid di dalamnya, beserta kontak wali.
 - Kegiatan kelas dengan foto, keterangan, dan urutan.
 - Rapor per elemen penilaian: draft, ajukan, perbaiki saat diminta revisi.
-- Pengumuman untuk kelas atau murid di kelasnya, dengan lampiran opsional (satu PDF atau gambar, maksimal 5 MB, bisa diganti atau dihapus); lihat agenda, lihat status tagihan kelasnya.
+- Pengumuman untuk kelas atau murid di kelasnya, dengan lampiran opsional (satu PDF atau gambar, maksimal 5 MB, bisa diganti atau dihapus); lihat agenda, lihat status tagihan kelasnya. Wali kelas mencatat pembayaran tunai murid kelasnya.
 - Absensi dari HP: absen masuk dan absen pulang dengan lokasi dan foto langsung dari kamera; izin, sakit, dan pulang lebih awal dengan foto dari kamera atau galeri (misalnya surat dokter); riwayat absensi sendiri; notifikasi saat absensi tercatat atau dikoreksi.
-- Izin per modul dari Kepala Sekolah, level lihat atau kelola: keuangan, konten website, laporan absensi, data murid (termasuk status murid, alumni, dan import), dan pengumuman. Bagian lain di luar kelima modul itu, termasuk jenis tagihan dan rekening sekolah, tetap khusus Kepala Sekolah.
+- Izin per modul dari Kepala Sekolah, level lihat atau kelola: keuangan, konten website, laporan absensi, data murid (termasuk status murid, alumni, dan import), dan pengumuman. Bagian lain di luar kelima modul itu, termasuk jenis tagihan dan aturan tagihan, tetap khusus Kepala Sekolah.
 
 **Kepala Sekolah**
 - Login dengan akun Google, atau email + password sebagai cadangan.
 - Beranda: statistik sekolah, keuangan bulan ini, grafik pemasukan 12 bulan, dan panel "Perlu Tindakan".
 - Guru: tambah dengan nama + email Google, ubah data, aktifkan atau nonaktifkan, tampil di website, reset tautan Google. Hak Akses Guru: izin per modul dan preset (Bendahara, Admin Website, Admin Absensi, Tata Usaha).
 - Tahun ajaran dan kenaikan kelas, kelas, murid (kartu akun wali, ubah status per murid, massal, atau meluluskan satu kelas, riwayat status, import dari Excel/CSV), alumni per tahun lulus, wali murid (ubah data, reset ke password awal).
-- Keuangan: jenis tagihan, keringanan, tagihan bulanan dan sekali bayar, verifikasi dan pencatatan pembayaran, laporan dengan ekspor Excel, tunggakan.
+- Keuangan: jenis tagihan, keringanan, tagihan bulanan dan sekali bayar, pencatatan pembayaran tunai (boleh dicicil) dan pembatalan pembayaran salah catat, laporan dengan ekspor Excel, tunggakan.
 - Review dan penerbitan rapor, pengumuman semua sasaran dengan lampiran opsional (lampiran pengumuman yang tampil di website bisa diunduh pengunjung), agenda sekolah (hanya Kepala Sekolah yang mengelola agenda).
 - Absensi: ikut absen seperti guru; Rekap Absensi (harian dan bulanan 1–3 bulan, koreksi status, mencatat absen masuk atau pulang yang terlupa, unduh CSV); Pengaturan Absensi (titik sekolah di peta, radius, batas akurasi, jam masuk dan pulang, hari kerja, tanggal libur, tanggal mulai, masa simpan foto).
 - PPDB (verifikasi, terima, tolak), CMS website, galeri, pengaturan, log aktivitas.
