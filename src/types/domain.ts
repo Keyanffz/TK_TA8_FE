@@ -24,7 +24,6 @@ export type TargetPengumuman = Schemas["TargetPengumuman"];
 export type JenisAgenda = Schemas["JenisAgenda"];
 export type StatusRapor = Schemas["StatusRapor"];
 export type StatusPendaftaran = Schemas["StatusPendaftaran"];
-export type JenisDokumen = Schemas["JenisDokumen"];
 export type JenisNotifikasi = Schemas["JenisNotifikasi"];
 export type NadaInfo = Schemas["NadaInfo"];
 export type JenisAbsensi = Schemas["JenisAbsensi"];

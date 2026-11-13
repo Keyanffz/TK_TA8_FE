@@ -6,8 +6,8 @@ import { formatTanggal } from "@/lib/format";
 import type { PendaftaranPublik, StatusPendaftaran } from "@/types/domain";
 
 const PESAN_STATUS: Record<Exclude<StatusPendaftaran, "ditolak">, string> = {
-  diajukan: "Formulir sudah masuk dan menunggu pemeriksaan dokumen oleh sekolah.",
-  diverifikasi: "Dokumen sudah diperiksa sekolah. Tunggu keputusan akhir.",
+  diajukan: "Formulir sudah masuk. Bawa akta kelahiran, Kartu Keluarga, dan pas foto anak ke sekolah untuk diperiksa.",
+  diverifikasi: "Berkas sudah diperiksa sekolah. Tunggu keputusan akhir.",
   diterima: "Selamat, pendaftaran diterima. Silakan datang ke sekolah untuk daftar ulang dan menerima kartu akun.",
 };
 

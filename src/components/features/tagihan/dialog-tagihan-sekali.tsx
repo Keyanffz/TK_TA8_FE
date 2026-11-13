@@ -23,7 +23,7 @@ const OPSI_SASARAN = [
   { nilai: "murid", label: "Murid tertentu", keterangan: "Pilih satu atau beberapa murid." },
 ] as const;
 
-/** Tagihan sekali bayar (uang pangkal, seragam) untuk satu kelas atau murid tertentu (A7 `POST /tagihan`). */
+/** Tagihan sekali bayar (uang pendidikan, seragam) untuk satu kelas atau murid tertentu (A7 `POST /tagihan`). */
 export function DialogTagihanSekali() {
   const [terbuka, setTerbuka] = useState(false);
   const [jenisId, setJenisId] = useState("");

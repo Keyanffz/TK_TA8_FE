@@ -6,8 +6,8 @@ import { useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 
+import { BerkasDibawa } from "@/components/features/ppdb/berkas-dibawa";
 import { LangkahDataAnak } from "@/components/features/ppdb/langkah-data-anak";
-import { LangkahDokumen } from "@/components/features/ppdb/langkah-dokumen";
 import { LangkahOrangTua } from "@/components/features/ppdb/langkah-orang-tua";
 import { PenandaLangkah } from "@/components/features/ppdb/penanda-langkah";
 import { RingkasanPendaftaran } from "@/components/features/ppdb/ringkasan-pendaftaran";
@@ -56,9 +56,6 @@ export function FormPendaftaran<T>({ kirim, onBerhasil, nilaiAwal = {} }: FormPe
     mutationFn: kirim,
     onSuccess: onBerhasil,
     onError: (error) => {
-      if (error instanceof ApiError && error.errors?.["lainnya.0"]) {
-        form.setError("lainnya", { type: "server", message: error.errors["lainnya.0"][0] });
-      }
       if (terapkanErrorValidasi(error, form.setError, SEMUA_FIELD_PENDAFTARAN)) {
         const salah = LANGKAH_PENDAFTARAN.findIndex((item) => item.field.some((field) => form.getFieldState(field).error));
         pindah(salah === -1 ? LANGKAH_PERIKSA : salah);
@@ -101,13 +98,15 @@ export function FormPendaftaran<T>({ kirim, onBerhasil, nilaiAwal = {} }: FormPe
         <h2 className="mb-5 text-lg font-extrabold">{JUDUL_LANGKAH[langkah]}</h2>
         {langkah === 0 ? <LangkahDataAnak form={form} /> : null}
         {langkah === 1 ? <LangkahOrangTua form={form} /> : null}
-        {langkah === 2 ? <LangkahDokumen form={form} /> : null}
         {langkah === LANGKAH_PERIKSA ? (
           <>
             <p className="mb-4 text-sm text-muted-foreground">Periksa lagi sebelum dikirim. Data yang sudah dikirim hanya bisa diubah oleh sekolah.</p>
             {pesanGagal ? <KotakPesan nada="bahaya" className="mb-4">{pesanGagal}</KotakPesan> : null}
             {ringkasan?.success ? (
-              <RingkasanPendaftaran nilai={ringkasan.data} keLangkah={pindah} />
+              <>
+                <RingkasanPendaftaran nilai={ringkasan.data} keLangkah={pindah} />
+                <BerkasDibawa className="mt-4" />
+              </>
             ) : (
               <KotakPesan nada="menunggu">Ada isian yang belum lengkap. Kembali ke langkah sebelumnya untuk melengkapinya.</KotakPesan>
             )}

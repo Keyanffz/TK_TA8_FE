@@ -17,7 +17,7 @@ type ZonaUnggahProps = {
   /** File yang sudah dipilih (dikendalikan react-hook-form lewat Controller). */
   nilai: File[];
   onUbah: (file: File[]) => void;
-  /** PDF diterima selain gambar (dokumen PPDB, lampiran pengumuman; bukan pas foto). */
+  /** PDF diterima selain gambar (lampiran pengumuman). */
   terimaPdf?: boolean;
   maks?: number;
   /** File yang sudah tersimpan di server (misalnya lampiran saat mengubah pengumuman), tampil di bawah label. */

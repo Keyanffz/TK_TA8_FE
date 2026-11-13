@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 
+import { BerkasDibawa } from "@/components/features/ppdb/berkas-dibawa";
 import { FormPendaftaran } from "@/components/features/ppdb/form-pendaftaran";
 import { keBodyPendaftaran } from "@/components/features/ppdb/skema-pendaftaran";
 import { Bintang } from "@/components/shared/ornamen/bintang";
@@ -10,7 +11,6 @@ import { TombolSalin } from "@/components/shared/tombol-salin";
 import { buttonVariants } from "@/components/ui/button";
 import { ambilData } from "@/lib/api/ambil-data";
 import { api } from "@/lib/api/client";
-import { keFormData } from "@/lib/api/multipart";
 import { LABEL_TINGKAT } from "@/lib/constants/label";
 import { formatTanggal } from "@/lib/format";
 import type { PendaftaranPublik } from "@/types/domain";
@@ -47,9 +47,8 @@ function BuktiPendaftaran({ pendaftaran, tanggalLahir }: Hasil) {
           <dd className="font-bold">{LABEL_TINGKAT[pendaftaran.tingkat_tujuan]}</dd>
         </div>
       </dl>
-      <p className="mt-4 text-sm text-muted-foreground">
-        Sekolah akan memeriksa dokumen dan menghubungi Anda lewat nomor HP yang diisi.
-      </p>
+      <BerkasDibawa className="mt-4" />
+      <p className="mt-4 text-sm text-muted-foreground">Sekolah menghubungi Anda lewat nomor HP yang diisi.</p>
       <Link href={urlStatus} className={buttonVariants({ size: "lg", className: "mt-6" })}>
         Cek Status Pendaftaran
       </Link>
@@ -66,9 +65,7 @@ export function DaftarPpdbPublik() {
   return (
     <FormPendaftaran
       kirim={async (nilai) => {
-        const { data } = await ambilData(
-          api.POST("/public/pendaftaran", { body: keBodyPendaftaran(nilai), bodySerializer: keFormData }),
-        );
+        const { data } = await ambilData(api.POST("/public/pendaftaran", { body: keBodyPendaftaran(nilai) }));
         return { pendaftaran: data, tanggalLahir: formatTanggal(nilai.tanggal_lahir) };
       }}
       onBerhasil={(baru) => {

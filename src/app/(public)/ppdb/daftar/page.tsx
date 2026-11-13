@@ -18,7 +18,7 @@ export default async function DaftarPpdbPage() {
     <>
       <JudulHalaman
         judul="Formulir Pendaftaran Murid Baru"
-        deskripsi={ppdb.tahun_ajaran ? `Tahun Ajaran ${ppdb.tahun_ajaran.nama}. Siapkan foto akta kelahiran, Kartu Keluarga, dan pas foto anak.` : undefined}
+        deskripsi={ppdb.tahun_ajaran ? `Tahun Ajaran ${ppdb.tahun_ajaran.nama}. Akta kelahiran, Kartu Keluarga, dan pas foto anak dibawa ke sekolah setelah formulir terkirim.` : undefined}
       />
       <div className="mx-auto max-w-3xl px-4 py-10 sm:px-6 md:py-14">
         {bisaDaftar ? (

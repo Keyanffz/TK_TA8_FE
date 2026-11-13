@@ -1020,8 +1020,7 @@ export interface paths {
         };
         /**
          * Menyajikan file private dari signed URL (`*_url`). Tidak memakai token Bearer; hak akses
-         *     sudah dicek saat URL dibuat, dan URL berlaku 30 menit. Isinya gambar JPEG atau PDF (dokumen PPDB, lampiran
-         *     pengumuman)
+         *     sudah dicek saat URL dibuat, dan URL berlaku 30 menit. Isinya gambar JPEG atau PDF (lampiran pengumuman)
          */
         get: operations["media"];
         put?: never;
@@ -1344,7 +1343,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Menandai dokumen pendaftaran sudah diperiksa dan lengkap */
+        /** Menandai berkas pendaftar (akta kelahiran, kartu keluarga, pas foto) sudah diterima dan dicek di sekolah */
         post: operations["pendaftaran.verifikasi"];
         delete?: never;
         options?: never;
@@ -1403,9 +1402,9 @@ export interface paths {
         get: operations["pendaftaran.index"];
         put?: never;
         /**
-         * Wali yang sudah login mendaftarkan kakak/adik (`multipart/form-data`) untuk tahun ajaran PPDB di pengaturan.
-         *     Ditolak kalau PPDB ditutup, kuota penuh, atau NIK anak sudah punya pendaftaran selain ditolak atau sudah
-         *     menjadi murid. Anak yang diterima ditautkan ke akun ini
+         * Wali yang sudah login mendaftarkan kakak/adik untuk tahun ajaran PPDB di pengaturan. Tanpa unggahan; akta
+         *     kelahiran, kartu keluarga, dan pas foto dibawa ke sekolah. Ditolak kalau PPDB ditutup, kuota penuh, atau NIK
+         *     anak sudah punya pendaftaran selain ditolak atau sudah menjadi murid. Anak yang diterima ditautkan ke akun ini
          */
         post: operations["pendaftaran.store"];
         delete?: never;
@@ -1421,7 +1420,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Detail pendaftaran beserta dokumen dan data wali pendaftar */
+        /** Detail pendaftaran beserta data wali pendaftar */
         get: operations["pendaftaran.show"];
         put?: never;
         post?: never;
@@ -1441,8 +1440,7 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Pendaftaran PPDB tanpa login (`multipart/form-data`), dengan isian dan aturan yang sama seperti
-         *     `POST /pendaftaran`. Dibatasi 3 pendaftaran per jam per IP. Simpan `kode` untuk mengecek status lewat
+         * Pendaftaran PPDB tanpa login, dengan isian dan aturan yang sama seperti `POST /pendaftaran`. Dibatasi 3 pendaftaran per jam per IP. Simpan `kode` untuk mengecek status lewat
          *     `GET /public/pendaftaran/status`. Kalau diterima, sekolah membuatkan akun wali dengan username NIS anak
          */
         post: operations["pendaftaran.storePublik"];
@@ -1861,7 +1859,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Menerbitkan rapor yang sudah diajukan; wali murid diberi tahu dan bisa mengunduh PDF-nya */
+        /** Menerbitkan rapor yang sudah diajukan. Rapor terbit adalah rapor final yang dicetak dan dibagikan sekolah */
         post: operations["rapor.terbitkan"];
         delete?: never;
         options?: never;
@@ -1895,10 +1893,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /**
-         * Menarik rapor yang sudah terbit kembali ke revisi, dengan catatan untuk guru pembuat. Wali murid tidak
-         *     bisa melihat rapor itu lagi sampai diterbitkan ulang
-         */
+        /** Menarik rapor yang sudah terbit kembali ke revisi, dengan catatan untuk guru pembuat */
         post: operations["rapor.tarik"];
         delete?: never;
         options?: never;
@@ -1914,8 +1909,8 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Daftar rapor. Kepala Sekolah melihat semua, guru rapor kelas yang dia ampu di tahun ajaran aktif, wali murid
-         *     rapor anaknya yang sudah terbit
+         * Daftar rapor. Kepala Sekolah melihat semua, guru rapor kelas yang dia ampu di tahun ajaran aktif. Wali murid
+         *     tidak membuka rapor di aplikasi; rapor terbit dicetak dan dibagikan sekolah
          * @description Filter `filter[kelas_id]`, `filter[semester]`, `filter[status]`, `filter[tahun_ajaran_id]`, `filter[murid_id]`.
          *     `search` mencari nama dan NIS murid. Urutan `sort` = `updated_at` | `diajukan_at` | `created_at`
          *     (bawaan `-updated_at`).
@@ -1955,6 +1950,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/rapor/{id}/pdf": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Rapor PDF. Rapor yang belum terbit diberi tanda pratinjau */
+        get: operations["rapor.pdf"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/rapor/{id}/detail/{detail_id}/foto": {
         parameters: {
             query?: never;
@@ -1986,26 +1998,6 @@ export interface paths {
         put?: never;
         /** Mengajukan rapor ke Kepala Sekolah. Semua elemen harus sudah berdeskripsi */
         post: operations["rapor.ajukan"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/rapor/{id}/pdf": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Rapor PDF. Wali murid hanya bisa mengunduh rapor yang sudah terbit; rapor yang belum terbit diberi tanda
-         *     pratinjau
-         */
-        get: operations["rapor.pdf"];
-        put?: never;
-        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -2191,7 +2183,7 @@ export interface paths {
         get: operations["tagihan.index"];
         put?: never;
         /**
-         * Membuat tagihan sekali bayar (uang pangkal, seragam) untuk murid tertentu (`murid_ids`) atau semua murid
+         * Membuat tagihan sekali bayar (uang pendidikan, seragam) untuk murid tertentu (`murid_ids`) atau semua murid
          *     aktif satu kelas (`kelas_id`). Murid yang sudah punya tagihan jenis itu (selain dibatalkan), tidak aktif,
          *     atau tingkat kelasnya tidak sesuai dilewati
          */
@@ -2480,8 +2472,7 @@ export interface components {
         };
         /**
          * BuatPendaftaranRequest
-         * @description `POST /pendaftaran` (multipart). Dokumen dikirim per jenis: `akta_kelahiran`, `kartu_keluarga`, dan
-         *     `pas_foto` wajib (gambar atau PDF; pas foto harus gambar), `lainnya[]` opsional maksimal 3 file.
+         * @description `POST /pendaftaran` dan `POST /public/pendaftaran`. Tanpa unggahan; berkas dibawa pendaftar ke sekolah.
          */
         BuatPendaftaranRequest: {
             hubungan: components["schemas"]["Hubungan"];
@@ -2500,22 +2491,6 @@ export interface components {
             nama_ibu?: string | null;
             pekerjaan_ibu?: string | null;
             no_hp: string;
-            /**
-             * Format: binary
-             * @description Maximum file size: 5120 kilobytes.
-             */
-            akta_kelahiran: Blob;
-            /**
-             * Format: binary
-             * @description Maximum file size: 5120 kilobytes.
-             */
-            kartu_keluarga: Blob;
-            /**
-             * Format: binary
-             * @description Maximum file size: 5120 kilobytes.
-             */
-            pas_foto: Blob;
-            lainnya?: Blob[];
         };
         /**
          * BuatRaporRequest
@@ -2677,11 +2652,6 @@ export interface components {
          */
         JenisAgenda: "kegiatan" | "libur" | "rapat" | "lainnya";
         /**
-         * JenisDokumen
-         * @enum {string}
-         */
-        JenisDokumen: "akta_kelahiran" | "kartu_keluarga" | "pas_foto" | "lainnya";
-        /**
          * JenisKelamin
          * @enum {string}
          */
@@ -2689,6 +2659,24 @@ export interface components {
         /**
          * JenisNotifikasi
          * @description Nilai `jenis` pada notifikasi (A7 "Bentuk notifikasi"). FE memakainya untuk ikon dan pengelompokan.
+         *     | |
+         *     |---|
+         *     | `tagihan_baru` <br/>  |
+         *     | `tagihan_tertunda` <br/>  |
+         *     | `pengingat_tagihan` <br/>  |
+         *     | `tagihan_terlambat` <br/>  |
+         *     | `pembayaran_masuk` <br/>  |
+         *     | `pembayaran_diterima` <br/>  |
+         *     | `pembayaran_ditolak` <br/>  |
+         *     | `rapor_diajukan` <br/>  |
+         *     | `rapor_revisi` <br/>  |
+         *     | `rapor_terbit` <br/> Hanya ada di notifikasi lama; sejak wali murid tidak membuka rapor di aplikasi, jenis ini tidak dibuat lagi. |
+         *     | `pengumuman_baru` <br/>  |
+         *     | `pendaftaran_baru` <br/>  |
+         *     | `pendaftaran_diproses` <br/>  |
+         *     | `anak_tertaut` <br/>  |
+         *     | `absensi_tercatat` <br/>  |
+         *     | `absensi_dikoreksi` <br/>  |
          * @enum {string}
          */
         JenisNotifikasi: "tagihan_baru" | "tagihan_tertunda" | "pengingat_tagihan" | "tagihan_terlambat" | "pembayaran_masuk" | "pembayaran_diterima" | "pembayaran_ditolak" | "rapor_diajukan" | "rapor_revisi" | "rapor_terbit" | "pengumuman_baru" | "pendaftaran_baru" | "pendaftaran_diproses" | "anak_tertaut" | "absensi_tercatat" | "absensi_dikoreksi";
@@ -3115,11 +3103,6 @@ export interface components {
                 username: string | null;
                 no_hp: string | null;
             } | null;
-            dokumen: {
-                id: number;
-                jenis: components["schemas"]["JenisDokumen"];
-                url: string;
-            }[];
         };
         /** PendaftaranPublikResource */
         PendaftaranPublikResource: {
@@ -3337,8 +3320,7 @@ export interface components {
             berat_badan: number | null;
             catatan_guru: string | null;
             status: components["schemas"]["StatusRapor"];
-            /** @description Tidak dikirim ke wali murid. */
-            catatan_revisi?: string | null;
+            catatan_revisi: string | null;
             pembuat: {
                 id: number;
                 nama: string;
@@ -3384,8 +3366,7 @@ export interface components {
             berat_badan: number | null;
             catatan_guru: string | null;
             status: components["schemas"]["StatusRapor"];
-            /** @description Tidak dikirim ke wali murid. */
-            catatan_revisi?: string | null;
+            catatan_revisi: string | null;
             pembuat: {
                 id: number;
                 nama: string;
@@ -5833,7 +5814,6 @@ export interface operations {
                             kegiatan_terbaru: components["schemas"]["KegiatanKelasResource"][];
                             pengumuman_terbaru: components["schemas"]["PengumumanResource"][];
                             agenda_mendatang: components["schemas"]["AgendaResource"][];
-                            rapor_terbaru: components["schemas"]["RaporResource"] | null;
                             info_sekolah: {
                                 judul: string;
                                 isi: string;
@@ -13165,7 +13145,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "multipart/form-data": components["schemas"]["BuatPendaftaranRequest"];
+                "application/json": components["schemas"]["BuatPendaftaranRequest"];
             };
         };
         responses: {
@@ -13346,7 +13326,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "multipart/form-data": components["schemas"]["BuatPendaftaranRequest"];
+                "application/json": components["schemas"]["BuatPendaftaranRequest"];
             };
         };
         responses: {
@@ -15758,7 +15738,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            /** @description FORBIDDEN / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -15768,7 +15748,7 @@ export interface operations {
                         success: boolean;
                         message: string;
                         /** @enum {string} */
-                        code: "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        code: "FORBIDDEN" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
                         errors: null;
                     };
                 };
@@ -15941,7 +15921,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            /** @description FORBIDDEN / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -15951,7 +15931,7 @@ export interface operations {
                         success: boolean;
                         message: string;
                         /** @enum {string} */
-                        code: "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        code: "FORBIDDEN" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
                         errors: null;
                     };
                 };
@@ -16078,6 +16058,90 @@ export interface operations {
                         errors: {
                             [key: string]: string[];
                         };
+                    };
+                };
+            };
+            /** @description TOO_MANY_REQUESTS */
+            429: {
+                headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "TOO_MANY_REQUESTS";
+                        errors: null;
+                    };
+                };
+            };
+        };
+    };
+    "rapor.pdf": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Rapor PDF */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/pdf": Blob;
+                };
+            };
+            /** @description UNAUTHENTICATED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "UNAUTHENTICATED";
+                        errors: null;
+                    };
+                };
+            };
+            /** @description FORBIDDEN / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "FORBIDDEN" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        errors: null;
+                    };
+                };
+            };
+            /** @description NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "NOT_FOUND";
+                        errors: null;
                     };
                 };
             };
@@ -16292,90 +16356,6 @@ export interface operations {
                         message: string;
                         /** @enum {string} */
                         code: "BUSINESS_RULE";
-                        errors: null;
-                    };
-                };
-            };
-            /** @description TOO_MANY_REQUESTS */
-            429: {
-                headers: {
-                    /** @description Jumlah detik sampai boleh mencoba lagi. */
-                    "Retry-After": number;
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                        /** @enum {string} */
-                        code: "TOO_MANY_REQUESTS";
-                        errors: null;
-                    };
-                };
-            };
-        };
-    };
-    "rapor.pdf": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Rapor PDF */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/pdf": Blob;
-                };
-            };
-            /** @description UNAUTHENTICATED */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                        /** @enum {string} */
-                        code: "UNAUTHENTICATED";
-                        errors: null;
-                    };
-                };
-            };
-            /** @description ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                        /** @enum {string} */
-                        code: "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
-                        errors: null;
-                    };
-                };
-            };
-            /** @description NOT_FOUND */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        success: boolean;
-                        message: string;
-                        /** @enum {string} */
-                        code: "NOT_FOUND";
                         errors: null;
                     };
                 };

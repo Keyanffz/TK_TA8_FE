@@ -33,6 +33,7 @@ Website publik dan dashboard sistem informasi TK Tarbiyatul Athfal 8 (TK Muslima
 | Lampiran pengumuman (kontrak di branch `claude/modest-clarke-625zwd`, kode di `fe/lampiran-pengumuman`; backend `be/lampiran-pengumuman`) | Selesai, diuji di browser bersama backend asli, di-merge (PR #21; backend PR #17; lihat "Keputusan lampiran pengumuman") |
 | Pesan unggahan yang ditolak PHP dari backend PR #19 (branch `ccr-321f1c6b-kacabx`) | Selesai; kode FE tidak berubah, hanya kutipan pesan di dokumen; di-merge (PR #22) |
 | Revisi sekolah R1: penolakan saat menyimpan murid terlihat di formulir (branch `fe/perbaikan-tambah-murid`; backend `be/perbaikan-tambah-murid`) | Selesai, menunggu review; lint, typecheck, build, `check:slop`; belum diuji di browser |
+| Revisi sekolah R2: PPDB tanpa unggah berkas, halaman rapor wali murid dihapus, contoh "uang pendidikan" (branch `fe/revisi-kecil`; backend `be/revisi-kecil`) | Selesai, menunggu review; lint, typecheck, build, `check:slop`; belum diuji di browser |
 
 Mode mock tidak dipakai: `api.json` final dari backend sudah tersedia sejak Fase 1, jadi semua request memakai backend asli dan tipe hasil generate. Tidak ada endpoint mock.
 
@@ -418,6 +419,16 @@ Revisi 3 dari sekolah: murid baru tidak tersimpan. Di lokal alur tambah murid be
 - **Pesan untuk HTTP 413**: balasan 413 yang bukan JSON (ditolak web server sebelum sampai ke backend) menampilkan "File yang dikirim terlalu besar untuk server sekolah. Pilih file yang lebih kecil, lalu coba lagi.", bukan "Server sekolah sedang tidak bisa dihubungi.".
 - Tombol "Import Data Alumni" di halaman Alumni sudah ada sejak `fe/hak-akses-status-murid`; tidak ada tombol tambah baru.
 
+## Keputusan revisi sekolah R2 (menunggu review)
+
+Revisi 1, 4, dan 6 dari sekolah. Menggantikan keputusan F6-5 dan F6-6 (rapor untuk wali) serta langkah Dokumen di form PPDB.
+
+- **PPDB tanpa unggahan**: form pendaftaran tinggal tiga langkah (Data anak, Orang tua, Periksa) dan dikirim sebagai JSON. `BerkasDibawa` (`src/components/features/ppdb/berkas-dibawa.tsx`) menampilkan berkas yang dibawa ke sekolah (akta kelahiran anak, Kartu Keluarga, pas foto anak) di langkah Periksa, di bukti pendaftaran publik, dan di detail pendaftaran selama statusnya `diajukan`. Rincian seperti jumlah fotokopi atau ukuran pas foto tidak ditulis di kode; sekolah mengisinya di info PPDB (`/mudarris/pengaturan?tab=ppdb`).
+- **Istilah "berkas"**: status `diverifikasi` berlabel "Berkas diverifikasi", tab pendaftar "Berkas OK", tombol Kepala Sekolah "Berkas Sudah Sesuai". Artinya berkas sudah diterima dan dicek di sekolah, bukan dibaca dari unggahan.
+- **Rapor tertutup untuk wali murid**: `/dashboard/rapor` dan `/dashboard/rapor/[id]` dihapus, menu Rapor hanya untuk guru dan Kepala Sekolah, kartu rapor di beranda wali dihapus. `DetailRapor` hanya dipakai staff, jadi cabang `isWali` dan kotak "Rapor ini belum bisa dibuka" dibuang. `TombolPdfRapor` tinggal pratinjau di tab baru.
+- **Notifikasi rapor terbit lama**: notifikasi yang tersimpan sebelum revisi ini masih menaut ke `/dashboard/rapor/{id}`. `src/proxy.ts` mengarahkan alamat itu ke `/dashboard`. Jenis `rapor_terbit` tetap ada di `TAMPILAN_NOTIFIKASI` karena backend masih mengirim baris lamanya.
+- **Contoh tagihan sekali bayar**: "uang pangkal" diganti "uang pendidikan" di teks kosong jenis tagihan.
+
 ## Keputusan lampiran pengumuman
 
 Disetujui pemilik repo: satu file PDF atau gambar, maksimal 5 MB, dan lampiran pengumuman publik bisa diunduh pengunjung website. Kontrak di `docs/kontrak-api-lampiran-pengumuman.md`, ringkasannya di A2.9, A3, A4, A7, dan baris pengumuman B4. Backend di-merge lewat PR #17. Yang diputuskan saat pengerjaan FE:
@@ -552,7 +563,7 @@ Andika hanya punya bobot 400 dan 700, jadi `font-semibold` tampil sebagai 700.
 | `/pengumuman`, `/pengumuman/[slug]` | publik | Daftar berpaginasi (`?page=`) dengan penanda lampiran, dan detail pengumuman publik dengan kartu lampiran (unduhan lewat alamat tetap backend) |
 | `/galeri`, `/galeri/[slug]` | publik | Daftar album berpaginasi dan detail album dengan lightbox (panah kiri/kanan, Esc) |
 | `/ppdb` | publik | Status buka/tutup, jadwal, kuota, sisa kuota, info HTML; tombol ke `/ppdb/daftar` dan tautan cek status |
-| `/ppdb/daftar` | publik | Form pendaftaran 4 langkah tanpa login (`POST /public/pendaftaran`); setelah terkirim tampil kode pendaftaran + salin. PPDB tutup/kuota penuh → pesan tanpa form |
+| `/ppdb/daftar` | publik | Form pendaftaran 3 langkah tanpa login, tanpa unggahan (`POST /public/pendaftaran`); setelah terkirim tampil kode pendaftaran + salin. PPDB tutup/kuota penuh → pesan tanpa form |
 | `/ppdb/status?kode=` | publik | Cek status dengan kode + tanggal lahir anak (`GET /public/pendaftaran/status`) |
 | `/login` | publik (sudah masuk → beranda role) | Login wali murid: NIS anak + password, tanpa pilihan role. Tujuan setelah masuk: ganti password awal, onboarding, lalu `?next=` atau beranda |
 | `/mudarris/login` | publik (sudah masuk → beranda role) | Guru dan Kepala Sekolah: satu form, email + password Kepala Sekolah dan tautan lupa password, pemisah "atau", tombol Google selebar form. Hanya ditautkan kecil dari footer landing ("Masuk guru") dan dari halaman lupa/reset password |
@@ -563,7 +574,7 @@ Andika hanya punya bobot 400 dan 700, jadi `font-semibold` tampil sebagai 700.
 | `/dashboard/anak` | W | Kartu anak tertaut + form Tambah Anak (NIS, tanggal lahir, hubungan) |
 | `/dashboard/ppdb` (W); `/mudarris/ppdb` (SA, G) | SA, W | SA: ringkasan status PPDB + tabel pendaftar per status. W: pendaftaran miliknya + tombol daftar |
 | `/dashboard/ppdb/daftar` | W | Form yang sama dengan form publik (`POST /pendaftaran`), nomor HP dan alamat terisi dari profil |
-| `/dashboard/ppdb/[id]` (W); `/mudarris/ppdb/[id]` (SA, G) | SA, W (miliknya) | Detail + dokumen; SA: verifikasi, terima (pilih kelas), tolak |
+| `/dashboard/ppdb/[id]` (W); `/mudarris/ppdb/[id]` (SA, G) | SA, W (miliknya) | Detail; SA: verifikasi berkas yang dibawa ke sekolah, terima (pilih kelas), tolak |
 | `/mudarris/website` | SA, G (`konten_website`; `lihat` = form nonaktif) | CMS lima tab (`?tab=`), Lihat Pratinjau, penjaga perubahan belum disimpan |
 | `/mudarris/website/galeri`, `/[id]` | SA, G (`konten_website`; kelola album dan foto untuk `kelola`) | Album galeri; detail album dengan kelola foto |
 | `/mudarris/log-aktivitas` | SA | Tabel log + saringan jenis dan tanggal |
@@ -588,8 +599,8 @@ Andika hanya punya bobot 400 dan 700, jadi `font-semibold` tampil sebagai 700.
 | `/dashboard/kegiatan` (W); `/mudarris/kegiatan` (SA, G) | SA, G, W (lihat) | SA/G: feed + saringan kelas + cari, tombol Catat Kegiatan. W: feed kelas anak aktif |
 | `/mudarris/kegiatan/baru` | SA, G | Form kegiatan + unggah foto (maks 10); `?kelas=` memilih kelas awal |
 | `/dashboard/kegiatan/[id]` (W); `/mudarris/kegiatan/[id]` (SA, G) | SA, G, W | Detail + galeri + lightbox; pembuat/SA: ubah, hapus, kelola foto (keterangan, urutan, hapus, tambah) |
-| `/dashboard/rapor` (W); `/mudarris/rapor` (SA, G) | SA, G, W | G: kelas + semester → murid + status → buat/isi. SA: Menunggu Review, Semua Rapor, Kelas Saya. W: rapor terbit anak aktif + unduh PDF |
-| `/dashboard/rapor/[id]` (W); `/mudarris/rapor/[id]` (SA, G) | SA, G, W | Editor (pembuat saat draft/revisi, SA saat diajukan) atau tampilan; ajukan, terbitkan, minta revisi, tarik; PDF. W: rapor ditarik → pesan ramah |
+| `/mudarris/rapor` | SA, G | G: kelas + semester → murid + status → buat/isi. SA: Menunggu Review, Semua Rapor, Kelas Saya |
+| `/mudarris/rapor/[id]` | SA, G | Editor (pembuat saat draft/revisi, SA saat diajukan) atau tampilan; ajukan, terbitkan, minta revisi, tarik; pratinjau PDF |
 | `/dashboard/pengumuman` (W); `/mudarris/pengumuman` (SA, G) | SA, G, W (lihat) | Feed (disematkan di atas, penanda lampiran); SA/G: tab Semua/Terbit/Draft, cari, Tulis Pengumuman |
 | `/mudarris/pengumuman/baru` | SA, G | Form Tiptap + sasaran + lampiran opsional (satu PDF atau gambar, maksimal 5 MB); `?dari=tunggakan&kelas=` terisi murid penunggak (K) |
 | `/dashboard/pengumuman/[id]` (W); `/mudarris/pengumuman/[id]`, `/[id]/ubah` (SA, G) | SA, G, W / penulis, SA | Detail dengan kartu lampiran; ubah (termasuk ganti atau hapus lampiran) dan hapus untuk penulis dan SA |
@@ -631,6 +642,29 @@ Tempat deploy belum ditentukan. Syarat yang sudah pasti:
 6. **Masuk dengan Google**: `NEXT_PUBLIC_GOOGLE_CLIENT_ID` diisi sebelum `npm run build`, dan origin FE produksi (misalnya `https://tkta8.sch.id`) didaftarkan di Authorized JavaScript origins Client ID itu di Google Cloud Console. Backend memakai Client ID yang sama di `GOOGLE_CLIENT_ID`.
 
 ## Changelog
+
+### Revisi sekolah R2: PPDB tanpa unggah berkas dan rapor tertutup untuk wali murid (branch `fe/revisi-kecil`)
+
+Pasangan backend `be/revisi-kecil`. `api.d.ts` di-generate ulang dari `api.json` backend. Keputusan di "Keputusan revisi sekolah R2".
+
+Baru:
+
+- `src/components/features/ppdb/berkas-dibawa.tsx`: daftar berkas yang dibawa ke sekolah.
+
+Dihapus:
+
+- `src/components/features/ppdb/langkah-dokumen.tsx`, `src/components/features/ppdb-sekolah/dokumen-pendaftaran.tsx`, `LABEL_JENIS_DOKUMEN`, tipe `JenisDokumen`.
+- `src/app/dashboard/(halaman)/rapor/` (daftar dan detail), `src/components/features/rapor/daftar-rapor-wali.tsx`, `src/components/features/beranda/wali/kartu-rapor.tsx`, `namaFileRapor()`.
+
+Diubah:
+
+- `skema-pendaftaran.ts`, `form-pendaftaran.tsx`, `ringkasan-pendaftaran.tsx`, `daftar-ppdb-publik.tsx`, `daftar-ppdb-wali.tsx`: tanpa field file, body JSON.
+- `hasil-status-ppdb.tsx`, `pendaftaran-saya.tsx`, `detail-pendaftaran.tsx`, `daftar-pendaftar.tsx`, `label.ts`, halaman `/ppdb/daftar` dan `/mudarris/ppdb`: teks memakai "berkas" dan menyebut berkas dibawa ke sekolah.
+- `beranda-wali.tsx`, `navigation.ts`, `detail-rapor.tsx`, `aksi-rapor.tsx`, `tombol-pdf-rapor.tsx`, `src/proxy.ts`, `(auth)/layout.tsx`: rapor tidak lagi untuk wali murid.
+- `daftar-jenis-tagihan.tsx`, `dialog-tagihan-sekali.tsx`: contoh "uang pendidikan".
+- `PROMPT_FE_TK.md` Bagian A (identik dengan backend) dan Bagian B, `README.md`.
+
+Pengecekan: lint, typecheck, build, `check:slop` bersih. Belum diuji di browser.
 
 ### Revisi sekolah R1: penolakan saat menyimpan murid terlihat di formulir (branch `fe/perbaikan-tambah-murid`)
 

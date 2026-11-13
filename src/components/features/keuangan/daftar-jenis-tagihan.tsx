@@ -83,7 +83,7 @@ export function DaftarJenisTagihan() {
       ) : jenis.isError ? (
         <GalatMuat error={jenis.error} onCobaLagi={() => void jenis.refetch()} />
       ) : jenis.data.length === 0 ? (
-        <EmptyState judul="Belum ada jenis tagihan di tahun ajaran ini." deskripsi="Tambahkan SPP bulanan dan tagihan sekali bayar seperti uang pangkal atau seragam." />
+        <EmptyState judul="Belum ada jenis tagihan di tahun ajaran ini." deskripsi="Tambahkan SPP bulanan dan tagihan sekali bayar seperti uang pendidikan atau seragam." />
       ) : (
         <div className={cn("overflow-hidden rounded-xl border border-border bg-card shadow-sm", jenis.isPlaceholderData && "opacity-60")}>
           <Table aria-label="Jenis tagihan">
