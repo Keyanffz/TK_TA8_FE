@@ -39,3 +39,45 @@ export function ambilEksporAbsensiMurid(kelasId: number, bulan: string, format: 
     api.GET("/kelas/{id}/absensi-murid/rekap/export", { params: { path: { id: kelasId }, query: { bulan, format } }, parseAs: "blob" }),
   );
 }
+
+export function useHariSekolahKelas(kelasId: number) {
+  return useQuery({
+    queryKey: queryKeys.absensiMurid.hariSekolah(kelasId),
+    queryFn: async () => (await ambilData(api.GET("/kelas/{id}/hari-sekolah", { params: { path: { id: kelasId } } }))).data,
+  });
+}
+
+export type HariSekolahKelas = NonNullable<ReturnType<typeof useHariSekolahKelas>["data"]>;
+export type LiburKelas = HariSekolahKelas["libur"][number];
+
+// Hari sekolah dan libur menentukan tanggal yang bisa dicatat dan isi rekap, jadi semua data absensi kelas itu dimuat ulang.
+function useSegarkanAbsensiKelas(kelasId: number) {
+  const queryClient = useQueryClient();
+  return () => queryClient.invalidateQueries({ queryKey: queryKeys.absensiMurid.semua(kelasId) });
+}
+
+export function useUbahHariSekolah(kelasId: number) {
+  const segarkan = useSegarkanAbsensiKelas(kelasId);
+  return useMutation({
+    mutationFn: (hariSekolah: number[]) =>
+      ambilData(api.PUT("/kelas/{id}/hari-sekolah", { params: { path: { id: kelasId } }, body: { hari_sekolah: hariSekolah } })),
+    onSuccess: segarkan,
+  });
+}
+
+export function useTambahLiburKelas(kelasId: number) {
+  const segarkan = useSegarkanAbsensiKelas(kelasId);
+  return useMutation({
+    mutationFn: (body: { tanggal_mulai: string; tanggal_selesai: string | null; keterangan: string }) =>
+      ambilData(api.POST("/kelas/{id}/libur", { params: { path: { id: kelasId } }, body })),
+    onSuccess: segarkan,
+  });
+}
+
+export function useHapusLiburKelas(kelasId: number) {
+  const segarkan = useSegarkanAbsensiKelas(kelasId);
+  return useMutation({
+    mutationFn: (liburId: number) => ambilData(api.DELETE("/kelas/{id}/libur/{libur_id}", { params: { path: { id: kelasId, libur_id: liburId } } })),
+    onSuccess: segarkan,
+  });
+}

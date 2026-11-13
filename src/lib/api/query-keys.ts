@@ -93,6 +93,7 @@ export const queryKeys = {
     semua: (kelasId: number) => ["absensi-murid", kelasId] as const,
     harian: (kelasId: number, tanggal: string) => ["absensi-murid", kelasId, "harian", tanggal] as const,
     rekap: (kelasId: number, bulan: string) => ["absensi-murid", kelasId, "rekap", bulan] as const,
+    hariSekolah: (kelasId: number) => ["absensi-murid", kelasId, "hari-sekolah"] as const,
   },
   laporan: {
     keuangan: (filter: object) => ["laporan", "keuangan", filter] as const,

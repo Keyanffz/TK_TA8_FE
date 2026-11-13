@@ -4,6 +4,7 @@ import Link from "next/link";
 import { parseAsStringLiteral, useQueryState } from "nuqs";
 import { toast } from "sonner";
 
+import { HariSekolahKelas } from "@/components/features/kelas/hari-sekolah-kelas";
 import { IsianAbsensiMurid } from "@/components/features/kelas/isian-absensi-murid";
 import { RekapAbsensiMurid } from "@/components/features/kelas/rekap-absensi-murid";
 import { TambahMuridKelas } from "@/components/features/kelas/tambah-murid-kelas";
@@ -68,7 +69,7 @@ function DaftarMuridKelas({ kelas, bisaKelola }: { kelas: KelasDetail; bisaKelol
   );
 }
 
-const TAB = ["murid", "absensi", "rekap-absensi"] as const;
+const TAB = ["murid", "absensi", "hari-sekolah", "rekap-absensi"] as const;
 
 /**
  * Absensi murid hanya untuk Kepala Sekolah, serta wali kelas dan guru pendamping kelas ini di tahun ajaran aktif;
@@ -123,20 +124,28 @@ export function DetailKelas({ id, bisaKelola, guruId }: { id: number; bisaKelola
       </div>
       {bisaAbsensiMurid(kelas, bisaKelola, guruId) ? (
         <Tabs value={tab} onValueChange={(nilai) => void setTab(TAB.find((satu) => satu === nilai && satu !== "murid") ?? null)} className="gap-5">
-          <TabsList aria-label="Bagian kelas">
-            <TabsTrigger value="murid" className="px-4">
-              Murid
-            </TabsTrigger>
-            <TabsTrigger value="absensi" className="px-4">
-              Absensi
-            </TabsTrigger>
-            <TabsTrigger value="rekap-absensi" className="px-4">
-              Rekap Absensi
-            </TabsTrigger>
-          </TabsList>
+          <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
+            <TabsList aria-label="Bagian kelas">
+              <TabsTrigger value="murid" className="px-4">
+                Murid
+              </TabsTrigger>
+              <TabsTrigger value="absensi" className="px-4">
+                Absensi
+              </TabsTrigger>
+              <TabsTrigger value="hari-sekolah" className="px-4">
+                Hari Sekolah
+              </TabsTrigger>
+              <TabsTrigger value="rekap-absensi" className="px-4">
+                Rekap Absensi
+              </TabsTrigger>
+            </TabsList>
+          </div>
           <TabsContent value="murid">{bagianMurid}</TabsContent>
           <TabsContent value="absensi">
             <IsianAbsensiMurid kelasId={kelas.id} />
+          </TabsContent>
+          <TabsContent value="hari-sekolah">
+            <HariSekolahKelas kelasId={kelas.id} />
           </TabsContent>
           <TabsContent value="rekap-absensi">
             <RekapAbsensiMurid kelasId={kelas.id} namaKelas={kelas.nama} />
