@@ -9,6 +9,7 @@ import { GrafikPemasukan } from "@/components/features/beranda/kepala-sekolah/gr
 import { PerluTindakan } from "@/components/features/beranda/kepala-sekolah/perlu-tindakan";
 import { PanelBeranda } from "@/components/features/beranda/panel-beranda";
 import { SapaanBeranda } from "@/components/features/beranda/sapaan-beranda";
+import { EmptyState } from "@/components/shared/empty-state";
 import { GalatMuat } from "@/components/shared/galat-muat";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useDashboardKepalaSekolah, type DashboardKepalaSekolah } from "@/lib/api/dashboard";
@@ -62,6 +63,9 @@ export function BerandaKepalaSekolah({ nama }: { nama: string }) {
 }
 
 function KeuanganBulanIni({ keuangan }: { keuangan: DashboardKepalaSekolah["keuangan_bulan_ini"] }) {
+  if (keuangan.total_tagihan === 0) {
+    return <EmptyState ringkas judul="Belum ada tagihan yang jatuh tempo bulan ini." />;
+  }
   const persen = Math.min(Math.max(keuangan.persen_lunas, 0), 100);
 
   return (

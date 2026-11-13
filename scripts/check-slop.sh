@@ -31,6 +31,9 @@ periksa "Placeholder" -iE '\b(TODO|FIXME|lorem|ipsum)\b|john doe|example\.com' "
 periksa "Pembungkam checker" -E '@ts-ignore|@ts-expect-error|@ts-nocheck|eslint-disable|as any\b|: any\b|<any>|any\[\]' "${SUMBER[@]}"
 periksa "Kata terlarang C3" -iE 'seamless|revolusioner|solusi (terdepan|terbaik)|era digital|transformasi digital|memberdayakan|tingkatkan pengalaman|all-in-one|mudah, cepat, dan aman|canggih|inovatif|selamat datang di masa depan|mari bersama|#1([^0-9a-fA-F]|$)' src "${dokumen_ada[@]}"
 periksa "Istilah glosarium C4" -iE 'kata sandi' src
+periksa "Pesan error generik C3" -iE 'terjadi kesalahan|something went wrong|\boops\b' src
+periksa "Label tombol generik C3" -E '>\s*(Submit|Get Started|Learn More|Click here|Klik di sini)\s*<|"(Submit|Get Started|Learn More)"' src
+periksa "Komentar banner C1" -E '(//|/\*|\{/\*)\s*[=-]{4,}' "${SUMBER[@]}"
 
 if [[ $temuan -eq 0 ]]; then
   echo "check:slop bersih."

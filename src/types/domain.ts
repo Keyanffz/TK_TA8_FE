@@ -47,7 +47,6 @@ export type Pengumuman = Schemas["PengumumanResource"];
 export type LampiranPengumuman = NonNullable<Pengumuman["lampiran"]>;
 export type JenisLampiran = LampiranPengumuman["jenis"];
 export type Notifikasi = Schemas["NotifikasiResource"];
-export type AnakWali = Schemas["AnakWaliResource"];
 export type Guru = Schemas["GuruResource"];
 export type TahunAjaran = Schemas["TahunAjaranResource"];
 export type Kelas = Schemas["KelasResource"];
@@ -81,7 +80,6 @@ export type HasilImportMurid = DataRespons<"importMurid.simpan">;
 
 export type Dashboard = DataRespons<"dashboard.dashboard">;
 export type LaporanKeuangan = DataRespons<"laporan.keuangan">;
-export type LaporanTunggakan = DataRespons<"laporan.tunggakan">;
 export type AbsensiHariIni = DataRespons<"absensi.hariIni">;
 export type RekapAbsensi = DataRespons<"absensi.rekap">[number];
 export type AbsensiPerTanggal = DataRespons<"absensi.harian">;

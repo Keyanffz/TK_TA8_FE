@@ -130,7 +130,7 @@ export function WizardKenaikan() {
               pemicu={<Button disabled={belumLengkap > 0 || penempatan.size === 0}>Simpan Kenaikan Kelas</Button>}
               judul="Simpan kenaikan kelas?"
               deskripsi={`${penempatan.size} murid akan ditempatkan di Tahun Ajaran ${namaTujuan ?? ""}. Penempatan lama ditandai naik, tinggal, atau lulus.`}
-              labelAksi="Simpan"
+              labelAksi="Simpan Kenaikan Kelas"
               onKonfirmasi={async () => {
                 const { data } = await kenaikan.mutateAsync({
                   tahun_ajaran_tujuan_id: tujuanId,

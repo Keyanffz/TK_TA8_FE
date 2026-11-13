@@ -32,12 +32,6 @@ export function formatTanggal(nilai: string): string {
   return new Intl.DateTimeFormat("id-ID", { day: "numeric", month: "long", year: "numeric", timeZone }).format(date);
 }
 
-/** "2026-09-26" → "26 Sep" */
-export function formatTanggalPendek(nilai: string): string {
-  const { date, timeZone } = keDate(nilai);
-  return new Intl.DateTimeFormat("id-ID", { day: "numeric", month: "short", timeZone }).format(date);
-}
-
 /** Bagian tanggal terpisah untuk blok kalender: { hari: "02", bulan: "Okt" } */
 export function bagianTanggal(nilai: string): { hari: string; bulan: string } {
   const { date, timeZone } = keDate(nilai);

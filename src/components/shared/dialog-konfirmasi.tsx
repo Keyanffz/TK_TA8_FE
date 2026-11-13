@@ -16,7 +16,7 @@ type DialogKonfirmasiProps = {
   labelAksi: string;
   /** Tombol merah untuk aksi yang merugikan (hapus, tolak, nonaktifkan). */
   berbahaya?: boolean;
-  /** Minta alasan (wajib diisi), misalnya tolak pendaftaran guru atau batalkan tagihan. */
+  /** Minta alasan (wajib diisi), misalnya tolak pendaftaran PPDB atau batalkan tagihan. */
   labelAlasan?: string;
   onKonfirmasi: (alasan: string) => Promise<unknown>;
 };

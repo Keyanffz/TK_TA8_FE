@@ -18,7 +18,6 @@ async function ambilDashboard(muridId: number | null): Promise<Dashboard> {
 // role, jadi bentuknya dipastikan lewat kunci khas masing-masing.
 export type DashboardKepalaSekolah = Extract<Dashboard, { statistik: unknown }>;
 export type DashboardGuru = Extract<Dashboard, { kelas_saya: unknown }>;
-export type DashboardWali = Extract<Dashboard, { tagihan_aktif: unknown }>;
 
 function bentukTidakSesuai(): never {
   throw new Error("Bentuk data beranda dari server tidak sesuai dengan akun ini. Muat ulang halaman.");
