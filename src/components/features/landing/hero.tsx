@@ -43,15 +43,12 @@ export function Hero({ profil, warnaTepi }: HeroProps) {
 
       <div className="mx-auto grid max-w-6xl items-center gap-10 px-4 pt-10 pb-6 sm:px-6 md:grid-cols-[1.15fr_1fr] md:pt-16 md:pb-10">
         <div>
-          <p
-            className="gerak-masuk inline-flex rounded-full bg-highlight px-3 py-1 text-sm font-bold text-highlight-foreground"
-            style={urutan(0)}
-          >
-            {NAUNGAN_SEKOLAH}
-          </p>
-          <h1 className="gerak-masuk-naik mt-4 text-2xl leading-[1.1] font-extrabold" style={urutan(1)}>
+          <h1 className="gerak-masuk-naik text-2xl leading-[1.1] font-extrabold" style={urutan(0)}>
             {hero.judul ?? profil.namaSekolah}
           </h1>
+          <p className="gerak-masuk-naik mt-2 font-heading font-bold text-primary-foreground/90" style={urutan(1)}>
+            {NAUNGAN_SEKOLAH}
+          </p>
           {hero.subjudul ? (
             <p className="gerak-masuk-naik mt-4 max-w-prose text-lg text-primary-foreground/95" style={urutan(2)}>
               {hero.subjudul}
