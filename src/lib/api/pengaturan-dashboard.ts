@@ -86,6 +86,17 @@ export const skemaAbsensi = z.object({
   "absensi.jam_khusus": z
     .array(z.object({ hari: z.number(), jam_masuk: z.object({ buka: jam, batas_terlambat: jam, tutup: jam }), jam_pulang: z.object({ buka: jam, tutup: jam }) }))
     .catch([]),
+  "absensi.jam_tanggal": z
+    .array(
+      z.object({
+        mulai: z.string(),
+        selesai: z.string(),
+        keterangan: z.string(),
+        jam_masuk: z.object({ buka: jam, batas_terlambat: jam, tutup: jam }),
+        jam_pulang: z.object({ buka: jam, tutup: jam }),
+      }),
+    )
+    .catch([]),
   "absensi.hari_kerja": z.array(z.number()).catch([1, 2, 3, 4, 5, 6]),
   "absensi.tanggal_libur": z.array(z.string()).catch([]),
   "absensi.masa_simpan_foto_bulan": z.number().catch(6),
