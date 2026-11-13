@@ -37,6 +37,7 @@ Website publik dan dashboard sistem informasi TK Tarbiyatul Athfal 8 (TK Muslima
 | Revisi sekolah R3: pembayaran tunai dengan cicilan, wali kelas ikut mencatat, pembatalan pembayaran (branch `fe/pembayaran-tunai-cicilan`, di atas `fe/revisi-kecil`; backend `be/pembayaran-tunai-cicilan`) | Selesai, menunggu review; lint, typecheck, build, `check:slop`, uji curl lewat proxy `next start`; belum diuji di browser |
 | Revisi sekolah R4: ekspor rekap absensi Excel dan PDF, lampiran koreksi, akses absen susulan (branch `fe/absensi-ekspor-susulan`, di atas `fe/pembayaran-tunai-cicilan`; backend `be/absensi-ekspor-susulan`) | Selesai, menunggu review; lint, typecheck, build, `check:slop`, uji curl lewat proxy `next start`; belum diuji di browser |
 | Revisi sekolah R5: absensi murid di detail kelas (branch `fe/absensi-murid`, di atas `fe/absensi-ekspor-susulan`; backend `be/absensi-murid`) | Selesai, menunggu review; lint, typecheck, build, `check:slop`, uji curl lewat proxy `next start`; belum diuji di browser |
+| Revisi sekolah R6: unduh rapor satu kelas (branch `fe/ekspor-rapor-kelas`, di atas `fe/absensi-murid`; backend `be/ekspor-rapor-kelas`) | Selesai, menunggu review; lint, typecheck, build, `check:slop`, uji curl lewat proxy `next start`; belum diuji di browser. Template kertas rapor menunggu contoh dari sekolah |
 
 Mode mock tidak dipakai: `api.json` final dari backend sudah tersedia sejak Fase 1, jadi semua request memakai backend asli dan tipe hasil generate. Tidak ada endpoint mock.
 
@@ -466,6 +467,11 @@ Revisi 7 dan 8 dari sekolah.
 - Isian harian: satu baris per murid dengan empat tombol status (Hadir, Izin, Sakit, Alpa; target sentuh 44 px) dan kolom keterangan yang muncul untuk selain hadir. Murid yang belum dicatat diisi hadir. Satu tombol Simpan Absensi untuk semua murid. Tanggal yang tidak bisa dicatat menampilkan alasan dari backend dan isiannya terkunci.
 - Pemilih tanggal (`PilihTanggal`, `useTanggalDipilih`) dan bulan (`PilihBulan`) dipakai ulang dari rekap absensi guru.
 
+## Keputusan revisi sekolah R6 (menunggu review)
+
+- Tombol "Unduh Rapor <kelas> (PDF)" di halaman rapor guru, muncul setelah ada minimal satu rapor terbit di kelas dan semester terpilih. Kepala Sekolah mendapatkannya di tab Semua Rapor saat saringan kelas dan semester dipilih (dan di Kelas Saya kalau ia mengampu kelas). File diunduh, bukan dibuka di tab baru, karena untuk dicetak.
+- Template kertas rapor menunggu contoh dari sekolah; tampilan PDF ditentukan backend.
+
 ## Keputusan lampiran pengumuman
 
 Disetujui pemilik repo: satu file PDF atau gambar, maksimal 5 MB, dan lampiran pengumuman publik bisa diunduh pengunjung website. Kontrak di `docs/kontrak-api-lampiran-pengumuman.md`, ringkasannya di A2.9, A3, A4, A7, dan baris pengumuman B4. Backend di-merge lewat PR #17. Yang diputuskan saat pengerjaan FE:
@@ -679,6 +685,14 @@ Tempat deploy belum ditentukan. Syarat yang sudah pasti:
 6. **Masuk dengan Google**: `NEXT_PUBLIC_GOOGLE_CLIENT_ID` diisi sebelum `npm run build`, dan origin FE produksi (misalnya `https://tkta8.sch.id`) didaftarkan di Authorized JavaScript origins Client ID itu di Google Cloud Console. Backend memakai Client ID yang sama di `GOOGLE_CLIENT_ID`.
 
 ## Changelog
+
+### Revisi sekolah R6: unduh rapor satu kelas (branch `fe/ekspor-rapor-kelas`)
+
+Pasangan backend `be/ekspor-rapor-kelas`. `api.d.ts` di-generate ulang.
+
+Diubah: `tombol-pdf-rapor.tsx` (`TombolPdfRaporKelas`), `rapor-kelas.tsx`, `review-rapor.tsx`, `src/lib/api/rapor.ts` (`ambilPdfRaporKelas`), `src/lib/api/unduh.ts` (`slugNamaBerkas`, dipakai juga `rekap-absensi-murid.tsx`), `PROMPT_FE_TK.md` (Bagian A identik dengan backend, B4).
+
+Pengecekan: lint, typecheck, build, `check:slop` bersih. Uji curl ke `next start` dengan backend berdatabase uji: `/mudarris/rapor?kelas=&semester=1` (wali kelas) dan `/mudarris/rapor?tab=semua&kelas=&semester=1` (Kepala Sekolah) membalas 200; PDF satu kelas lewat `/api/proxy` (4 halaman). Tampilan belum diuji di browser.
 
 ### Revisi sekolah R5: absensi murid di detail kelas (branch `fe/absensi-murid`)
 

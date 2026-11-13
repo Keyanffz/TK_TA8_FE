@@ -2,6 +2,7 @@
 
 import type { ColumnDef } from "@tanstack/react-table";
 import Link from "next/link";
+import { TombolPdfRaporKelas } from "@/components/features/rapor/tombol-pdf-rapor";
 import { parseAsInteger, parseAsNumberLiteral, parseAsString, parseAsStringLiteral, useQueryState } from "nuqs";
 
 import { EmptyState } from "@/components/shared/empty-state";
@@ -131,6 +132,11 @@ export function SemuaRapor() {
           ))}
         </select>
       </div>
+      {kelasId !== null && semester !== null ? (
+        <div className="self-start">
+          <TombolPdfRaporKelas kelasId={kelasId} namaKelas={kelas.data?.find((item) => item.id === kelasId)?.nama ?? "Kelas"} semester={semester} />
+        </div>
+      ) : null}
       <TabelData
         label="Daftar rapor"
         kolom={KOLOM}

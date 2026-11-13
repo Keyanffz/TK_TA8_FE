@@ -12,7 +12,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ambilEksporAbsensiMurid, useRekapAbsensiMurid } from "@/lib/api/absensi-murid";
 import { pesanError } from "@/lib/api/errors";
-import { simpanBlob } from "@/lib/api/unduh";
+import { simpanBlob, slugNamaBerkas } from "@/lib/api/unduh";
 import { cn } from "@/lib/utils";
 
 const KOLOM = [
@@ -36,8 +36,7 @@ export function RekapAbsensiMurid({ kelasId, namaKelas }: { kelasId: number; nam
   const unduh = async (format: "xlsx" | "pdf") => {
     setMengunduh(format);
     try {
-      const slug = namaKelas.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
-      simpanBlob(await ambilEksporAbsensiMurid(kelasId, bulan, format), `absensi-murid-${slug}-${bulan}.${format}`);
+      simpanBlob(await ambilEksporAbsensiMurid(kelasId, bulan, format), `absensi-murid-${slugNamaBerkas(namaKelas)}-${bulan}.${format}`);
     } catch (galat) {
       toast.error(pesanError(galat));
     } finally {
