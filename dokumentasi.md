@@ -39,6 +39,7 @@ Website publik dan dashboard sistem informasi TK Tarbiyatul Athfal 8 (TK Muslima
 | Revisi sekolah R5: absensi murid di detail kelas (branch `fe/absensi-murid`, di atas `fe/absensi-ekspor-susulan`; backend `be/absensi-murid`) | Selesai, menunggu review; lint, typecheck, build, `check:slop`, uji curl lewat proxy `next start`; belum diuji di browser |
 | Revisi sekolah R6: unduh rapor satu kelas (branch `fe/ekspor-rapor-kelas`, di atas `fe/absensi-murid`; backend `be/ekspor-rapor-kelas`) | Selesai, menunggu review; lint, typecheck, build, `check:slop`, uji curl lewat proxy `next start`; belum diuji di browser. Template kertas rapor menunggu contoh dari sekolah |
 | Revisi sekolah R7: image Docker (branch `fe/docker`, di atas `fe/ekspor-rapor-kelas`; compose di backend `be/docker`) | Selesai, menunggu review; lint, typecheck, build, `check:slop`, build image dan `docker compose up` diuji di laptop. Pindah ke VPS belum |
+| Keputusan pemilik repo atas pertanyaan R3–R6: ikon notifikasi pembayaran dibatalkan, tab Hari Sekolah di detail kelas (branch `fe/keputusan-revisi`, di atas `fe/docker`; backend `be/keputusan-revisi`) | Selesai, menunggu review; lint, typecheck, build, `check:slop`; belum diuji di browser dan belum lewat proxy `next start` |
 
 Mode mock tidak dipakai: `api.json` final dari backend sudah tersedia sejak Fase 1, jadi semua request memakai backend asli dan tipe hasil generate. Tidak ada endpoint mock.
 
@@ -480,6 +481,23 @@ Revisi 7 dan 8 dari sekolah.
 - `.env*` tidak masuk image (`.dockerignore`); nilainya datang dari `deploy/.env` backend.
 - Service `fe` ada di `deploy/compose.yaml` backend dengan jaringan host, supaya `BE_API_URL` yang dibuka browser juga terjangkau dari server FE. Langkah pindah dan rollback di `docs/docker.md` backend.
 
+## Keputusan pemilik repo atas pertanyaan R3–R6 (menunggu review)
+
+Jawaban pemilik repo atas pertanyaan terbuka di laporan R3 sampai R6, sekarang keputusan final:
+
+1. Guru pendamping tidak mencatat pembayaran. Tidak ada perubahan kode: tombol Catat Pembayaran tetap hanya untuk petugas keuangan dan wali kelas murid itu.
+2. Wali murid mendapat notifikasi `pembayaran_dibatalkan` saat Kepala Sekolah membatalkan pembayaran. Ikon `Undo2` dengan nada bahaya (sama dengan pembayaran ditolak); tautannya ke detail tagihan.
+3. Baris `keuangan.rekening` dihapus dari tabel pengaturan oleh migration backend. FE sudah tidak memakainya sejak R3.
+4. Akses absen susulan hanya diberikan Kepala Sekolah, tidak ikut izin `laporan_absensi`. Tidak ada perubahan kode.
+5. Angka 0 di ekspor laporan keuangan diperbaiki di backend; FE tidak berubah.
+6. Absensi murid mengikuti hari sekolah dan libur tiap kelas, bukan hari kerja dan tanggal libur absensi guru. Pengaturannya ada di tab baru **Hari Sekolah** di detail kelas, di antara tab Absensi dan Rekap Absensi:
+   - Hari sekolah mingguan: tombol hari seperti di Pengaturan Absensi, minimal satu hari, tombol Simpan Hari Sekolah aktif saat ada perubahan, dan peringatan sebelum meninggalkan halaman kalau belum disimpan.
+   - Tanggal libur: form tanggal mulai, tanggal selesai (kosong = satu hari), dan keterangan, lalu daftar libur dengan tombol Hapus (dialog konfirmasi). Penolakan backend (di luar tahun ajaran, bertumpuk) tampil di bawah form.
+   - Kepala Sekolah dan wali kelas bisa mengubah (`bisa_diatur` dari backend); guru pendamping melihat isian yang dinonaktifkan dan keterangan siapa yang bisa mengubah.
+   - Setiap perubahan memuat ulang semua data absensi kelas itu (`queryKeys.absensiMurid.semua`), karena tanggal yang bisa dicatat dan isi rekap ikut berubah.
+   - Halaman menjelaskan bahwa absensi pada tanggal yang kemudian dijadikan libur atau bukan hari sekolah tetap tersimpan, tetapi tidak dihitung di rekap.
+   - Deretan empat tab dibungkus `overflow-x-auto` (pola yang sama dengan halaman Pengaturan) supaya tidak melebar di layar HP.
+
 ## Keputusan lampiran pengumuman
 
 Disetujui pemilik repo: satu file PDF atau gambar, maksimal 5 MB, dan lampiran pengumuman publik bisa diunduh pengunjung website. Kontrak di `docs/kontrak-api-lampiran-pengumuman.md`, ringkasannya di A2.9, A3, A4, A7, dan baris pengumuman B4. Backend di-merge lewat PR #17. Yang diputuskan saat pengerjaan FE:
@@ -693,6 +711,16 @@ Tempat deploy belum ditentukan. Syarat yang sudah pasti:
 6. **Masuk dengan Google**: `NEXT_PUBLIC_GOOGLE_CLIENT_ID` diisi sebelum `npm run build`, dan origin FE produksi (misalnya `https://tkta8.sch.id`) didaftarkan di Authorized JavaScript origins Client ID itu di Google Cloud Console. Backend memakai Client ID yang sama di `GOOGLE_CLIENT_ID`.
 
 ## Changelog
+
+### Keputusan pemilik repo atas pertanyaan R3–R6 (branch `fe/keputusan-revisi`)
+
+Pasangan backend `be/keputusan-revisi`. `api.d.ts` di-generate ulang. Keputusan di "Keputusan pemilik repo atas pertanyaan R3–R6".
+
+Baru: `src/components/features/kelas/hari-sekolah-kelas.tsx` (`HariSekolahKelas`), `libur-kelas.tsx` (`LiburKelasBagian`).
+
+Diubah: `detail-kelas.tsx` (tab Hari Sekolah, tab bisa digulir), `src/lib/api/absensi-murid.ts` (`useHariSekolahKelas`, `useUbahHariSekolah`, `useTambahLiburKelas`, `useHapusLiburKelas`), `query-keys.ts` (`absensiMurid.hariSekolah`), `src/lib/constants/notifikasi.ts` (`pembayaran_dibatalkan`), `PROMPT_FE_TK.md` (Bagian A identik dengan backend, B4).
+
+Pengecekan: lint, typecheck, build, `check:slop` bersih. Tab Hari Sekolah dan ikon notifikasi belum dilihat di browser maupun HP, dan tidak diuji lewat proxy `next start`; endpoint backend-nya diuji di repo backend ke database uji.
 
 ### Revisi sekolah R7: image Docker (branch `fe/docker`)
 

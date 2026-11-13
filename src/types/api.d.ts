@@ -265,8 +265,8 @@ export interface paths {
         };
         /**
          * Murid aktif kelas itu beserta status pada tanggal yang dipilih (bawaan hari ini). `status` null kalau belum
-         *     dicatat. `bisa_dicatat` false dengan `alasan` untuk tanggal yang belum tiba, bukan hari kerja, tanggal libur,
-         *     atau di luar tahun ajaran kelas
+         *     dicatat. `bisa_dicatat` false dengan `alasan` untuk tanggal yang belum tiba, bukan hari sekolah kelas itu, termasuk
+         *     libur kelas itu, atau di luar tahun ajaran kelas
          */
         get: operations["absensiMurid.index"];
         /**
@@ -291,7 +291,7 @@ export interface paths {
         };
         /**
          * Jumlah hadir, izin, sakit, dan alpa per murid dalam satu bulan (bawaan bulan berjalan), dan jumlah hari yang
-         *     sudah dicatat
+         *     sudah dicatat. Absensi pada tanggal yang sekarang libur kelas atau bukan hari sekolah kelas tidak dihitung
          */
         get: operations["absensiMurid.rekap"];
         put?: never;
@@ -725,6 +725,67 @@ export interface paths {
          */
         post: operations["guru.resetGoogle"];
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/kelas/{id}/hari-sekolah": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * `hari_sekolah` nomor hari ISO (1 = Senin). `libur` urut tanggal mulai; libur satu hari punya tanggal mulai dan
+         *     selesai yang sama. `bisa_diatur` true untuk Kepala Sekolah dan wali kelas
+         */
+        get: operations["hariSekolahKelas.show"];
+        /**
+         * Mengganti hari sekolah mingguan. Absensi yang sudah tercatat di hari yang dilepas tetap tersimpan tetapi tidak
+         *     dihitung di rekap
+         */
+        put: operations["hariSekolahKelas.ubahHari"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/kelas/{id}/libur": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Menambah libur satu tanggal atau rentang di dalam tahun ajaran kelas. Ditolak 422 `BUSINESS_RULE` kalau di
+         *     luar tahun ajaran atau bertumpuk dengan libur lain. Absensi yang sudah tercatat di rentang itu tidak dihapus
+         */
+        post: operations["hariSekolahKelas.tambahLibur"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/kelas/{id}/libur/{libur_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Libur kelas lain → 404 */
+        delete: operations["hariSekolahKelas.hapusLibur"];
         options?: never;
         head?: never;
         patch?: never;
@@ -1349,7 +1410,8 @@ export interface paths {
         /**
          * Membatalkan pembayaran yang salah catat, dengan alasan. Hanya pembayaran yang diterima. Sisa tagihan
          *     dihitung ulang: tagihan yang tadinya lunas kembali belum bayar, atau terlambat kalau sudah lewat jatuh
-         *     tempo. Setelah itu petugas bisa mencatat ulang jumlah yang benar
+         *     tempo. Wali mendapat notifikasi `pembayaran_dibatalkan` dengan alasan dan sisa tagihan sekarang. Setelah itu
+         *     petugas bisa mencatat ulang jumlah yang benar
          */
         post: operations["pembayaran.batalkan"];
         delete?: never;
@@ -2859,6 +2921,7 @@ export interface components {
          *     | `pembayaran_masuk` <br/>  |
          *     | `pembayaran_diterima` <br/>  |
          *     | `pembayaran_ditolak` <br/>  |
+         *     | `pembayaran_dibatalkan` <br/>  |
          *     | `rapor_diajukan` <br/>  |
          *     | `rapor_revisi` <br/>  |
          *     | `rapor_terbit` <br/> Hanya ada di notifikasi lama; sejak wali murid tidak membuka rapor di aplikasi, jenis ini tidak dibuat lagi. |
@@ -2871,7 +2934,7 @@ export interface components {
          *     | `absensi_susulan_diberikan` <br/>  |
          * @enum {string}
          */
-        JenisNotifikasi: "tagihan_baru" | "tagihan_tertunda" | "pengingat_tagihan" | "tagihan_terlambat" | "pembayaran_masuk" | "pembayaran_diterima" | "pembayaran_ditolak" | "rapor_diajukan" | "rapor_revisi" | "rapor_terbit" | "pengumuman_baru" | "pendaftaran_baru" | "pendaftaran_diproses" | "anak_tertaut" | "absensi_tercatat" | "absensi_dikoreksi" | "absensi_susulan_diberikan";
+        JenisNotifikasi: "tagihan_baru" | "tagihan_tertunda" | "pengingat_tagihan" | "tagihan_terlambat" | "pembayaran_masuk" | "pembayaran_diterima" | "pembayaran_ditolak" | "pembayaran_dibatalkan" | "rapor_diajukan" | "rapor_revisi" | "rapor_terbit" | "pengumuman_baru" | "pendaftaran_baru" | "pendaftaran_diproses" | "anak_tertaut" | "absensi_tercatat" | "absensi_dikoreksi" | "absensi_susulan_diberikan";
         /** JenisTagihanResource */
         JenisTagihanResource: {
             id: number;
@@ -3998,6 +4061,21 @@ export interface components {
         TambahFotoKegiatanRequest: {
             foto: Blob[];
         };
+        /** TambahLiburKelasRequest */
+        TambahLiburKelasRequest: {
+            /**
+             * Format: date
+             * @description `YYYY-MM-DD`.
+             */
+            tanggal_mulai: string;
+            /**
+             * Format: date
+             * @description `YYYY-MM-DD`, kosong untuk libur satu hari.
+             */
+            tanggal_selesai?: string | null;
+            /** @description Misalnya "Libur semester ganjil". */
+            keterangan: string;
+        };
         /**
          * TargetPengumuman
          * @enum {string}
@@ -4025,6 +4103,11 @@ export interface components {
          * @enum {string}
          */
         TipeKeringanan: "persen" | "nominal";
+        /** UbahHariSekolahRequest */
+        UbahHariSekolahRequest: {
+            /** @description Nomor hari ISO, 1 = Senin sampai 7 = Minggu; minimal satu hari. */
+            hari_sekolah: number[];
+        };
         /**
          * UbahStatusAkunRequest
          * @description `PATCH /guru/{id}/status` dan `PATCH /wali-murid/{id}/status`: hanya aktif ↔ nonaktif.
@@ -8673,6 +8756,438 @@ export interface operations {
                         message: string;
                         /** @enum {string} */
                         code: "BUSINESS_RULE";
+                        errors: null;
+                    };
+                };
+            };
+            /** @description TOO_MANY_REQUESTS */
+            429: {
+                headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "TOO_MANY_REQUESTS";
+                        errors: null;
+                    };
+                };
+            };
+        };
+    };
+    "hariSekolahKelas.show": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        data: {
+                            hari_sekolah: number[];
+                            libur: {
+                                id: number;
+                                tanggal_mulai: string;
+                                tanggal_selesai: string;
+                                keterangan: string;
+                            }[];
+                            bisa_diatur: boolean;
+                        };
+                        meta: null;
+                    };
+                };
+            };
+            /** @description UNAUTHENTICATED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "UNAUTHENTICATED";
+                        errors: null;
+                    };
+                };
+            };
+            /** @description FORBIDDEN / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "FORBIDDEN" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        errors: null;
+                    };
+                };
+            };
+            /** @description NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "NOT_FOUND";
+                        errors: null;
+                    };
+                };
+            };
+            /** @description TOO_MANY_REQUESTS */
+            429: {
+                headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "TOO_MANY_REQUESTS";
+                        errors: null;
+                    };
+                };
+            };
+        };
+    };
+    "hariSekolahKelas.ubahHari": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UbahHariSekolahRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        data: {
+                            hari_sekolah: number[];
+                            libur: {
+                                id: number;
+                                tanggal_mulai: string;
+                                tanggal_selesai: string;
+                                keterangan: string;
+                            }[];
+                            bisa_diatur: boolean;
+                        };
+                        meta: null;
+                    };
+                };
+            };
+            /** @description UNAUTHENTICATED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "UNAUTHENTICATED";
+                        errors: null;
+                    };
+                };
+            };
+            /** @description FORBIDDEN / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "FORBIDDEN" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        errors: null;
+                    };
+                };
+            };
+            /** @description NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "NOT_FOUND";
+                        errors: null;
+                    };
+                };
+            };
+            /** @description VALIDATION_ERROR */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "VALIDATION_ERROR";
+                        errors: {
+                            [key: string]: string[];
+                        };
+                    };
+                };
+            };
+            /** @description TOO_MANY_REQUESTS */
+            429: {
+                headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "TOO_MANY_REQUESTS";
+                        errors: null;
+                    };
+                };
+            };
+        };
+    };
+    "hariSekolahKelas.tambahLibur": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TambahLiburKelasRequest"];
+            };
+        };
+        responses: {
+            /** @description Libur ditambahkan */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        data: {
+                            hari_sekolah: number[];
+                            libur: {
+                                id: number;
+                                tanggal_mulai: string;
+                                tanggal_selesai: string;
+                                keterangan: string;
+                            }[];
+                            bisa_diatur: boolean;
+                        };
+                        meta: null;
+                    };
+                };
+            };
+            /** @description UNAUTHENTICATED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "UNAUTHENTICATED";
+                        errors: null;
+                    };
+                };
+            };
+            /** @description FORBIDDEN / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "FORBIDDEN" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        errors: null;
+                    };
+                };
+            };
+            /** @description NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "NOT_FOUND";
+                        errors: null;
+                    };
+                };
+            };
+            /** @description BUSINESS_RULE / VALIDATION_ERROR */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "BUSINESS_RULE" | "VALIDATION_ERROR";
+                        errors: {
+                            [key: string]: string[];
+                        };
+                    };
+                };
+            };
+            /** @description TOO_MANY_REQUESTS */
+            429: {
+                headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "TOO_MANY_REQUESTS";
+                        errors: null;
+                    };
+                };
+            };
+        };
+    };
+    "hariSekolahKelas.hapusLibur": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+                libur_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        data: {
+                            hari_sekolah: number[];
+                            libur: {
+                                id: number;
+                                tanggal_mulai: string;
+                                tanggal_selesai: string;
+                                keterangan: string;
+                            }[];
+                            bisa_diatur: boolean;
+                        };
+                        meta: null;
+                    };
+                };
+            };
+            /** @description UNAUTHENTICATED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "UNAUTHENTICATED";
+                        errors: null;
+                    };
+                };
+            };
+            /** @description FORBIDDEN / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "FORBIDDEN" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        errors: null;
+                    };
+                };
+            };
+            /** @description NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "NOT_FOUND";
                         errors: null;
                     };
                 };
