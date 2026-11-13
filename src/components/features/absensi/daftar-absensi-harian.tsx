@@ -5,7 +5,7 @@ import type { ReactNode } from "react";
 import { BuktiTransfer } from "@/components/features/pembayaran/bukti-transfer";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { urlFotoAbsensi, type AbsensiHarian } from "@/lib/absensi";
-import { LABEL_STATUS_ABSENSI } from "@/lib/constants/label";
+import { LABEL_JENIS_LAMPIRAN, LABEL_STATUS_ABSENSI } from "@/lib/constants/label";
 import { NADA_STATUS_ABSENSI } from "@/lib/constants/status";
 import { formatHariTanggal, formatJam, formatTanggalWaktu } from "@/lib/format";
 import type { Absensi } from "@/types/domain";
@@ -40,6 +40,14 @@ function CatatanKoreksi({ absensi }: { absensi: Absensi }) {
         {absensi.dikoreksi_at ? `, ${formatTanggalWaktu(absensi.dikoreksi_at)}` : ""}:
       </span>{" "}
       {absensi.catatan_koreksi}
+      {absensi.lampiran ? (
+        <>
+          {" "}
+          <a href={absensi.lampiran.url} target="_blank" rel="noreferrer" className="font-bold text-primary-strong underline">
+            Buka lampiran ({LABEL_JENIS_LAMPIRAN[absensi.lampiran.jenis]})
+          </a>
+        </>
+      ) : null}
     </p>
   );
 }
@@ -59,6 +67,11 @@ function SatuAbsen({ judul, absensi, labelFoto, teksKosong = "Tidak ada" }: { ju
         {absensi?.pulang_awal ? (
           <StatusBadge nada="menunggu" className="mt-1">
             Pulang lebih awal
+          </StatusBadge>
+        ) : null}
+        {absensi?.susulan ? (
+          <StatusBadge nada="proses" className="mt-1">
+            Susulan
           </StatusBadge>
         ) : null}
       </div>
@@ -102,7 +115,7 @@ export function KartuAbsensiHarian({ judul, subjudul, masuk, pulang, labelTanpaM
       {pulang?.keterangan ? <KeteranganPeserta absensi={pulang} /> : null}
       {masuk?.catatan_koreksi ? <CatatanKoreksi absensi={masuk} /> : null}
       {pulang?.catatan_koreksi ? <CatatanKoreksi absensi={pulang} /> : null}
-      {aksi ? <div className="mt-3 empty:hidden">{aksi}</div> : null}
+      {aksi ? <div className="mt-3 flex flex-col gap-3 empty:hidden">{aksi}</div> : null}
     </li>
   );
 }

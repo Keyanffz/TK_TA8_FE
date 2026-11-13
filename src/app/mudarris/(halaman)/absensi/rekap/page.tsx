@@ -14,7 +14,10 @@ export default async function RekapAbsensiPage() {
   return (
     <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
       <KepalaHalaman judul="Rekap Absensi" deskripsi="Kehadiran guru dan Kepala Sekolah per hari dan per bulan. Tidak absen pulang dihitung setelah jam pulang hari itu tutup." />
-      <RekapAbsensi hak={{ boleh: punyaIzin(sesi, "laporan_absensi", "kelola"), kecualiUserId: sesi.isSuperAdmin ? null : user.id }} />
+      <RekapAbsensi
+        hak={{ boleh: punyaIzin(sesi, "laporan_absensi", "kelola"), kecualiUserId: sesi.isSuperAdmin ? null : user.id }}
+        pemberiSusulanId={sesi.isSuperAdmin ? user.id : null}
+      />
     </div>
   );
 }

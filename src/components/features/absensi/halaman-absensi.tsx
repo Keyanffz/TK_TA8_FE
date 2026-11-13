@@ -4,6 +4,7 @@ import { LogIn, LogOut } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 
+import { AlurAbsenSusulan, DaftarAksesSusulan } from "@/components/features/absensi/absen-susulan";
 import { AlurAbsen, type ModeAbsen } from "@/components/features/absensi/alur-absen";
 import { GalatMuat } from "@/components/shared/galat-muat";
 import { KotakPesan } from "@/components/shared/kotak-pesan";
@@ -16,7 +17,7 @@ import { LABEL_STATUS_ABSENSI } from "@/lib/constants/label";
 import { NADA_STATUS_ABSENSI } from "@/lib/constants/status";
 import { formatHariTanggal, formatJam } from "@/lib/format";
 import { geserBulan } from "@/lib/tanggal";
-import type { Absensi, AbsensiHariIni } from "@/types/domain";
+import type { Absensi, AbsensiHariIni, AksesAbsenSusulan } from "@/types/domain";
 
 const JUMLAH_RIWAYAT_TERBARU = 5;
 
@@ -34,6 +35,7 @@ function BarisJenis({ judul, jam, absensi, teksKosong = "Belum absen" }: { judul
           {absensi.waktu ? <p className="font-heading text-lg leading-none font-extrabold tabular-nums">{formatJam(absensi.waktu)}</p> : null}
           {absensi.status ? <StatusBadge nada={NADA_STATUS_ABSENSI[absensi.status]}>{LABEL_STATUS_ABSENSI[absensi.status]}</StatusBadge> : null}
           {absensi.pulang_awal ? <StatusBadge nada="menunggu">Lebih awal</StatusBadge> : null}
+          {absensi.susulan ? <StatusBadge nada="proses">Susulan</StatusBadge> : null}
         </div>
       )}
     </div>
@@ -127,6 +129,7 @@ function alurMasihBerlaku(mode: ModeAbsen, langkah: LangkahAbsen, status: Absens
 export function HalamanAbsensi({ kepalaSekolah, bisaLihatRekap }: { kepalaSekolah: boolean; bisaLihatRekap: boolean }) {
   const { data, isPending, isError, error, refetch } = useAbsensiHariIni();
   const [alur, setAlur] = useState<ModeAbsen | null>(null);
+  const [susulan, setSusulan] = useState<AksesAbsenSusulan | null>(null);
 
   if (isPending) return <Skeleton className="h-72 rounded-xl" />;
   if (isError) return <GalatMuat error={error} onCobaLagi={() => void refetch()} />;
@@ -134,12 +137,20 @@ export function HalamanAbsensi({ kepalaSekolah, bisaLihatRekap }: { kepalaSekola
   const langkah = langkahAbsen(data, kepalaSekolah);
   // Kalau jamnya tutup saat alur masih terbuka, alur ditutup dan keterangan terbaru yang tampil.
   const alurAktif = alur !== null && alurMasihBerlaku(alur, langkah, data) ? alur : null;
+  // Akses yang kedaluwarsa atau sudah dipakai hilang dari status hari ini, dan alurnya ikut ditutup.
+  const susulanAktif = susulan !== null && data.susulan.some(({ id }) => id === susulan.id) ? susulan : null;
 
   return (
     <div className="flex flex-col gap-4">
       <KartuStatus status={data} />
 
-      {alurAktif ? (
+      {susulanAktif ? (
+        <AlurAbsenSusulan akses={susulanAktif} kepalaSekolah={kepalaSekolah} onTutup={() => setSusulan(null)} />
+      ) : alurAktif ? null : (
+        <DaftarAksesSusulan akses={data.susulan} onPilih={setSusulan} />
+      )}
+
+      {susulanAktif ? null : alurAktif ? (
         <AlurAbsen mode={alurAktif} status={data} kepalaSekolah={kepalaSekolah} onTutup={() => setAlur(null)} />
       ) : langkah.boleh ? (
         <div className="flex flex-col gap-2">

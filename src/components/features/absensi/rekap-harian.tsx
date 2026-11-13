@@ -3,6 +3,7 @@
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { parseAsString, useQueryState } from "nuqs";
 
+import { AksesSusulanHarian } from "@/components/features/absensi/akses-susulan-harian";
 import { KartuAbsensiHarian } from "@/components/features/absensi/daftar-absensi-harian";
 import { AksiKoreksiHarian, type HakKoreksi } from "@/components/features/absensi/dialog-koreksi-absensi";
 import { EmptyState } from "@/components/shared/empty-state";
@@ -82,8 +83,11 @@ function Ringkasan({ peserta }: { peserta: AbsensiPerTanggal["peserta"] }) {
   );
 }
 
-/** Absensi semua guru dan Kepala Sekolah di satu tanggal, untuk dicek dan dikoreksi Kepala Sekolah. */
-export function RekapHarian({ hak }: { hak: HakKoreksi }) {
+/**
+ * Absensi semua guru dan Kepala Sekolah di satu tanggal, untuk dicek dan dikoreksi Kepala Sekolah. `pemberiSusulanId`
+ * = id Kepala Sekolah yang login (boleh memberi akses absen susulan), null untuk guru.
+ */
+export function RekapHarian({ hak, pemberiSusulanId }: { hak: HakKoreksi; pemberiSusulanId: number | null }) {
   const { tanggal, hariIni, setTanggal } = useTanggalDipilih();
   const { data, isPending, isError, error, refetch, isPlaceholderData } = useAbsensiHarian(tanggal);
 
@@ -111,7 +115,7 @@ export function RekapHarian({ hak }: { hak: HakKoreksi }) {
             <EmptyState judul="Belum ada guru aktif." deskripsi="Daftar ini terisi setelah guru ditambahkan di menu Guru." />
           ) : (
             <ul className="grid gap-3 lg:grid-cols-2">
-              {peserta.map(({ user, masuk, pulang }) => (
+              {peserta.map(({ user, masuk, pulang, akses_susulan }) => (
                 <KartuAbsensiHarian
                   key={user.id}
                   judul={user.nama}
@@ -119,7 +123,20 @@ export function RekapHarian({ hak }: { hak: HakKoreksi }) {
                   masuk={masuk}
                   pulang={pulang}
                   labelTanpaMasuk={pesanTanpaAbsen ? undefined : "Belum absen"}
-                  aksi={<AksiKoreksiHarian hak={hak} nama={user.nama} userId={user.id} tanggal={data.tanggal} masuk={masuk} pulang={pulang} bolehCatat={!pesanTanpaAbsen} />}
+                  aksi={
+                    <>
+                      <AksiKoreksiHarian hak={hak} nama={user.nama} userId={user.id} tanggal={data.tanggal} masuk={masuk} pulang={pulang} bolehCatat={!pesanTanpaAbsen} />
+                      <AksesSusulanHarian
+                        nama={user.nama}
+                        userId={user.id}
+                        tanggal={data.tanggal}
+                        masuk={masuk}
+                        pulang={pulang}
+                        akses={akses_susulan}
+                        bolehBeri={data.bisa_beri_susulan && pemberiSusulanId !== null && pemberiSusulanId !== user.id}
+                      />
+                    </>
+                  }
                 />
               ))}
             </ul>

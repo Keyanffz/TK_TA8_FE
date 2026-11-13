@@ -4,6 +4,70 @@
  */
 
 export interface paths {
+    "/absensi/susulan": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Memberi satu peserta akses absen sendiri (swafoto, tanpa pemeriksaan lokasi dan jam) untuk satu tanggal dan
+         *     satu jenis absen, berlaku sampai akhir hari ini. Peserta mendapat notifikasi `absensi_susulan_diberikan`.
+         *     Ditolak 422 `BUSINESS_RULE` kalau: untuk Kepala Sekolah sendiri, akun bukan peserta absensi, tanggal bukan hari
+         *     ini atau hari kerja terakhir sebelumnya, tanggal sebelum tanggal mulai, bukan hari kerja, tanggal libur, absen
+         *     jenis itu sudah ada (kecuali tidak hadir buatan scheduler untuk absen masuk), untuk absen pulang peserta tercatat
+         *     izin atau sakit, atau masih ada akses yang sama yang belum dipakai
+         */
+        post: operations["absenSusulan.store"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/absensi/susulan/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Mencabut akses yang belum dipakai. Akses yang sudah dipakai → 422 `BUSINESS_RULE` */
+        delete: operations["absenSusulan.destroy"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/absensi/susulan/{id}/absen": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Absen susulan oleh pemilik akses (`multipart/form-data`, hanya `foto`). Absen masuk berstatus `hadir`; `waktu` jam
+         *     server saat dikirim; koordinat kosong; `susulan` true. Tidak hadir buatan scheduler di tanggal itu diganti. Akses
+         *     milik peserta lain → 404. Ditolak 422 `BUSINESS_RULE` kalau akses sudah dipakai atau kedaluwarsa, tanggalnya
+         *     dijadikan libur, absen jenis itu sudah tercatat, atau untuk absen pulang absen masuk tanggal itu belum hadir atau
+         *     terlambat. Peserta mendapat notifikasi `absensi_tercatat`. Dibatasi 10 kali per menit per pengguna
+         */
+        post: operations["absenSusulan.absen"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/absensi/rekap": {
         parameters: {
             query?: never;
@@ -32,8 +96,9 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * File CSV berisi rekap yang sama dengan `GET /absensi/rekap`. Nama file menyebut bulannya, misalnya
-         *     `rekap-absensi-2026-10.csv` atau `rekap-absensi-2026-08-sampai-2026-10.csv`
+         * Rekap yang sama dengan `GET /absensi/rekap` sebagai file Excel (`format=xlsx`, bawaan) atau PDF berkop sekolah
+         *     (`format=pdf`). Nama file menyebut bulannya, misalnya `rekap-absensi-2026-10.xlsx` atau
+         *     `rekap-absensi-2026-08-sampai-2026-10.pdf`
          */
         get: operations["absensi.export"];
         put?: never;
@@ -54,7 +119,10 @@ export interface paths {
         /**
          * Absen masuk dan pulang semua peserta pada satu tanggal (bawaan hari ini), urut nama. Pesertanya sama dengan
          *     rekap: guru dan Kepala Sekolah yang aktif, ditambah akun nonaktif yang punya absensi di tanggal itu.
-         *     `hari_kerja`, `tanggal_libur`, dan `tanggal_mulai` sama artinya dengan di `GET /absensi/hari-ini`
+         *     `hari_kerja`, `tanggal_libur`, dan `tanggal_mulai` sama artinya dengan di `GET /absensi/hari-ini`.
+         *     `akses_susulan` berisi akses absen susulan peserta untuk tanggal itu, termasuk yang sudah dipakai atau kedaluwarsa.
+         *     `bisa_beri_susulan` true kalau tanggal itu hari ini atau hari kerja terakhir sebelumnya dan bukan hari libur, yaitu
+         *     tanggal yang bisa diberi akses absen susulan
          */
         get: operations["absensi.harian"];
         put?: never;
@@ -76,7 +144,8 @@ export interface paths {
         put?: never;
         /**
          * Mencatat absen masuk atau pulang (`jenis`, bawaan `masuk`) untuk peserta yang belum punya absen jenis itu pada
-         *     tanggal tersebut, misalnya guru lupa absen padahal masuk atau lupa absen pulang. Catatan wajib; `status` wajib
+         *     tanggal tersebut, misalnya guru lupa absen padahal masuk atau lupa absen pulang. Catatan wajib, lampiran (foto
+         *     atau PDF, multipart) opsional; `status` wajib
          *     untuk absen masuk dan tidak boleh dikirim untuk absen pulang; waktu, lokasi, dan foto kosong. Ditolak 422
          *     `BUSINESS_RULE` kalau akun bukan peserta absensi, tanggal setelah hari ini atau sebelum tanggal mulai absensi,
          *     bukan hari kerja, tanggal libur, absen jenis itu sudah ada (absen masuk dikoreksi lewat
@@ -104,8 +173,9 @@ export interface paths {
         options?: never;
         head?: never;
         /**
-         * Mengoreksi status absen masuk dengan catatan wajib. Pengoreksi dan waktunya tersimpan di absensi itu. Pemegang
-         *     izin kelola laporan absensi tidak bisa mengoreksi absensinya sendiri (422 `BUSINESS_RULE`)
+         * Mengoreksi status absen masuk dengan catatan wajib dan lampiran opsional (foto atau PDF, multipart). Lampiran
+         *     baru menggantikan lampiran lama. Pengoreksi dan waktunya tersimpan di absensi itu. Pemegang izin kelola laporan
+         *     absensi tidak bisa mengoreksi absensinya sendiri (422 `BUSINESS_RULE`)
          */
         patch: operations["absensi.koreksi"];
         trace?: never;
@@ -123,7 +193,8 @@ export interface paths {
          *     menampilkan jarak di FE. `hari_kerja` false kalau hari itu di luar hari kerja atau termasuk tanggal libur.
          *     Sebelum `tanggal_mulai`, `terbuka` selalu false. `pulang.boleh_lebih_awal` true kalau absen pulang sekarang
          *     akan diterima sebagai pulang lebih awal (dengan keterangan): hari kerja, tidak sebelum `tanggal_mulai`, jam
-         *     pulang belum buka, absen masuk hari ini hadir atau terlambat, dan belum absen pulang
+         *     pulang belum buka, absen masuk hari ini hadir atau terlambat, dan belum absen pulang. `susulan` berisi akses
+         *     absen susulan milik pengguna yang belum dipakai dan belum kedaluwarsa, urut tanggal
          */
         get: operations["absensi.hariIni"];
         put?: never;
@@ -2363,6 +2434,17 @@ export interface components {
              */
             foto: Blob;
         };
+        /**
+         * AbsenSusulanRequest
+         * @description `POST /absensi/susulan/{id}/absen`: hanya swafoto; lokasi dan jam tidak diperiksa.
+         */
+        AbsenSusulanRequest: {
+            /**
+             * Format: binary
+             * @description Swafoto, jpeg, png, atau webp, maksimal 2 MB.
+             */
+            foto: Blob;
+        };
         /** AbsensiResource */
         AbsensiResource: {
             id: number;
@@ -2379,6 +2461,14 @@ export interface components {
             ada_foto: boolean;
             keterangan: string | null;
             pulang_awal: boolean;
+            /** @description True kalau dikirim peserta lewat akses absen susulan dari Kepala Sekolah. */
+            susulan: boolean;
+            /** @description Foto atau dokumen dari Kepala Sekolah saat koreksi atau pencatatan. `url` adalah signed URL yang berlaku 30 menit. */
+            lampiran: {
+                /** @enum {string} */
+                jenis: "pdf" | "gambar";
+                url: string;
+            } | null;
             catatan_koreksi: string | null;
             dikoreksi_oleh: {
                 id: number;
@@ -2398,6 +2488,28 @@ export interface components {
             is_publik: boolean;
             /** Format: date-time */
             created_at: string | null;
+        };
+        /** AksesAbsenSusulanResource */
+        AksesAbsenSusulanResource: {
+            id: number;
+            user_id: number;
+            tanggal: string;
+            jenis: components["schemas"]["JenisAbsensi"];
+            catatan: string;
+            /**
+             * Format: date-time
+             * @description Akhir hari akses diberikan (23:59:59 WIB).
+             */
+            berlaku_sampai: string;
+            /**
+             * Format: date-time
+             * @description Null kalau belum dipakai.
+             */
+            dipakai_at: string | null;
+            diberikan_oleh: {
+                id: number;
+                nama: string;
+            };
         };
         /** AkunResource */
         AkunResource: {
@@ -2447,6 +2559,19 @@ export interface components {
             jumlah: number;
             /** Format: date */
             tanggal_bayar: string;
+        };
+        /** BeriAksesSusulanRequest */
+        BeriAksesSusulanRequest: {
+            /** @description Peserta absensi: guru aktif. */
+            user_id: number;
+            /**
+             * Format: date
+             * @description `YYYY-MM-DD`: hari ini atau hari kerja terakhir sebelum hari ini.
+             */
+            tanggal: string;
+            jenis: components["schemas"]["JenisAbsensi"];
+            /** @description Alasan akses diberikan, misalnya "Wifi sekolah mati sejak pagi." */
+            catatan: string;
         };
         /**
          * BuatPendaftaranRequest
@@ -2655,9 +2780,10 @@ export interface components {
          *     | `anak_tertaut` <br/>  |
          *     | `absensi_tercatat` <br/>  |
          *     | `absensi_dikoreksi` <br/>  |
+         *     | `absensi_susulan_diberikan` <br/>  |
          * @enum {string}
          */
-        JenisNotifikasi: "tagihan_baru" | "tagihan_tertunda" | "pengingat_tagihan" | "tagihan_terlambat" | "pembayaran_masuk" | "pembayaran_diterima" | "pembayaran_ditolak" | "rapor_diajukan" | "rapor_revisi" | "rapor_terbit" | "pengumuman_baru" | "pendaftaran_baru" | "pendaftaran_diproses" | "anak_tertaut" | "absensi_tercatat" | "absensi_dikoreksi";
+        JenisNotifikasi: "tagihan_baru" | "tagihan_tertunda" | "pengingat_tagihan" | "tagihan_terlambat" | "pembayaran_masuk" | "pembayaran_diterima" | "pembayaran_ditolak" | "rapor_diajukan" | "rapor_revisi" | "rapor_terbit" | "pengumuman_baru" | "pendaftaran_baru" | "pendaftaran_diproses" | "anak_tertaut" | "absensi_tercatat" | "absensi_dikoreksi" | "absensi_susulan_diberikan";
         /** JenisTagihanResource */
         JenisTagihanResource: {
             id: number;
@@ -2816,11 +2942,21 @@ export interface components {
              */
             status?: "hadir" | "terlambat" | "izin" | "sakit";
             catatan: string;
+            /**
+             * Format: binary
+             * @description Opsional: foto atau dokumen pendukung (JPG, PNG, WebP, atau PDF, maks 5 MB). Body multipart kalau dikirim.
+             */
+            lampiran?: Blob | null;
         };
         /** KoreksiAbsensiRequest */
         KoreksiAbsensiRequest: {
             status: components["schemas"]["StatusAbsensi"];
             catatan: string;
+            /**
+             * Format: binary
+             * @description Opsional: foto atau dokumen pendukung (JPG, PNG, WebP, atau PDF, maks 5 MB). Body multipart kalau dikirim.
+             */
+            lampiran?: Blob | null;
         };
         /**
          * LengkapiProfilWaliRequest
@@ -3035,12 +3171,13 @@ export interface components {
             } | null;
             /** Format: date-time */
             diverifikasi_at: string | null;
-            alasan_pembatalan: string;
+            alasan_pembatalan: string | null;
             dibatalkan_oleh: {
                 id: number;
                 nama: string;
             } | null;
-            dibatalkan_at: string;
+            /** Format: date-time */
+            dibatalkan_at: string | null;
             /** Format: date-time */
             created_at: string | null;
             tagihan: components["schemas"]["TagihanResource"];
@@ -3395,12 +3532,13 @@ export interface components {
             } | null;
             /** Format: date-time */
             diverifikasi_at: string | null;
-            alasan_pembatalan: string;
+            alasan_pembatalan: string | null;
             dibatalkan_oleh: {
                 id: number;
                 nama: string;
             } | null;
-            dibatalkan_at: string;
+            /** Format: date-time */
+            dibatalkan_at: string | null;
             /** Format: date-time */
             created_at: string | null;
         };
@@ -3913,6 +4051,312 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    "absenSusulan.store": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BeriAksesSusulanRequest"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        /** @constant */
+                        message: "Akses absen susulan diberikan.";
+                        data: components["schemas"]["AksesAbsenSusulanResource"];
+                        meta: null;
+                    };
+                };
+            };
+            /** @description UNAUTHENTICATED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "UNAUTHENTICATED";
+                        errors: null;
+                    };
+                };
+            };
+            /** @description FORBIDDEN / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "FORBIDDEN" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        errors: null;
+                    };
+                };
+            };
+            /** @description BUSINESS_RULE / VALIDATION_ERROR */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "BUSINESS_RULE" | "VALIDATION_ERROR";
+                        errors: {
+                            [key: string]: string[];
+                        };
+                    };
+                };
+            };
+            /** @description TOO_MANY_REQUESTS */
+            429: {
+                headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "TOO_MANY_REQUESTS";
+                        errors: null;
+                    };
+                };
+            };
+        };
+    };
+    "absenSusulan.destroy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        /** @constant */
+                        message: "Akses absen susulan dicabut.";
+                        data: null;
+                        meta: null;
+                    };
+                };
+            };
+            /** @description UNAUTHENTICATED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "UNAUTHENTICATED";
+                        errors: null;
+                    };
+                };
+            };
+            /** @description FORBIDDEN / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "FORBIDDEN" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        errors: null;
+                    };
+                };
+            };
+            /** @description NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "NOT_FOUND";
+                        errors: null;
+                    };
+                };
+            };
+            /** @description BUSINESS_RULE */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "BUSINESS_RULE";
+                        errors: null;
+                    };
+                };
+            };
+            /** @description TOO_MANY_REQUESTS */
+            429: {
+                headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "TOO_MANY_REQUESTS";
+                        errors: null;
+                    };
+                };
+            };
+        };
+    };
+    "absenSusulan.absen": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["AbsenSusulanRequest"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        data: components["schemas"]["AbsensiResource"];
+                        meta: null;
+                    };
+                };
+            };
+            /** @description UNAUTHENTICATED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "UNAUTHENTICATED";
+                        errors: null;
+                    };
+                };
+            };
+            /** @description FORBIDDEN / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "FORBIDDEN" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        errors: null;
+                    };
+                };
+            };
+            /** @description NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "NOT_FOUND";
+                        errors: null;
+                    };
+                };
+            };
+            /** @description BUSINESS_RULE / VALIDATION_ERROR */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "BUSINESS_RULE" | "VALIDATION_ERROR";
+                        errors: {
+                            [key: string]: string[];
+                        };
+                    };
+                };
+            };
+            /** @description TOO_MANY_REQUESTS */
+            429: {
+                headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "TOO_MANY_REQUESTS";
+                        errors: null;
+                    };
+                };
+            };
+        };
+    };
     "absensi.rekap": {
         parameters: {
             query?: {
@@ -4025,6 +4469,8 @@ export interface operations {
                 bulan?: string;
                 /** @description Jumlah bulan sampai `bulan`, 1–3, bawaan 1. Contoh `bulan=2026-10&jumlah_bulan=3` = Agustus sampai Oktober 2026. */
                 jumlah_bulan?: number;
+                /** @description `xlsx` (bawaan) atau `pdf`. */
+                format?: "xlsx" | "pdf";
             };
             header?: never;
             path?: never;
@@ -4032,14 +4478,14 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Rekap absensi (.csv) */
+            /** @description Rekap absensi (.pdf) */
             200: {
                 headers: {
-                    "Content-Disposition"?: string;
                     [name: string]: unknown;
                 };
                 content: {
-                    "text/csv": Blob;
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": Blob;
+                    "application/pdf": Blob;
                 };
             };
             /** @description UNAUTHENTICATED */
@@ -4133,6 +4579,7 @@ export interface operations {
                             hari_kerja: boolean;
                             tanggal_libur: boolean;
                             tanggal_mulai: string | null;
+                            bisa_beri_susulan: boolean;
                             peserta: {
                                 user: {
                                     id: number;
@@ -4141,6 +4588,7 @@ export interface operations {
                                 };
                                 masuk: components["schemas"]["AbsensiResource"] | null;
                                 pulang: components["schemas"]["AbsensiResource"] | null;
+                                akses_susulan: components["schemas"]["AksesAbsenSusulanResource"][];
                             }[];
                         };
                         meta: null;
@@ -4222,7 +4670,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["KoreksiAbsensiBaruRequest"];
+                "multipart/form-data": components["schemas"]["KoreksiAbsensiBaruRequest"];
             };
         };
         responses: {
@@ -4316,7 +4764,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["KoreksiAbsensiRequest"];
+                "multipart/form-data": components["schemas"]["KoreksiAbsensiRequest"];
             };
         };
         responses: {
@@ -4457,6 +4905,7 @@ export interface operations {
                                 absensi: components["schemas"]["AbsensiResource"] | null;
                                 boleh_lebih_awal: boolean;
                             };
+                            susulan: components["schemas"]["AksesAbsenSusulanResource"][];
                         };
                         meta: null;
                     };
