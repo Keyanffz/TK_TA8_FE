@@ -69,7 +69,7 @@ function BarisFoto({ foto, nomor, jumlah, privat, contoh, onGeser, ubahFoto, hap
       >
         <Input aria-label={`Keterangan foto ${nomor}`} placeholder={contoh} maxLength={255} value={caption} onChange={(event) => setCaption(event.target.value)} />
         <Button type="submit" variant="outline" disabled={!berubah || menyimpan}>
-          {menyimpan ? "Menyimpan..." : "Simpan"}
+          {menyimpan ? "Menyimpan..." : "Simpan Keterangan"}
         </Button>
       </form>
       <div className="flex gap-1 self-end sm:self-auto">

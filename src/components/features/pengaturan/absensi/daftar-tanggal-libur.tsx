@@ -29,7 +29,7 @@ export function DaftarTanggalLibur({ tanggal, onUbah, error }: DaftarTanggalLibu
         <Input id={id} type="date" value={baru} onChange={(event) => setBaru(event.target.value)} className="max-w-52" />
         <Button type="button" variant="outline" disabled={baru === "" || sudahAda} onClick={tambah}>
           <Plus aria-hidden="true" />
-          Tambah
+          Tambah Tanggal
         </Button>
       </div>
       <FieldDescription>
