@@ -1,14 +1,12 @@
 "use client";
 
-import { useFieldArray, useWatch, type UseFormReturn } from "react-hook-form";
+import { useFieldArray, useWatch } from "react-hook-form";
 
-import type { KeluaranFormAbsensi, MasukanFormAbsensi } from "@/components/features/pengaturan/absensi/skema-pengaturan-absensi";
+import { IsianJam, type FormAbsensi } from "@/components/features/pengaturan/absensi/isian-jam";
+import { JamPerTanggal } from "@/components/features/pengaturan/absensi/jam-per-tanggal";
 import { KolomRadio } from "@/components/shared/kolom-radio";
-import { KolomTeks } from "@/components/shared/kolom-teks";
 import { FieldDescription, FieldGroup, FieldLegend, FieldSet } from "@/components/ui/field";
 import { HARI_ISO } from "@/lib/constants/label";
-
-type FormAbsensi = UseFormReturn<MasukanFormAbsensi, unknown, KeluaranFormAbsensi>;
 
 type PilihanJam = "bawaan" | "khusus";
 
@@ -18,8 +16,8 @@ const OPSI_JAM = [
 ] as const;
 
 /**
- * Jam bawaan untuk semua hari kerja, lalu daftar hari kerja yang masing-masing bisa diberi jam khusus
- * (`absensi.jam_khusus`). Daftar jam khusus di form selalu urut nomor hari, sama dengan urutan yang dibaca backend.
+ * Jam bawaan untuk semua hari kerja, daftar hari kerja yang masing-masing bisa diberi jam khusus (`absensi.jam_khusus`),
+ * lalu jam per rentang tanggal. Daftar jam khusus di form selalu urut nomor hari, sama dengan urutan yang dibaca backend.
  */
 export function BagianJamAbsen({ form, className }: { form: FormAbsensi; className: string }) {
   const { errors } = form.formState;
@@ -52,21 +50,7 @@ export function BagianJamAbsen({ form, className }: { form: FormAbsensi; classNa
         Jam absen
       </h2>
       <FieldGroup>
-        <FieldSet>
-          <FieldLegend variant="label">Masuk</FieldLegend>
-          <div className="grid gap-4 sm:grid-cols-3">
-            <KolomTeks label="Jam buka" type="time" error={errors.masuk_buka?.message} {...form.register("masuk_buka")} />
-            <KolomTeks label="Batas terlambat" type="time" deskripsi="Absen setelah jam ini tercatat terlambat." error={errors.masuk_batas_terlambat?.message} {...form.register("masuk_batas_terlambat")} />
-            <KolomTeks label="Jam tutup" type="time" deskripsi="Setelah jam ini, yang belum absen ditandai tidak hadir." error={errors.masuk_tutup?.message} {...form.register("masuk_tutup")} />
-          </div>
-        </FieldSet>
-        <FieldSet>
-          <FieldLegend variant="label">Pulang</FieldLegend>
-          <div className="grid gap-4 sm:grid-cols-3">
-            <KolomTeks label="Jam buka" type="time" error={errors.pulang_buka?.message} {...form.register("pulang_buka")} />
-            <KolomTeks label="Jam tutup" type="time" error={errors.pulang_tutup?.message} {...form.register("pulang_tutup")} />
-          </div>
-        </FieldSet>
+        <IsianJam form={form} awalan="" galat={errors} denganPenjelasan />
 
         <FieldSet>
           <FieldLegend variant="label">Jam per hari</FieldLegend>
@@ -81,23 +65,9 @@ export function BagianJamAbsen({ form, className }: { form: FormAbsensi; classNa
                 <li key={nomor} className="rounded-lg border border-border p-3 sm:p-4">
                   <KolomRadio<PilihanJam> label={label} opsi={OPSI_JAM} nilai={urutan >= 0 ? "khusus" : "bawaan"} onUbah={(pilihan) => pilih(nomor, pilihan)} />
                   {urutan >= 0 ? (
-                    <FieldGroup className="mt-4">
-                      <FieldSet>
-                        <FieldLegend variant="label">Masuk {label}</FieldLegend>
-                        <div className="grid gap-4 sm:grid-cols-3">
-                          <KolomTeks label="Jam buka" type="time" error={galat?.masuk_buka?.message} {...form.register(`jam_khusus.${urutan}.masuk_buka`)} />
-                          <KolomTeks label="Batas terlambat" type="time" error={galat?.masuk_batas_terlambat?.message} {...form.register(`jam_khusus.${urutan}.masuk_batas_terlambat`)} />
-                          <KolomTeks label="Jam tutup" type="time" error={galat?.masuk_tutup?.message} {...form.register(`jam_khusus.${urutan}.masuk_tutup`)} />
-                        </div>
-                      </FieldSet>
-                      <FieldSet>
-                        <FieldLegend variant="label">Pulang {label}</FieldLegend>
-                        <div className="grid gap-4 sm:grid-cols-3">
-                          <KolomTeks label="Jam buka" type="time" error={galat?.pulang_buka?.message} {...form.register(`jam_khusus.${urutan}.pulang_buka`)} />
-                          <KolomTeks label="Jam tutup" type="time" error={galat?.pulang_tutup?.message} {...form.register(`jam_khusus.${urutan}.pulang_tutup`)} />
-                        </div>
-                      </FieldSet>
-                    </FieldGroup>
+                    <div className="mt-4">
+                      <IsianJam form={form} awalan={`jam_khusus.${urutan}.`} galat={galat} untuk={label} />
+                    </div>
                   ) : (
                     <p className="mt-2 text-sm text-muted-foreground">
                       Masuk {masukBuka}–{masukTutup}, terlambat setelah {batasTerlambat}. Pulang {pulangBuka}–{pulangTutup}.
@@ -108,6 +78,8 @@ export function BagianJamAbsen({ form, className }: { form: FormAbsensi; classNa
             })}
           </ul>
         </FieldSet>
+
+        <JamPerTanggal form={form} />
       </FieldGroup>
     </section>
   );

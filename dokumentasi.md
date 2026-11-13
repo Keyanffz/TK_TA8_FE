@@ -724,6 +724,23 @@ Tempat deploy belum ditentukan. Syarat yang sudah pasti:
 
 ## Changelog
 
+### Jam absensi per rentang tanggal (branch `fe/jam-tanggal`, di atas `fe/jam-absensi`)
+
+Pasangan backend `be/jam-tanggal` (kunci `absensi.jam_tanggal`, misalnya Ramadan; didahulukan dari jam khusus per hari dan jam bawaan). Bagian A disalin ulang; B4 dan B9 diperbarui.
+
+- Pengaturan Absensi, bagian Jam absen: daftar Jam per tanggal (`jam-per-tanggal.tsx`) di bawah Jam per hari. Tiap rentang berisi keterangan, tanggal mulai, tanggal selesai, jam masuk, dan jam pulang; rentang baru diisi dari jam bawaan.
+- Isian jam masuk dan pulang sekarang dipakai di tiga tempat (jam bawaan, jam khusus, jam per tanggal), jadi dipisah ke `IsianJam` (`isian-jam.tsx`).
+- Skema form: `jam_tanggal` dengan urutan jam yang sama (`denganUrutanJam()`), selesai tidak sebelum mulai, dan rentang yang bertumpuk ditandai di rentang yang mulai belakangan, sama dengan backend.
+- Saat disimpan, `jam_tanggal` di form diurutkan per tanggal mulai (`urutkanJamTanggal()`), karena backend memeriksa rentang bertumpuk setelah mengurutkan dan nomor di kunci error mengikuti urutan itu. `fieldUntukGalat()` memetakan `absensi.jam_tanggal.<n>.<bagian>` ke kolomnya.
+- Halaman Absensi tidak berubah; jam hari ini dari `GET /absensi/hari-ini` sudah memakai jam per tanggal.
+
+Pengecekan: `npm run lint`, `npm run typecheck`, `npm run build`, `npm run check:slop` bersih. Chromium 390 px dengan backend `be/jam-tanggal`, sebagai Kepala Sekolah:
+- dua rentang yang bertumpuk dan keterangan kosong ditolak di form;
+- setelah diperbaiki, tersimpan, dan setelah dimuat ulang tampil urut tanggal mulai;
+- halaman Absensi Jumat 13 November menampilkan jam rentang itu ("07:30–09:30, terlambat setelah 08:00").
+
+Belum diuji: HP sungguhan, pesan error backend `absensi.jam_tanggal.<n>` di form (pemeriksaan browser menangkapnya lebih dulu).
+
 ### Jam absensi per hari (branch `fe/jam-absensi`)
 
 Pasangan backend `be/jam-absensi`. Keputusan di "Keputusan jam absensi per hari".
