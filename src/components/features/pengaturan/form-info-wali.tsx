@@ -65,7 +65,7 @@ function FormIsi({ awal, onUbahKotor }: { awal: InfoWali; onUbahKotor: (kotor: b
           toast.success(nilai.aktif ? "Banner tampil di beranda wali." : "Banner disembunyikan dari beranda wali.");
         },
         onError: (error) => {
-          // Pesan validasi backend berkunci "items.beranda.info_wali.<field>".
+          // Pesan validasi backend berkunci "beranda.info_wali.<field>".
           const errors = error instanceof ApiError ? error.errors : null;
           const terpasang = FIELD.filter((field) => {
             const pesan = Object.entries(errors ?? {}).find(([kunci]) => kunci.endsWith(`info_wali.${field}`))?.[1][0];
