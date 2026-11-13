@@ -2,7 +2,7 @@
 
 import { Download } from "lucide-react";
 import { parseAsInteger, parseAsNumberLiteral, parseAsStringLiteral, useQueryState } from "nuqs";
-import { useState } from "react";
+import { useState, useSyncExternalStore, type ReactNode } from "react";
 import { toast } from "sonner";
 
 import { DaftarAbsensiHarian } from "@/components/features/absensi/daftar-absensi-harian";
@@ -40,6 +40,21 @@ const KOLOM = [
   { kunci: "tidak_absen_pulang", label: "Tidak absen pulang" },
 ] as const;
 
+/** Breakpoint `lg` Tailwind: mulai lebar ini detail per hari tampil di kolom kanan, di bawahnya di dalam kartu peserta. */
+const MEDIA_DUA_KOLOM = "(min-width: 64rem)";
+
+function useDuaKolom(): boolean {
+  return useSyncExternalStore(
+    (ubah) => {
+      const media = window.matchMedia(MEDIA_DUA_KOLOM);
+      media.addEventListener("change", ubah);
+      return () => media.removeEventListener("change", ubah);
+    },
+    () => window.matchMedia(MEDIA_DUA_KOLOM).matches,
+    () => false,
+  );
+}
+
 function bulanAwal(bulan: string, jumlahBulan: JumlahBulanRekap): string {
   return geserBulan(bulan, 1 - jumlahBulan);
 }
@@ -75,7 +90,15 @@ function DetailPeserta({ peserta, bulan, jumlahBulan, hak }: { peserta: BarisRek
   );
 }
 
-function KartuPeserta({ baris, dipilih, onPilih }: { baris: BarisRekap; dipilih: boolean; onPilih: () => void }) {
+type KartuPesertaProps = {
+  baris: BarisRekap;
+  dipilih: boolean;
+  onPilih: () => void;
+  /** Detail per hari di dalam kartu, untuk layar sempit. */
+  detail?: ReactNode;
+};
+
+function KartuPeserta({ baris, dipilih, onPilih, detail }: KartuPesertaProps) {
   return (
     <li className={cn("rounded-xl border bg-card p-4 shadow-sm", dipilih ? "border-primary" : "border-border")}>
       <div className="flex flex-wrap items-start justify-between gap-2">
@@ -95,6 +118,7 @@ function KartuPeserta({ baris, dipilih, onPilih }: { baris: BarisRekap; dipilih:
           </div>
         ))}
       </dl>
+      {detail ? <div className="mt-4 border-t border-border pt-4">{detail}</div> : null}
     </li>
   );
 }
@@ -112,6 +136,9 @@ function RekapBulanan({ hak }: { hak: HakKoreksi }) {
   const [mengunduh, setMengunduh] = useState<FormatEksporRekap | null>(null);
   const { data, isPending, isError, error, refetch, isPlaceholderData } = useRekapAbsensi(bulan, jumlahBulan);
   const dipilih = data?.find((baris) => baris.user.id === pesertaId) ?? null;
+  const duaKolom = useDuaKolom();
+  // Di HP detail dibuka di bawah kartu yang dipilih; di layar lebar di kolom kanan, sejajar daftar peserta.
+  const detail = dipilih ? <DetailPeserta peserta={dipilih.user} bulan={bulan} jumlahBulan={jumlahBulan} hak={hak} /> : null;
 
   const unduh = async (format: FormatEksporRekap) => {
     setMengunduh(format);
@@ -174,12 +201,11 @@ function RekapBulanan({ hak }: { hak: HakKoreksi }) {
                 baris={baris}
                 dipilih={baris.user.id === pesertaId}
                 onPilih={() => void setPesertaId(baris.user.id === pesertaId ? null : baris.user.id)}
+                detail={!duaKolom && baris.user.id === pesertaId ? detail : undefined}
               />
             ))}
           </ul>
-          {dipilih ? (
-            <DetailPeserta peserta={dipilih.user} bulan={bulan} jumlahBulan={jumlahBulan} hak={hak} />
-          ) : (
+          {!duaKolom ? null : detail ?? (
             <p className="rounded-xl border-2 border-dashed border-border p-4 text-sm text-muted-foreground">
               Tekan Lihat per Hari pada salah satu nama untuk melihat jam dan foto, mengoreksi status, atau mencatat absen yang terlupa.
             </p>

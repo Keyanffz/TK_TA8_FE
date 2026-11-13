@@ -49,13 +49,13 @@ function VisiMisi({ visi, misi }: { visi: string | null; misi: string[] }) {
       <div className="grid gap-10 md:grid-cols-2">
         {visi ? (
           <div>
-            <h3 className="font-heading text-sm font-bold tracking-widest text-bintang uppercase">Visi</h3>
+            <h3 className="font-heading text-lg font-extrabold">Visi</h3>
             <p className="mt-3 font-heading text-xl leading-snug font-bold">{visi}</p>
           </div>
         ) : null}
         {misi.length > 0 ? (
           <div>
-            <h3 className="font-heading text-sm font-bold tracking-widest text-bintang uppercase">Misi</h3>
+            <h3 className="font-heading text-lg font-extrabold">Misi</h3>
             <Muncul as="ol" efek="geser" className="mt-4 space-y-4">
               {misi.map((isi, indeks) => (
                 <li key={isi} className="flex gap-3">

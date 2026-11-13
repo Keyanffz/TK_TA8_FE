@@ -1,12 +1,11 @@
 "use client";
 
-import { GraduationCap, School, Users, UsersRound } from "lucide-react";
 import type { CSSProperties } from "react";
 
 import { AgendaRingkas, PengumumanRingkas } from "@/components/features/beranda/daftar-ringkas";
-import { KartuAngka } from "@/components/features/beranda/kartu-angka";
 import { GrafikPemasukan } from "@/components/features/beranda/kepala-sekolah/grafik-pemasukan";
 import { PerluTindakan } from "@/components/features/beranda/kepala-sekolah/perlu-tindakan";
+import { RingkasanSekolah } from "@/components/features/beranda/kepala-sekolah/ringkasan-sekolah";
 import { PanelBeranda } from "@/components/features/beranda/panel-beranda";
 import { SapaanBeranda } from "@/components/features/beranda/sapaan-beranda";
 import { EmptyState } from "@/components/shared/empty-state";
@@ -33,12 +32,7 @@ export function BerandaKepalaSekolah({ nama }: { nama: string }) {
           <GalatMuat error={error} onCobaLagi={() => void refetch()} />
         ) : (
           <div className="flex flex-col gap-6">
-            <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-              <KartuAngka label="Murid aktif" nilai={data.statistik.murid_aktif} ikon={UsersRound} urutan={1} />
-              <KartuAngka label="Guru aktif" nilai={data.statistik.guru_aktif} ikon={GraduationCap} urutan={2} />
-              <KartuAngka label="Kelas" nilai={data.statistik.kelas} ikon={School} urutan={3} />
-              <KartuAngka label="Wali murid" nilai={data.statistik.wali_murid} ikon={Users} urutan={4} />
-            </div>
+            <RingkasanSekolah statistik={data.statistik} />
             <div className="grid gap-6 lg:grid-cols-[1fr_1.6fr]">
               <PanelBeranda judul="Keuangan Bulan Ini" tautan={{ href: "/mudarris/keuangan/laporan", label: "Laporan" }}>
                 <KeuanganBulanIni keuangan={data.keuangan_bulan_ini} />
