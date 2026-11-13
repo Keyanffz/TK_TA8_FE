@@ -16,6 +16,7 @@ import {
   nilaiAwalForm,
   skemaFormAbsensi,
   teksKoordinat,
+  urutkanJamTanggal,
   type KeluaranFormAbsensi,
   type MasukanFormAbsensi,
 } from "@/components/features/pengaturan/absensi/skema-pengaturan-absensi";
@@ -66,8 +67,11 @@ function FormIsi({ awal }: { awal: PengaturanAbsensi }) {
   }, [posisiSaya, form]);
 
   const kirim = form.handleSubmit(async (nilai) => {
+    // Form ikut diurutkan supaya nomor di pesan error backend (absensi.jam_tanggal.<n>) menunjuk baris yang sama.
+    const jamTanggal = urutkanJamTanggal(nilai.jam_tanggal);
+    form.setValue("jam_tanggal", jamTanggal);
     try {
-      await simpan.mutateAsync(keItemsPengaturan(nilai));
+      await simpan.mutateAsync(keItemsPengaturan({ ...nilai, jam_tanggal: jamTanggal }));
       form.reset(form.getValues());
       toast.success("Pengaturan absensi tersimpan dan langsung berlaku.");
     } catch (error) {
