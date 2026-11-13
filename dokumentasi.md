@@ -712,6 +712,12 @@ Tempat deploy belum ditentukan. Syarat yang sudah pasti:
 
 ## Changelog
 
+### Pesan error per kolom di tab pengaturan (branch `fe/pesan-error-pengaturan`)
+
+Disetujui pemilik repo dari usulan audit AI-slop. `pesanErrorPengaturan()` (`src/lib/api/pengaturan-dashboard.ts`) mencari kunci error berawalan `items.`, padahal backend mengirim kunci pengaturan tanpa awalan (`keuangan.hari_pengingat`, `landing.program.0.judul`). Akibatnya pesan VALIDATION_ERROR di tab Tagihan, PPDB, Hero, Program, Keunggulan, dan Fasilitas tidak pernah terpasang di kolomnya dan hanya muncul sebagai toast umum. Sekarang awalannya kunci itu sendiri.
+
+Pengecekan: `npm run lint`, `npm run typecheck`, `npm run build`, `npm run check:slop` bersih. Chromium 390 px, masuk sebagai Kepala Sekolah, balasan `PUT /pengaturan` dicegat Playwright dan diganti 422 dengan kunci error berbentuk sama dengan backend (`keuangan.hari_pengingat`): pesan tampil di bawah kolom Hari pengingat, tidak sebagai toast. Bentuk kunci error backend dijaga test `PengaturanTest` di backend.
+
 ### Keputusan pemilik repo atas pertanyaan R3–R6 (branch `fe/keputusan-revisi`)
 
 Pasangan backend `be/keputusan-revisi`. `api.d.ts` di-generate ulang. Keputusan di "Keputusan pemilik repo atas pertanyaan R3–R6".
