@@ -12,6 +12,7 @@ import { StatusBadge } from "@/components/shared/status-badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { pesanError } from "@/lib/api/errors";
+import { TombolPdfRaporKelas } from "@/components/features/rapor/tombol-pdf-rapor";
 import { useDetailKelas, useKelasAktif } from "@/lib/api/kelas";
 import { RAPOR_SATU_KELAS, useBuatRapor, useDaftarRapor } from "@/lib/api/rapor";
 import { useDaftarTahunAjaran } from "@/lib/api/tahun-ajaran";
@@ -84,10 +85,13 @@ function DaftarMuridKelas({ kelasId, semester }: { kelasId: number; semester: 1 
 
   return (
     <div className="flex flex-col gap-3">
-      <p className="text-sm text-muted-foreground">
-        {muridAktif.length} murid · {hitung("terbit")} terbit · {hitung("diajukan")} menunggu review · {hitung("revisi")} perlu revisi ·{" "}
-        {hitung("draft")} draft · {muridAktif.length - raporPerMurid.size} belum dibuat
-      </p>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className="text-sm text-muted-foreground">
+          {muridAktif.length} murid · {hitung("terbit")} terbit · {hitung("diajukan")} menunggu review · {hitung("revisi")} perlu revisi ·{" "}
+          {hitung("draft")} draft · {muridAktif.length - raporPerMurid.size} belum dibuat
+        </p>
+        {hitung("terbit") > 0 ? <TombolPdfRaporKelas kelasId={kelasId} namaKelas={kelas.data.nama} semester={semester} /> : null}
+      </div>
       <ul className={cn("divide-y divide-border rounded-xl border border-border bg-card shadow-sm", rapor.isPlaceholderData && "opacity-60")}>
         {muridAktif.map((murid) => (
           <BarisMurid key={murid.id} murid={murid} rapor={raporPerMurid.get(murid.id)} semester={semester} />

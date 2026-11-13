@@ -2024,6 +2024,28 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/kelas/{id}/rapor/pdf": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Satu PDF berisi semua rapor `terbit` satu kelas dan semester (tahun ajaran kelas itu), urut nama murid, tiap
+         *     murid mulai di halaman baru, untuk dicetak. Kepala Sekolah untuk kelas mana pun; guru hanya kelas yang ia ampu
+         *     sebagai wali kelas atau guru pendamping di tahun ajaran aktif (kelas lain → 404). Belum ada rapor terbit → 422
+         *     `BUSINESS_RULE`
+         */
+        get: operations["rapor.pdfKelas"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/rapor": {
         parameters: {
             query?: never;
@@ -16497,6 +16519,109 @@ export interface operations {
                         data: components["schemas"]["RaporDetailResource"];
                         meta: null;
                     };
+                };
+            };
+            /** @description UNAUTHENTICATED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "UNAUTHENTICATED";
+                        errors: null;
+                    };
+                };
+            };
+            /** @description FORBIDDEN / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "FORBIDDEN" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        errors: null;
+                    };
+                };
+            };
+            /** @description NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "NOT_FOUND";
+                        errors: null;
+                    };
+                };
+            };
+            /** @description BUSINESS_RULE / VALIDATION_ERROR */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "BUSINESS_RULE" | "VALIDATION_ERROR";
+                        errors: {
+                            [key: string]: string[];
+                        };
+                    };
+                };
+            };
+            /** @description TOO_MANY_REQUESTS */
+            429: {
+                headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "TOO_MANY_REQUESTS";
+                        errors: null;
+                    };
+                };
+            };
+        };
+    };
+    "rapor.pdfKelas": {
+        parameters: {
+            query: {
+                semester: number;
+            };
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Rapor satu kelas (PDF) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/pdf": Blob;
                 };
             };
             /** @description UNAUTHENTICATED */

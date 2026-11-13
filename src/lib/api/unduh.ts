@@ -36,3 +36,8 @@ export async function bukaBlobDiTabBaru(ambil: () => Promise<Blob>): Promise<voi
     throw error;
   }
 }
+
+/** Bagian nama berkas dari nama kelas: "TK A1" → "tk-a1". */
+export function slugNamaBerkas(nama: string): string {
+  return nama.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+}

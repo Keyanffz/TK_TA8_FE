@@ -141,6 +141,11 @@ export function ambilPdfRapor(id: number): Promise<Blob> {
   return ambilData(api.GET("/rapor/{id}/pdf", { params: { path: { id } }, parseAs: "blob" }));
 }
 
+/** Semua rapor terbit satu kelas dan semester dalam satu PDF. */
+export function ambilPdfRaporKelas(kelasId: number, semester: 1 | 2): Promise<Blob> {
+  return ambilData(api.GET("/kelas/{id}/rapor/pdf", { params: { path: { id: kelasId }, query: { semester } }, parseAs: "blob" }));
+}
+
 export type BodyElemen = components["schemas"]["SimpanElemenPenilaianRequest"];
 
 export function useSimpanElemen(id: number | null) {
