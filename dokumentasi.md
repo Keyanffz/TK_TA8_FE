@@ -40,6 +40,7 @@ Website publik dan dashboard sistem informasi TK Tarbiyatul Athfal 8 (TK Muslima
 | Revisi sekolah R6: unduh rapor satu kelas (branch `fe/ekspor-rapor-kelas`, di atas `fe/absensi-murid`; backend `be/ekspor-rapor-kelas`) | Selesai, menunggu review; lint, typecheck, build, `check:slop`, uji curl lewat proxy `next start`; belum diuji di browser. Template kertas rapor menunggu contoh dari sekolah |
 | Revisi sekolah R7: image Docker (branch `fe/docker`, di atas `fe/ekspor-rapor-kelas`; compose di backend `be/docker`) | Selesai, menunggu review; lint, typecheck, build, `check:slop`, build image dan `docker compose up` diuji di laptop. Pindah ke VPS belum |
 | Keputusan pemilik repo atas pertanyaan R3–R6: ikon notifikasi pembayaran dibatalkan, tab Hari Sekolah di detail kelas (branch `fe/keputusan-revisi`, di atas `fe/docker`; backend `be/keputusan-revisi`) | Selesai, menunggu review; lint, typecheck, build, `check:slop`; belum diuji di browser dan belum lewat proxy `next start` |
+| Jam absensi per hari di Pengaturan Absensi, jam hari ini di halaman Absensi, jam masuk/pulang di ekspor rekap (branch `fe/jam-absensi`; backend `be/jam-absensi`) | Selesai, menunggu review; lint, typecheck, build, `check:slop`, uji di Chromium 390 px dengan backend asli; belum diuji di HP sungguhan |
 
 Mode mock tidak dipakai: `api.json` final dari backend sudah tersedia sejak Fase 1, jadi semua request memakai backend asli dan tipe hasil generate. Tidak ada endpoint mock.
 
@@ -498,6 +499,17 @@ Jawaban pemilik repo atas pertanyaan terbuka di laporan R3 sampai R6, sekarang k
    - Halaman menjelaskan bahwa absensi pada tanggal yang kemudian dijadikan libur atau bukan hari sekolah tetap tersimpan, tetapi tidak dihitung di rekap.
    - Deretan empat tab dibungkus `overflow-x-auto` (pola yang sama dengan halaman Pengaturan) supaya tidak melebar di layar HP.
 
+## Keputusan jam absensi per hari (menunggu review)
+
+Backend `be/jam-absensi` menambah kunci `absensi.jam_khusus` (jam masuk dan jam pulang untuk hari kerja tertentu, berlaku tetap setiap minggu) dan absensi harian di ekspor rekap. Bagian A disalin ulang; B4 dan B9 diperbarui.
+
+1. Pengaturan Absensi: bagian "Jam absen" dipindah ke `BagianJamAbsen` (`bagian-jam-absen.tsx`) supaya form utama tidak melewati 250 baris. Di bawah jam bawaan ada "Jam per hari": satu kartu per hari kerja (urut Senin–Minggu, mengikuti pilihan hari kerja di bawahnya secara langsung) dengan pilihan Pakai jam bawaan atau Jam khusus (`KolomRadio`). Pakai jam bawaan menampilkan jam bawaan sebagai teks; Jam khusus menampilkan isian jam masuk dan pulang hari itu, diisi awal dari jam bawaan.
+2. Form menyimpan jam khusus di `jam_khusus` (`useFieldArray`), selalu urut nomor hari: pilihan Jam khusus disisipkan di posisinya, bukan ditambahkan di akhir. Backend memeriksa urutan jam setelah daftar diurutkan per hari, jadi dengan urutan yang sama nomor di kunci error `absensi.jam_khusus.<n>.jam_masuk` atau `.jam_pulang` menunjuk baris form yang benar (`fieldUntukGalat()`); error `.hari` dipasang di Hari kerja.
+3. Urutan jam (buka, batas terlambat, tutup; pulang tutup setelah buka) diperiksa di browser dengan `denganUrutanJam()` yang sama untuk jam bawaan dan setiap jam khusus, dan diperiksa lagi di backend.
+4. Melepas hari dari Hari kerja ikut melepas jam khusus hari itu (`setValue` di tombol hari), karena backend menolak jam khusus untuk hari yang bukan hari kerja.
+5. Halaman Absensi tidak diubah: kartu status sudah menampilkan `masuk.buka`–`masuk.tutup`, batas terlambat, dan jam pulang dari `GET /absensi/hari-ini`, yang sekarang berisi jam hari itu. `langkahAbsen()` juga sudah membandingkan jam server dengan jam dari respons itu.
+6. Rekap Absensi tab Bulanan tidak diubah: detail per hari (Lihat per Hari) sudah menampilkan jam masuk dan jam pulang tiap hari, termasuk "Tanpa jam". Unduh Excel dan Unduh PDF tetap memanggil endpoint yang sama; isinya (sheet Harian, bagian harian per peserta) dibuat backend.
+
 ## Keputusan lampiran pengumuman
 
 Disetujui pemilik repo: satu file PDF atau gambar, maksimal 5 MB, dan lampiran pengumuman publik bisa diunduh pengunjung website. Kontrak di `docs/kontrak-api-lampiran-pengumuman.md`, ringkasannya di A2.9, A3, A4, A7, dan baris pengumuman B4. Backend di-merge lewat PR #17. Yang diputuskan saat pengerjaan FE:
@@ -711,6 +723,16 @@ Tempat deploy belum ditentukan. Syarat yang sudah pasti:
 6. **Masuk dengan Google**: `NEXT_PUBLIC_GOOGLE_CLIENT_ID` diisi sebelum `npm run build`, dan origin FE produksi (misalnya `https://tkta8.sch.id`) didaftarkan di Authorized JavaScript origins Client ID itu di Google Cloud Console. Backend memakai Client ID yang sama di `GOOGLE_CLIENT_ID`.
 
 ## Changelog
+
+### Jam absensi per hari (branch `fe/jam-absensi`)
+
+Pasangan backend `be/jam-absensi`. Keputusan di "Keputusan jam absensi per hari".
+
+Baru: `src/components/features/pengaturan/absensi/bagian-jam-absen.tsx`.
+
+Diubah: `form-pengaturan-absensi.tsx` (memakai `BagianJamAbsen`, melepas jam khusus saat hari kerja dilepas, `fieldUntukGalat()`), `skema-pengaturan-absensi.ts` (`jam_khusus`, `denganUrutanJam()`, `fieldUntukGalat()`; `FIELD_PER_KUNCI` tidak diekspor lagi), `src/lib/api/pengaturan-dashboard.ts` (`absensi.jam_khusus` di `skemaAbsensi`), `src/types/api.d.ts` (generate ulang; hanya deskripsi), `PROMPT_FE_TK.md` (Bagian A, B4, B9).
+
+Pengecekan: `npm run lint`, `npm run typecheck`, `npm run build`, `npm run check:slop` bersih (Node 24.22.3). Uji di Chromium (Playwright, 390 × 844) dengan backend `be/jam-absensi` di MariaDB berisi data demo, masuk sebagai Kepala Sekolah: Jumat diberi Jam khusus, batas terlambat 09:30 setelah jam tutup ditolak di form ("Jam tutup harus setelah jam buka dan tidak sebelum batas terlambat."), jam 06:30/07:00/08:00 dan pulang 10:00/11:30 tersimpan dan terbaca lagi setelah muat ulang; halaman Absensi hari Jumat 13 November menampilkan "06:30–08:00, terlambat setelah 07:00" dan "10:00–11:30"; tab Bulanan Agustus–Oktober: Unduh Excel (`rekap-absensi-2026-08-sampai-2026-10.xlsx`, sheet Rekap Absensi dan Harian, 632 baris harian) dan Unduh PDF (25 halaman); Lihat per Hari menampilkan jam masuk dan pulang. Console browser hanya berisi kegagalan memuat sumber luar yang diblokir jaringan container (tile peta). Belum diuji: HP sungguhan, pesan error backend `absensi.jam_khusus.<n>` di form (pemeriksaan browser selalu menangkapnya lebih dulu).
 
 ### Keputusan pemilik repo atas pertanyaan R3–R6 (branch `fe/keputusan-revisi`)
 
