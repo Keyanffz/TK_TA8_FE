@@ -508,7 +508,7 @@ Backend `be/jam-absensi` menambah kunci `absensi.jam_khusus` (jam masuk dan jam 
 3. Urutan jam (buka, batas terlambat, tutup; pulang tutup setelah buka) diperiksa di browser dengan `denganUrutanJam()` yang sama untuk jam bawaan dan setiap jam khusus, dan diperiksa lagi di backend.
 4. Melepas hari dari Hari kerja ikut melepas jam khusus hari itu (`setValue` di tombol hari), karena backend menolak jam khusus untuk hari yang bukan hari kerja.
 5. Halaman Absensi tidak diubah: kartu status sudah menampilkan `masuk.buka`–`masuk.tutup`, batas terlambat, dan jam pulang dari `GET /absensi/hari-ini`, yang sekarang berisi jam hari itu. `langkahAbsen()` juga sudah membandingkan jam server dengan jam dari respons itu.
-6. Rekap Absensi tab Bulanan tidak diubah: detail per hari (Lihat per Hari) sudah menampilkan jam masuk dan jam pulang tiap hari, termasuk "Tanpa jam". Unduh Excel dan Unduh PDF tetap memanggil endpoint yang sama; isinya (sheet Harian, bagian harian per peserta) dibuat backend.
+6. Rekap Absensi tab Bulanan tidak diubah: detail per hari (Lihat per Hari) sudah menampilkan jam masuk dan jam pulang tiap hari, termasuk "Tanpa jam". Unduh Excel dan Unduh PDF tetap memanggil endpoint yang sama; isinya (sheet Harian, bagian harian per peserta) dibuat backend. Setelah review, backend menulis juga hari kerja yang belum datang (berisi "-") dan tanggal lain yang punya absensi (keterangannya menyebut sebabnya), dan tanggal di Excel menjadi sel tanggal `DD/MM/YYYY`; Bagian A disalin ulang, kode FE tidak berubah.
 
 ## Keputusan lampiran pengumuman
 
