@@ -40,6 +40,7 @@ Website publik dan dashboard sistem informasi TK Tarbiyatul Athfal 8 (TK Muslima
 | Revisi sekolah R6: unduh rapor satu kelas (branch `fe/ekspor-rapor-kelas`, di atas `fe/absensi-murid`; backend `be/ekspor-rapor-kelas`) | Selesai, menunggu review; lint, typecheck, build, `check:slop`, uji curl lewat proxy `next start`; belum diuji di browser. Template kertas rapor menunggu contoh dari sekolah |
 | Revisi sekolah R7: image Docker (branch `fe/docker`, di atas `fe/ekspor-rapor-kelas`; compose di backend `be/docker`) | Selesai, menunggu review; lint, typecheck, build, `check:slop`, build image dan `docker compose up` diuji di laptop. Pindah ke VPS belum |
 | Keputusan pemilik repo atas pertanyaan R3–R6: ikon notifikasi pembayaran dibatalkan, tab Hari Sekolah di detail kelas (branch `fe/keputusan-revisi`, di atas `fe/docker`; backend `be/keputusan-revisi`) | Selesai, menunggu review; lint, typecheck, build, `check:slop`; belum diuji di browser dan belum lewat proxy `next start` |
+| Audit dan perbaikan AI-slop (branch `fe/anti-slop`; backend `be/anti-slop`) | Selesai, menunggu review; lint, typecheck, build, `check:slop`; keadaan kosong beranda Kepala Sekolah dan label Tambah Tanggal dicek di Chromium 390 px |
 
 Mode mock tidak dipakai: `api.json` final dari backend sudah tersedia sejak Fase 1, jadi semua request memakai backend asli dan tipe hasil generate. Tidak ada endpoint mock.
 
@@ -498,6 +499,25 @@ Jawaban pemilik repo atas pertanyaan terbuka di laporan R3 sampai R6, sekarang k
    - Halaman menjelaskan bahwa absensi pada tanggal yang kemudian dijadikan libur atau bukan hari sekolah tetap tersimpan, tetapi tidak dihitung di rekap.
    - Deretan empat tab dibungkus `overflow-x-auto` (pola yang sama dengan halaman Pengaturan) supaya tidak melebar di layar HP.
 
+## Audit AI-slop (menunggu review)
+
+Acuan: Bagian C, B8, dan sebagai rujukan tambahan `antislop.md` dan `GUIDE.md` dari repo miqdadbadjuber/anti-slop (dibaca sebagai data di folder sementara, tidak dipasang dan tidak disalin). Aturan rujukan yang bertentangan dengan B8/B1 tidak dipakai: ikon lucide (B1), tanpa mode gelap (B8), ornamen bintang dan gerak (B8). Urutan dari yang paling terlihat pengguna.
+
+Diperbaiki:
+
+1. `beranda-kepala-sekolah.tsx` (`KeuanganBulanIni`): bulan tanpa tagihan yang jatuh tempo menampilkan Rp 0, batang kosong, "0% lunas", dan Terbayar/Belum terbayar Rp 0, yaitu angka tanpa makna. Sekarang `EmptyState` ringkas "Belum ada tagihan yang jatuh tempo bulan ini.", sama dengan beranda guru.
+2. Label tombol generik: "Simpan" keterangan foto (`kelola-foto.tsx`) menjadi "Simpan Keterangan", "Tambah" tanggal libur (`daftar-tanggal-libur.tsx`) menjadi "Tambah Tanggal", aksi dialog kenaikan kelas (`wizard-kenaikan.tsx`) menjadi "Simpan Kenaikan Kelas".
+3. Komentar yang tidak sesuai kode: `dialog-konfirmasi.tsx` menyebut "tolak pendaftaran guru" (fitur sudah dihapus), `form-info-wali.tsx` menyebut kunci error "items.beranda.info_wali.<field>" padahal backend tidak memakai awalan `items.`.
+4. Kode mati: tipe `AnakWali` dan `LaporanTunggakan` (`types/domain.ts`), `DashboardWali` (`lib/api/dashboard.ts`), dan `formatTanggalPendek` (`lib/format.ts`) tidak dipakai di mana pun.
+5. `check:slop` mendapat tiga pola: pesan error generik ("terjadi kesalahan", "something went wrong", "oops"), label tombol generik ("Submit", "Get Started", "Learn More", "Click here", "Klik di sini"), dan komentar banner (`// ====`, `/* ----`). Ketiganya nol temuan di kode sekarang dan diuji dengan file sementara.
+
+Diusulkan, tidak dikerjakan:
+
+6. Bug: `pesanErrorPengaturan()` (`lib/api/pengaturan-dashboard.ts`) mencari kunci error berawalan `items.`, padahal backend mengirim `keuangan.tanggal_jatuh_tempo`, `landing.program.0.judul`, dan seterusnya. Akibatnya pesan per kolom di tab Tagihan, PPDB, Hero, Fasilitas, Program, dan Keunggulan tidak pernah terpasang dan hanya muncul sebagai toast. Perbaikannya satu baris (awalan tanpa `items.`), tetapi mengubah perilaku, jadi sebaiknya PR sendiri.
+7. Beranda Kepala Sekolah: empat kartu statistik berukuran sama dengan ikon di lingkaran (pola kartu KPI umum). Usulan: angka murid dan guru digabung ke kalimat sapaan atau ke panel Perlu Tindakan, atau kartu dibedakan menurut kepentingannya.
+8. Landing: pil "TK Muslimat NU Kota Semarang" di atas judul hero dan label Visi/Misi huruf kapital berjarak lebar adalah pola template. Usulan: nama yayasan dipindah ke subjudul, label Visi/Misi memakai huruf biasa.
+9. Rekap Absensi tab Bulanan di HP: detail per hari muncul di bawah semua kartu peserta, jadi Kepala Sekolah harus menggulir jauh. Usulan: detail dibuka di bawah kartu peserta yang dipilih atau di sheet.
+
 ## Keputusan lampiran pengumuman
 
 Disetujui pemilik repo: satu file PDF atau gambar, maksimal 5 MB, dan lampiran pengumuman publik bisa diunduh pengunjung website. Kontrak di `docs/kontrak-api-lampiran-pengumuman.md`, ringkasannya di A2.9, A3, A4, A7, dan baris pengumuman B4. Backend di-merge lewat PR #17. Yang diputuskan saat pengerjaan FE:
@@ -711,6 +731,14 @@ Tempat deploy belum ditentukan. Syarat yang sudah pasti:
 6. **Masuk dengan Google**: `NEXT_PUBLIC_GOOGLE_CLIENT_ID` diisi sebelum `npm run build`, dan origin FE produksi (misalnya `https://tkta8.sch.id`) didaftarkan di Authorized JavaScript origins Client ID itu di Google Cloud Console. Backend memakai Client ID yang sama di `GOOGLE_CLIENT_ID`.
 
 ## Changelog
+
+### Audit dan perbaikan AI-slop (branch `fe/anti-slop`)
+
+Pasangan backend `be/anti-slop`. Temuan dan usulan di "Audit AI-slop".
+
+Diubah: `beranda-kepala-sekolah.tsx`, `kelola-foto.tsx`, `daftar-tanggal-libur.tsx`, `wizard-kenaikan.tsx`, `dialog-konfirmasi.tsx`, `form-info-wali.tsx`, `src/types/domain.ts`, `src/lib/api/dashboard.ts`, `src/lib/format.ts`, `scripts/check-slop.sh`.
+
+Pengecekan: `npm run lint`, `npm run typecheck`, `npm run build`, `npm run check:slop` bersih. Chromium 390 px dengan backend lokal: beranda Kepala Sekolah bulan November (tanpa tagihan jatuh tempo) menampilkan keadaan kosong, tombol Tambah Tanggal di Pengaturan Absensi, tanpa error di console. Label lain dicek lewat kode.
 
 ### Keputusan pemilik repo atas pertanyaan R3–R6 (branch `fe/keputusan-revisi`)
 
