@@ -97,7 +97,9 @@ export interface paths {
         };
         /**
          * Rekap yang sama dengan `GET /absensi/rekap` sebagai file Excel (`format=xlsx`, bawaan) atau PDF berkop sekolah
-         *     (`format=pdf`). Nama file menyebut bulannya, misalnya `rekap-absensi-2026-10.xlsx` atau
+         *     (`format=pdf`), ditambah absensi harian: jam masuk, jam pulang, status, dan keterangan setiap peserta per hari
+         *     kerja yang bukan tanggal libur, termasuk yang belum datang, ditambah tanggal lain yang punya absensinya (Excel:
+         *     sheet Harian; PDF: satu bagian per peserta, mulai halaman baru). Nama file menyebut bulannya, misalnya `rekap-absensi-2026-10.xlsx` atau
          *     `rekap-absensi-2026-08-sampai-2026-10.pdf`
          */
         get: operations["absensi.export"];
@@ -188,13 +190,14 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Status absensi hari ini untuk pengguna yang login: apakah hari kerja, jam tiap jenis absen dan apakah
-         *     sedang terbuka menurut jam server, absensi yang sudah tercatat, serta lokasi dan radius sekolah untuk
-         *     menampilkan jarak di FE. `hari_kerja` false kalau hari itu di luar hari kerja atau termasuk tanggal libur.
-         *     Sebelum `tanggal_mulai`, `terbuka` selalu false. `pulang.boleh_lebih_awal` true kalau absen pulang sekarang
-         *     akan diterima sebagai pulang lebih awal (dengan keterangan): hari kerja, tidak sebelum `tanggal_mulai`, jam
-         *     pulang belum buka, absen masuk hari ini hadir atau terlambat, dan belum absen pulang. `susulan` berisi akses
-         *     absen susulan milik pengguna yang belum dipakai dan belum kedaluwarsa, urut tanggal
+         * Status absensi hari ini untuk pengguna yang login: apakah hari kerja, jam tiap jenis absen hari ini (jam khusus
+         *     hari itu kalau ada, selain itu jam bawaan) dan apakah sedang terbuka menurut jam server, absensi yang sudah
+         *     tercatat, serta lokasi dan radius sekolah untuk menampilkan jarak di FE. `hari_kerja` false kalau hari itu di
+         *     luar hari kerja atau termasuk tanggal libur. Sebelum `tanggal_mulai`, `terbuka` selalu false.
+         *     `pulang.boleh_lebih_awal` true kalau absen pulang sekarang akan diterima sebagai pulang lebih awal (dengan
+         *     keterangan): hari kerja, tidak sebelum `tanggal_mulai`, jam pulang hari ini belum buka, absen masuk hari ini
+         *     hadir atau terlambat, dan belum absen pulang. `susulan` berisi akses absen susulan milik pengguna yang belum
+         *     dipakai dan belum kedaluwarsa, urut tanggal
          */
         get: operations["absensi.hariIni"];
         put?: never;

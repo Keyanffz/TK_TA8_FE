@@ -8,9 +8,10 @@ import { Controller, useForm, useWatch } from "react-hook-form";
 import { toast } from "sonner";
 
 import { useLokasi } from "@/components/features/absensi/use-lokasi";
+import { BagianJamAbsen } from "@/components/features/pengaturan/absensi/bagian-jam-absen";
 import { DaftarTanggalLibur } from "@/components/features/pengaturan/absensi/daftar-tanggal-libur";
 import {
-  FIELD_PER_KUNCI,
+  fieldUntukGalat,
   keItemsPengaturan,
   nilaiAwalForm,
   skemaFormAbsensi,
@@ -73,7 +74,7 @@ function FormIsi({ awal }: { awal: PengaturanAbsensi }) {
       const pesanPerKunci = error instanceof ApiError ? Object.entries(error.errors ?? {}) : [];
       let terpasang = false;
       for (const [kunci, pesan] of pesanPerKunci) {
-        const field = FIELD_PER_KUNCI.find(([awalan]) => kunci === awalan || kunci.startsWith(`${awalan}.`))?.[1];
+        const field = fieldUntukGalat(kunci);
         if (field && pesan[0]) {
           form.setError(field, { type: "server", message: pesan[0] });
           terpasang = true;
@@ -131,28 +132,7 @@ function FormIsi({ awal }: { awal: PengaturanAbsensi }) {
         </FieldGroup>
       </section>
 
-      <section aria-labelledby="judul-jam" className={KELAS_BAGIAN}>
-        <h2 id="judul-jam" className="mb-4 text-lg font-extrabold">
-          Jam absen
-        </h2>
-        <FieldGroup>
-          <FieldSet>
-            <FieldLegend variant="label">Masuk</FieldLegend>
-            <div className="grid gap-4 sm:grid-cols-3">
-              <KolomTeks label="Jam buka" type="time" error={errors.masuk_buka?.message} {...form.register("masuk_buka")} />
-              <KolomTeks label="Batas terlambat" type="time" deskripsi="Absen setelah jam ini tercatat terlambat." error={errors.masuk_batas_terlambat?.message} {...form.register("masuk_batas_terlambat")} />
-              <KolomTeks label="Jam tutup" type="time" deskripsi="Setelah jam ini, yang belum absen ditandai tidak hadir." error={errors.masuk_tutup?.message} {...form.register("masuk_tutup")} />
-            </div>
-          </FieldSet>
-          <FieldSet>
-            <FieldLegend variant="label">Pulang</FieldLegend>
-            <div className="grid gap-4 sm:grid-cols-3">
-              <KolomTeks label="Jam buka" type="time" error={errors.pulang_buka?.message} {...form.register("pulang_buka")} />
-              <KolomTeks label="Jam tutup" type="time" error={errors.pulang_tutup?.message} {...form.register("pulang_tutup")} />
-            </div>
-          </FieldSet>
-        </FieldGroup>
-      </section>
+      <BagianJamAbsen form={form} className={KELAS_BAGIAN} />
 
       <section aria-labelledby="judul-hari" className={KELAS_BAGIAN}>
         <h2 id="judul-hari" className="mb-4 text-lg font-extrabold">
@@ -181,7 +161,11 @@ function FormIsi({ awal }: { awal: PengaturanAbsensi }) {
                         key={nomor}
                         type="button"
                         aria-pressed={aktif}
-                        onClick={() => field.onChange(aktif ? field.value.filter((hari) => hari !== nomor) : [...field.value, nomor].sort())}
+                        onClick={() => {
+                          field.onChange(aktif ? field.value.filter((hari) => hari !== nomor) : [...field.value, nomor].sort());
+                          // Jam khusus hanya untuk hari kerja, jadi ikut dilepas bersama harinya.
+                          if (aktif) form.setValue("jam_khusus", form.getValues("jam_khusus").filter((khusus) => khusus.hari !== nomor), { shouldDirty: true });
+                        }}
                         className={cn(
                           "min-h-11 rounded-full border px-4 font-heading text-sm font-bold transition-colors duration-150",
                           aktif ? "border-transparent bg-primary text-primary-foreground" : "border-input bg-card hover:bg-muted",
