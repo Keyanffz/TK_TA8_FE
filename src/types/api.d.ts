@@ -256,6 +256,72 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/kelas/{id}/absensi-murid": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Murid aktif kelas itu beserta status pada tanggal yang dipilih (bawaan hari ini). `status` null kalau belum
+         *     dicatat. `bisa_dicatat` false dengan `alasan` untuk tanggal yang belum tiba, bukan hari kerja, tanggal libur,
+         *     atau di luar tahun ajaran kelas
+         */
+        get: operations["absensiMurid.index"];
+        /**
+         * Menyimpan absensi semua murid aktif kelas itu untuk satu tanggal dalam satu transaksi (dibuat atau diperbarui).
+         *     Ditolak 422 `BUSINESS_RULE` kalau tanggal tidak bisa dicatat, ada murid aktif yang tidak dikirim, atau ada murid
+         *     yang bukan murid aktif kelas itu. Membalas bentuk yang sama dengan `GET`
+         */
+        put: operations["absensiMurid.update"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/kelas/{id}/absensi-murid/rekap": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Jumlah hadir, izin, sakit, dan alpa per murid dalam satu bulan (bawaan bulan berjalan), dan jumlah hari yang
+         *     sudah dicatat
+         */
+        get: operations["absensiMurid.rekap"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/kelas/{id}/absensi-murid/rekap/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Rekap bulanan sebagai file Excel (`format=xlsx`, bawaan) atau PDF berkop sekolah (`format=pdf`), misalnya
+         *     `absensi-murid-tk-a1-2026-10.xlsx`
+         */
+        get: operations["absensiMurid.export"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/agenda": {
         parameters: {
             query?: never;
@@ -3547,6 +3613,20 @@ export interface components {
          * @enum {string}
          */
         Role: "super_admin" | "guru" | "wali_murid";
+        /** SimpanAbsensiMuridRequest */
+        SimpanAbsensiMuridRequest: {
+            /**
+             * Format: date
+             * @description `YYYY-MM-DD`.
+             */
+            tanggal: string;
+            /** @description Semua murid aktif kelas itu, masing-masing sekali. */
+            absensi: {
+                murid_id: number;
+                status: components["schemas"]["StatusAbsensiMurid"];
+                keterangan?: string | null;
+            }[];
+        };
         /** SimpanAgendaRequest */
         SimpanAgendaRequest: {
             judul: string;
@@ -3764,6 +3844,12 @@ export interface components {
          * @enum {string}
          */
         StatusAbsensi: "hadir" | "terlambat" | "tidak_hadir" | "izin" | "sakit";
+        /**
+         * StatusAbsensiMurid
+         * @description Status absensi harian murid yang dicatat guru kelas (A2.15).
+         * @enum {string}
+         */
+        StatusAbsensiMurid: "hadir" | "izin" | "sakit" | "alpa";
         /**
          * StatusAkun
          * @enum {string}
@@ -5210,6 +5296,480 @@ export interface operations {
                         /** @enum {string} */
                         code: "NOT_FOUND";
                         errors: null;
+                    };
+                };
+            };
+            /** @description TOO_MANY_REQUESTS */
+            429: {
+                headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "TOO_MANY_REQUESTS";
+                        errors: null;
+                    };
+                };
+            };
+        };
+    };
+    "absensiMurid.index": {
+        parameters: {
+            query?: {
+                /** @description `YYYY-MM-DD`, bawaan hari ini. */
+                tanggal?: string;
+            };
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        data: {
+                            tanggal: string;
+                            bisa_dicatat: boolean;
+                            alasan: string | null;
+                            murid: {
+                                murid: {
+                                    id: number;
+                                    nis: string;
+                                    nama_lengkap: string;
+                                };
+                                status: components["schemas"]["StatusAbsensiMurid"] | null;
+                                keterangan: string | null;
+                            }[];
+                        };
+                        meta: null;
+                    };
+                };
+            };
+            /** @description UNAUTHENTICATED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "UNAUTHENTICATED";
+                        errors: null;
+                    };
+                };
+            };
+            /** @description FORBIDDEN / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "FORBIDDEN" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        errors: null;
+                    };
+                };
+            };
+            /** @description NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "NOT_FOUND";
+                        errors: null;
+                    };
+                };
+            };
+            /** @description VALIDATION_ERROR */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "VALIDATION_ERROR";
+                        errors: {
+                            [key: string]: string[];
+                        };
+                    };
+                };
+            };
+            /** @description TOO_MANY_REQUESTS */
+            429: {
+                headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "TOO_MANY_REQUESTS";
+                        errors: null;
+                    };
+                };
+            };
+        };
+    };
+    "absensiMurid.update": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SimpanAbsensiMuridRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        data: {
+                            tanggal: string;
+                            bisa_dicatat: boolean;
+                            alasan: string | null;
+                            murid: {
+                                murid: {
+                                    id: number;
+                                    nis: string;
+                                    nama_lengkap: string;
+                                };
+                                status: components["schemas"]["StatusAbsensiMurid"] | null;
+                                keterangan: string | null;
+                            }[];
+                        };
+                        meta: null;
+                    };
+                };
+            };
+            /** @description UNAUTHENTICATED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "UNAUTHENTICATED";
+                        errors: null;
+                    };
+                };
+            };
+            /** @description FORBIDDEN / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "FORBIDDEN" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        errors: null;
+                    };
+                };
+            };
+            /** @description NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "NOT_FOUND";
+                        errors: null;
+                    };
+                };
+            };
+            /** @description BUSINESS_RULE / VALIDATION_ERROR */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "BUSINESS_RULE" | "VALIDATION_ERROR";
+                        errors: {
+                            [key: string]: string[];
+                        };
+                    };
+                };
+            };
+            /** @description TOO_MANY_REQUESTS */
+            429: {
+                headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "TOO_MANY_REQUESTS";
+                        errors: null;
+                    };
+                };
+            };
+        };
+    };
+    "absensiMurid.rekap": {
+        parameters: {
+            query?: {
+                /** @description `YYYY-MM`, bawaan bulan berjalan. */
+                bulan?: string;
+                /** @description Ekspor saja: `xlsx` (bawaan) atau `pdf`. */
+                format?: "xlsx" | "pdf";
+            };
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        data: {
+                            bulan: string;
+                            hari_tercatat: number;
+                            murid: {
+                                murid: {
+                                    id: number;
+                                    nis: string;
+                                    nama_lengkap: string;
+                                };
+                                hadir: number;
+                                izin: number;
+                                sakit: number;
+                                alpa: number;
+                            }[];
+                        };
+                        meta: null;
+                    };
+                };
+            };
+            /** @description UNAUTHENTICATED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "UNAUTHENTICATED";
+                        errors: null;
+                    };
+                };
+            };
+            /** @description FORBIDDEN / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "FORBIDDEN" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        errors: null;
+                    };
+                };
+            };
+            /** @description NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "NOT_FOUND";
+                        errors: null;
+                    };
+                };
+            };
+            /** @description VALIDATION_ERROR */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "VALIDATION_ERROR";
+                        errors: {
+                            [key: string]: string[];
+                        };
+                    };
+                };
+            };
+            /** @description TOO_MANY_REQUESTS */
+            429: {
+                headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "TOO_MANY_REQUESTS";
+                        errors: null;
+                    };
+                };
+            };
+        };
+    };
+    "absensiMurid.export": {
+        parameters: {
+            query?: {
+                /** @description `YYYY-MM`, bawaan bulan berjalan. */
+                bulan?: string;
+                /** @description Ekspor saja: `xlsx` (bawaan) atau `pdf`. */
+                format?: "xlsx" | "pdf";
+            };
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Rekap absensi murid (.pdf) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": Blob;
+                    "application/pdf": Blob;
+                };
+            };
+            /** @description UNAUTHENTICATED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "UNAUTHENTICATED";
+                        errors: null;
+                    };
+                };
+            };
+            /** @description FORBIDDEN / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "FORBIDDEN" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        errors: null;
+                    };
+                };
+            };
+            /** @description NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "NOT_FOUND";
+                        errors: null;
+                    };
+                };
+            };
+            /** @description VALIDATION_ERROR */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "VALIDATION_ERROR";
+                        errors: {
+                            [key: string]: string[];
+                        };
                     };
                 };
             };

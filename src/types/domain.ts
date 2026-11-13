@@ -28,6 +28,7 @@ export type JenisNotifikasi = Schemas["JenisNotifikasi"];
 export type NadaInfo = Schemas["NadaInfo"];
 export type JenisAbsensi = Schemas["JenisAbsensi"];
 export type StatusAbsensi = Schemas["StatusAbsensi"];
+export type StatusAbsensiMurid = Schemas["StatusAbsensiMurid"];
 export type ModulIzin = Schemas["ModulIzin"];
 export type LevelIzin = Schemas["LevelIzin"];
 export type PresetIzin = Schemas["PresetIzin"];

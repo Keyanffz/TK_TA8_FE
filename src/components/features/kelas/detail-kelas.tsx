@@ -1,8 +1,11 @@
 "use client";
 
 import Link from "next/link";
+import { parseAsStringLiteral, useQueryState } from "nuqs";
 import { toast } from "sonner";
 
+import { IsianAbsensiMurid } from "@/components/features/kelas/isian-absensi-murid";
+import { RekapAbsensiMurid } from "@/components/features/kelas/rekap-absensi-murid";
 import { TambahMuridKelas } from "@/components/features/kelas/tambah-murid-kelas";
 import { DialogKonfirmasi } from "@/components/shared/dialog-konfirmasi";
 import { EmptyState } from "@/components/shared/empty-state";
@@ -11,6 +14,7 @@ import { GalatMuat } from "@/components/shared/galat-muat";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useDetailKelas, useKeluarkanMurid } from "@/lib/api/kelas";
 import { LABEL_JENIS_KELAMIN, LABEL_STATUS_KELAS_MURID, LABEL_TINGKAT } from "@/lib/constants/label";
 import type { KelasDetail } from "@/types/domain";
@@ -64,11 +68,36 @@ function DaftarMuridKelas({ kelas, bisaKelola }: { kelas: KelasDetail; bisaKelol
   );
 }
 
-export function DetailKelas({ id, bisaKelola }: { id: number; bisaKelola: boolean }) {
+const TAB = ["murid", "absensi", "rekap-absensi"] as const;
+
+/**
+ * Absensi murid hanya untuk Kepala Sekolah, serta wali kelas dan guru pendamping kelas ini di tahun ajaran aktif;
+ * guru lain yang bisa membuka kelas (misalnya berizin data murid) tidak mendapat tab Absensi, sama dengan backend.
+ */
+function bisaAbsensiMurid(kelas: KelasDetail, kepalaSekolah: boolean, guruId: number | null): boolean {
+  if (kepalaSekolah) return true;
+  return kelas.tahun_ajaran.is_aktif && guruId !== null && (kelas.wali_kelas?.id === guruId || kelas.guru_pendamping?.id === guruId);
+}
+
+/** `bisaKelola` = Kepala Sekolah. `guruId` = profil guru pengguna yang login. */
+export function DetailKelas({ id, bisaKelola, guruId }: { id: number; bisaKelola: boolean; guruId: number | null }) {
   const { data: kelas, isPending, isError, error, refetch } = useDetailKelas(id);
+  const [tab, setTab] = useQueryState("tab", parseAsStringLiteral(TAB).withDefault("murid"));
 
   if (isPending) return <Skeleton aria-label="Memuat kelas" className="h-80 rounded-xl" />;
   if (isError) return <GalatMuat error={error} onCobaLagi={() => void refetch()} />;
+
+  const bagianMurid = (
+    <section aria-labelledby="judul-murid-kelas">
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+        <h2 id="judul-murid-kelas" className="text-lg font-extrabold">
+          Murid
+        </h2>
+        {bisaKelola ? <TambahMuridKelas kelas={kelas} /> : null}
+      </div>
+      <DaftarMuridKelas kelas={kelas} bisaKelola={bisaKelola} />
+    </section>
+  );
 
   return (
     <div className="flex flex-col gap-6">
@@ -92,15 +121,30 @@ export function DetailKelas({ id, bisaKelola }: { id: number; bisaKelola: boolea
           <span className="text-base font-bold text-primary-foreground/90"> / {kelas.kapasitas} murid</span>
         </p>
       </div>
-      <section aria-labelledby="judul-murid-kelas">
-        <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-          <h2 id="judul-murid-kelas" className="text-lg font-extrabold">
-            Murid
-          </h2>
-          {bisaKelola ? <TambahMuridKelas kelas={kelas} /> : null}
-        </div>
-        <DaftarMuridKelas kelas={kelas} bisaKelola={bisaKelola} />
-      </section>
+      {bisaAbsensiMurid(kelas, bisaKelola, guruId) ? (
+        <Tabs value={tab} onValueChange={(nilai) => void setTab(TAB.find((satu) => satu === nilai && satu !== "murid") ?? null)} className="gap-5">
+          <TabsList aria-label="Bagian kelas">
+            <TabsTrigger value="murid" className="px-4">
+              Murid
+            </TabsTrigger>
+            <TabsTrigger value="absensi" className="px-4">
+              Absensi
+            </TabsTrigger>
+            <TabsTrigger value="rekap-absensi" className="px-4">
+              Rekap Absensi
+            </TabsTrigger>
+          </TabsList>
+          <TabsContent value="murid">{bagianMurid}</TabsContent>
+          <TabsContent value="absensi">
+            <IsianAbsensiMurid kelasId={kelas.id} />
+          </TabsContent>
+          <TabsContent value="rekap-absensi">
+            <RekapAbsensiMurid kelasId={kelas.id} namaKelas={kelas.nama} />
+          </TabsContent>
+        </Tabs>
+      ) : (
+        bagianMurid
+      )}
     </div>
   );
 }
