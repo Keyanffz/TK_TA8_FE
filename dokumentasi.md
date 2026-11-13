@@ -32,6 +32,7 @@ Website publik dan dashboard sistem informasi TK Tarbiyatul Athfal 8 (TK Muslima
 | README, `package-lock.json`, dan perapian dokumentasi (branch `claude/modest-clarke-625zwd`) | Selesai, di-merge ke `main` tanpa PR atas permintaan pemilik repo |
 | Lampiran pengumuman (kontrak di branch `claude/modest-clarke-625zwd`, kode di `fe/lampiran-pengumuman`; backend `be/lampiran-pengumuman`) | Selesai, diuji di browser bersama backend asli, di-merge (PR #21; backend PR #17; lihat "Keputusan lampiran pengumuman") |
 | Pesan unggahan yang ditolak PHP dari backend PR #19 (branch `ccr-321f1c6b-kacabx`) | Selesai; kode FE tidak berubah, hanya kutipan pesan di dokumen; di-merge (PR #22) |
+| Revisi sekolah R1: penolakan saat menyimpan murid terlihat di formulir (branch `fe/perbaikan-tambah-murid`; backend `be/perbaikan-tambah-murid`) | Selesai, menunggu review; lint, typecheck, build, `check:slop`; belum diuji di browser |
 
 Mode mock tidak dipakai: `api.json` final dari backend sudah tersedia sejak Fase 1, jadi semua request memakai backend asli dan tipe hasil generate. Tidak ada endpoint mock.
 
@@ -408,6 +409,15 @@ Diminta pemilik repo: tampilan error yang membedakan masalah sambungan internet,
 - **`pesanError()`**: error yang bukan `ApiError` (fetch putus) menampilkan "Perangkat Anda sedang tidak tersambung ke internet. ..." kalau perangkat offline; selain itu tetap "Server sekolah sedang tidak bisa dihubungi. ...". Berlaku untuk toast dan `GalatMuat` di seluruh aplikasi. `sedangOffline()` memeriksa `navigator.onLine === false`, karena di server (Node.js) `navigator.onLine` tidak ada.
 - **Batas**: pindah halaman saat offline tidak menampilkan halaman ini. Next.js 16 mengganti navigasi yang RSC-nya gagal diambil dengan navigasi browser biasa (`client/components/router-reducer/fetch-server-response.js`), jadi yang tampil halaman offline bawaan browser. Penanganan offline Next.js (`experimental.useOffline`) tidak diaktifkan karena masih eksperimental.
 
+## Keputusan revisi sekolah R1 (menunggu review)
+
+Revisi 3 dari sekolah: murid baru tidak tersimpan. Di lokal alur tambah murid berjalan; yang diperbaiki adalah penolakan server yang mudah terlewat di layar.
+
+- **Fokus ke isian yang ditolak server**: `terapkanErrorValidasi()` memberi fokus ke field pertama yang ditolak (`shouldFocus` milik react-hook-form), sama dengan perilaku validasi di browser. Sebelumnya pesan hanya dipasang di bawah isiannya. Di formulir murid tombol Simpan ada di bawah, sedangkan NISN ada jauh di atas, jadi penolakan "NISN sudah digunakan." tidak terlihat dan tidak ada toast. Berlaku untuk semua form yang memakai fungsi ini. Isian tanpa elemen input (radio, zona unggah) tidak bisa diberi fokus; pesannya tetap tampil di tempatnya.
+- **Pesan gagal yang menetap di formulir murid**: kegagalan selain validasi (server tidak terjangkau, 500, 413) ditampilkan `KotakPesan` di atas tombol Simpan lewat `errors.root`, bukan toast. Pesan hilang saat Simpan ditekan lagi. Form lain tetap memakai toast.
+- **Pesan untuk HTTP 413**: balasan 413 yang bukan JSON (ditolak web server sebelum sampai ke backend) menampilkan "File yang dikirim terlalu besar untuk server sekolah. Pilih file yang lebih kecil, lalu coba lagi.", bukan "Server sekolah sedang tidak bisa dihubungi.".
+- Tombol "Import Data Alumni" di halaman Alumni sudah ada sejak `fe/hak-akses-status-murid`; tidak ada tombol tambah baru.
+
 ## Keputusan lampiran pengumuman
 
 Disetujui pemilik repo: satu file PDF atau gambar, maksimal 5 MB, dan lampiran pengumuman publik bisa diunduh pengunjung website. Kontrak di `docs/kontrak-api-lampiran-pengumuman.md`, ringkasannya di A2.9, A3, A4, A7, dan baris pengumuman B4. Backend di-merge lewat PR #17. Yang diputuskan saat pengerjaan FE:
@@ -621,6 +631,17 @@ Tempat deploy belum ditentukan. Syarat yang sudah pasti:
 6. **Masuk dengan Google**: `NEXT_PUBLIC_GOOGLE_CLIENT_ID` diisi sebelum `npm run build`, dan origin FE produksi (misalnya `https://tkta8.sch.id`) didaftarkan di Authorized JavaScript origins Client ID itu di Google Cloud Console. Backend memakai Client ID yang sama di `GOOGLE_CLIENT_ID`.
 
 ## Changelog
+
+### Revisi sekolah R1: penolakan saat menyimpan murid terlihat di formulir (branch `fe/perbaikan-tambah-murid`)
+
+Pasangan backend `be/perbaikan-tambah-murid` (NISN murid yang dihapus bisa dipakai lagi). Kontrak API tidak berubah, `api.d.ts` tidak di-generate ulang. Keputusan di "Keputusan revisi sekolah R1".
+
+Diubah:
+
+- `src/lib/api/errors.ts`: `terapkanErrorValidasi()` memberi fokus ke field pertama yang ditolak; pesan khusus untuk HTTP 413.
+- `src/components/features/murid/form-murid.tsx`: kegagalan selain validasi tampil menetap di atas tombol Simpan.
+
+Pengecekan: lint, typecheck, build, `check:slop` bersih. Belum diuji di browser.
 
 ### Judul tab beranda tidak dobel (branch `fe/judul-beranda`)
 
