@@ -46,6 +46,7 @@ Website publik dan dashboard sistem informasi TK Tarbiyatul Athfal 8 (TK Muslima
 | Pesan error backend di kolom tab pengaturan (branch `fe/pesan-error-pengaturan`) | Selesai, di-merge (PR #35); lint, typecheck, build, `check:slop`, uji di Chromium dengan balasan 422 tiruan |
 | Usulan tampilan: ringkasan sekolah di beranda Kepala Sekolah, hero dan Visi/Misi landing, detail rekap bulanan di HP (branch `fe/usulan-tampilan`) | Selesai, di-merge (PR #36); lint, typecheck, build, `check:slop`, uji di Chromium 390 px dan 1280 px |
 | Perbaikan dari uji browser 14 November: pilihan select yang opsinya dimuat belakangan, teks tagihan wali kelas, tampilan 404 data (branch `fe/perbaikan-uji-browser`; backend `be/perbaikan-uji-browser`) | Selesai, di-merge (PR #38; backend #32); lint, typecheck, build, `check:slop`, diuji di browser dengan backend asli (lihat "Keputusan perbaikan uji browser") |
+| Temuan kecil uji browser dan keputusan onboarding wali (branch `fe/temuan-kecil-uji`; backend `be/temuan-kecil-uji`) | Selesai, menunggu review; lint, typecheck, build, `check:slop`, diuji di browser dengan backend asli (lihat "Keputusan temuan kecil uji browser") |
 
 Mode mock tidak dipakai: `api.json` final dari backend sudah tersedia sejak Fase 1, jadi semua request memakai backend asli dan tipe hasil generate. Tidak ada endpoint mock.
 
@@ -542,6 +543,13 @@ Sumber: uji browser menyeluruh 14 November 2026 di `main`. Hanya empat temuan ut
 3. **404 saat memuat data** (`GalatMuat`): data yang tidak ada atau bukan milik akun (misalnya kelas lain untuk wali kelas, kegiatan kelas lain untuk wali murid) tampil "Data belum bisa dimuat" dengan tombol Muat Ulang. Sekarang 404 diperlakukan seperti 403: judul "Data tidak ditemukan", tanpa coba lagi, dengan tautan ke beranda. Status HTTP halaman tetap 200 karena data dimuat di browser.
 4. Teks keterangan izin Keuangan yang masih menyebut verifikasi pembayaran ada di backend (`ModulIzin`), diperbaiki di `be/perbaikan-uji-browser`.
 
+## Keputusan temuan kecil uji browser (menunggu review)
+
+1. **Onboarding wali** (keputusan pemilik repo): nama, nomor HP, alamat, dan pekerjaan wajib; NIK opsional. Ini yang sudah dijalankan kode, karena backend baru menandai `profil_lengkap` setelah nomor HP, alamat, dan pekerjaan terisi (A7), dan wali dengan profil belum lengkap selalu diarahkan ke onboarding (B3). Yang salah hanya teks flowchart A6 ("alamat, pekerjaan opsional"), dibetulkan di PROMPT FE dan BE; baris `/dashboard/onboarding` di B4 ikut diperjelas. Kode tidak berubah.
+2. **Label kolom Data log aktivitas**: subjek tanpa halaman detail tampil dengan nama tipe mentah dari backend ("user", "absensi", "akses absen susulan"). Sekarang punya label (Akun, Absensi, Akses absen susulan, Pembayaran, Keringanan, Jenis tagihan); tipe yang belum dikenal tetap ditulis apa adanya. Nama peserta di keterangan log absensi ditambahkan di backend.
+3. **Toast "Anda tidak punya akses ke halaman itu." dobel**: efek `PesanAksesDitolak` berjalan dua kali di Strict Mode dev. Toast diberi `id` tetap, jadi tampil sekali di dev maupun produksi.
+4. Tidak dikerjakan: pesan error tanggal libur di tab Hari Sekolah yang tetap tampil setelah libur lain dihapus ternyata benar, karena tanggal yang salah masih ada di kolom form; pesan hilang saat tanggalnya diubah. Teks pengumuman demo "mengunggah bukti transfer" sudah dibetulkan di seeder sejak R3; hanya baris lama di database dev yang diperbarui.
+
 ## Keputusan lampiran pengumuman
 
 Disetujui pemilik repo: satu file PDF atau gambar, maksimal 5 MB, dan lampiran pengumuman publik bisa diunduh pengunjung website. Kontrak di `docs/kontrak-api-lampiran-pengumuman.md`, ringkasannya di A2.9, A3, A4, A7, dan baris pengumuman B4. Backend di-merge lewat PR #17. Yang diputuskan saat pengerjaan FE:
@@ -755,6 +763,16 @@ Tempat deploy belum ditentukan. Syarat yang sudah pasti:
 6. **Masuk dengan Google**: `NEXT_PUBLIC_GOOGLE_CLIENT_ID` diisi sebelum `npm run build`, dan origin FE produksi (misalnya `https://tkta8.sch.id`) didaftarkan di Authorized JavaScript origins Client ID itu di Google Cloud Console. Backend memakai Client ID yang sama di `GOOGLE_CLIENT_ID`.
 
 ## Changelog
+
+### Temuan kecil uji browser (branch `fe/temuan-kecil-uji`, dari `main`)
+
+Pasangan backend `be/temuan-kecil-uji` (nama peserta di log absensi). Bagian A diperbarui (A6, teks onboarding) dan tetap identik dengan PROMPT BE; B4 baris onboarding diperjelas. Alasan di "Keputusan temuan kecil uji browser".
+
+- `PROMPT_FE_TK.md`: A6 "nama, no HP, alamat, pekerjaan wajib; NIK opsional"; B4 `/dashboard/onboarding` sama.
+- `tabel-log-aktivitas.tsx`: `LABEL_SUBJEK` untuk subjek tanpa halaman detail.
+- `pesan-akses-ditolak.tsx`: toast dengan `id: "akses-ditolak"`.
+
+Pengecekan: `npm run lint`, `npm run typecheck`, `npm run build`, `npm run check:slop` bersih. Browser bawaan app dengan backend `be/temuan-kecil-uji`: beri lalu cabut akses susulan Linda, log aktivitas menampilkan "Memberi/Mencabut akses absen masuk susulan Linda 2026-11-14" dengan kolom Data "Akses absen susulan", entri akun dan pembayaran berlabel "Akun" dan "Pembayaran"; guru membuka `/mudarris/hak-akses` dan diarahkan ke beranda dengan satu toast.
 
 ### Perbaikan dari uji browser (branch `fe/perbaikan-uji-browser`, dari `main`)
 
