@@ -1,7 +1,7 @@
 "use client";
 
 import { Eye, EyeOff } from "lucide-react";
-import { useId, useState, type ComponentProps, type ReactNode } from "react";
+import { Children, useId, useState, type ComponentProps, type ReactNode } from "react";
 
 import { Field, FieldDescription, FieldError, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
@@ -105,7 +105,11 @@ export function KolomPilih({ label, error, deskripsi, id, className, children, .
   return (
     <Field data-invalid={error ? true : undefined}>
       <FieldLabel htmlFor={idInput}>{label}</FieldLabel>
+      {/* Opsi yang dimuat belakangan (misalnya daftar tahun ajaran) datang setelah react-hook-form mengisi
+          nilai awal, sehingga select tampil kosong. Key dari jumlah opsi memasang ulang select saat opsi
+          bertambah, dan react-hook-form mengisi ulang nilainya. */}
       <select
+        key={Children.count(children)}
         id={idInput}
         aria-invalid={error ? true : undefined}
         aria-describedby={describedBy || undefined}

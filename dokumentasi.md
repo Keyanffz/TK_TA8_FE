@@ -45,6 +45,7 @@ Website publik dan dashboard sistem informasi TK Tarbiyatul Athfal 8 (TK Muslima
 | Jam absensi per rentang tanggal di Pengaturan Absensi (branch `fe/jam-tanggal`; backend `be/jam-tanggal`) | Selesai, di-merge (PR #37; backend #31); lint, typecheck, build, `check:slop`, uji di Chromium 390 px |
 | Pesan error backend di kolom tab pengaturan (branch `fe/pesan-error-pengaturan`) | Selesai, di-merge (PR #35); lint, typecheck, build, `check:slop`, uji di Chromium dengan balasan 422 tiruan |
 | Usulan tampilan: ringkasan sekolah di beranda Kepala Sekolah, hero dan Visi/Misi landing, detail rekap bulanan di HP (branch `fe/usulan-tampilan`) | Selesai, di-merge (PR #36); lint, typecheck, build, `check:slop`, uji di Chromium 390 px dan 1280 px |
+| Perbaikan dari uji browser 14 November: pilihan select yang opsinya dimuat belakangan, teks tagihan wali kelas, tampilan 404 data (branch `fe/perbaikan-uji-browser`; backend `be/perbaikan-uji-browser`) | Selesai, di-merge (PR #38; backend #32); lint, typecheck, build, `check:slop`, diuji di browser dengan backend asli (lihat "Keputusan perbaikan uji browser") |
 
 Mode mock tidak dipakai: `api.json` final dari backend sudah tersedia sejak Fase 1, jadi semua request memakai backend asli dan tipe hasil generate. Tidak ada endpoint mock.
 
@@ -532,6 +533,15 @@ Diusulkan, tidak dikerjakan:
 8. Landing: pil "TK Muslimat NU Kota Semarang" di atas judul hero dan label Visi/Misi huruf kapital berjarak lebar adalah pola template. Usulan: nama yayasan dipindah ke subjudul, label Visi/Misi memakai huruf biasa.
 9. Rekap Absensi tab Bulanan di HP: detail per hari muncul di bawah semua kartu peserta, jadi Kepala Sekolah harus menggulir jauh. Usulan: detail dibuka di bawah kartu peserta yang dipilih atau di sheet.
 
+## Keputusan perbaikan uji browser (menunggu review)
+
+Sumber: uji browser menyeluruh 14 November 2026 di `main`. Hanya empat temuan utama yang dikerjakan; temuan kecil lain belum.
+
+1. **Select dengan opsi yang dimuat belakangan** (`KolomPilih`): select uncontrolled yang di-`register` react-hook-form diisi nilai awal saat dipasang. Kalau opsinya (daftar tahun ajaran, daftar guru) belum ada, browser memilih opsi pertama dan select tampil kosong, walau nilai di form tetap benar. Terlihat di tab PPDB Pengaturan (tahun ajaran tujuan) dan berlaku juga untuk dialog Ubah Kelas (wali kelas dan pendamping dimuat saat dialog dibuka). Diperbaiki sekali di `KolomPilih`: `key` dari jumlah opsi memasang ulang select saat opsi bertambah, lalu react-hook-form mengisi ulang nilainya. Pilihan yang sudah diubah pengguna ikut terbawa karena diambil dari nilai form.
+2. **Teks tagihan wali kelas**: beranda guru ("Hanya untuk dilihat. Pembayaran diurus petugas keuangan.") dan daftar tagihan ("Hanya bisa dilihat.") tidak sesuai A2.5, karena wali kelas mencatat pembayaran tunai murid kelasnya. Teks diganti tanpa membedakan wali kelas dan pendamping, karena sesi dan beranda tidak membawa peran itu. Ikut diperbaiki: guru dengan izin lihat keuangan yang juga wali kelas tidak mendapat Catat Pembayaran di detail tagihan karena pengecekan wali kelas hanya untuk peran `guru`; backend (`TagihanPolicy::bayar`) mengizinkannya.
+3. **404 saat memuat data** (`GalatMuat`): data yang tidak ada atau bukan milik akun (misalnya kelas lain untuk wali kelas, kegiatan kelas lain untuk wali murid) tampil "Data belum bisa dimuat" dengan tombol Muat Ulang. Sekarang 404 diperlakukan seperti 403: judul "Data tidak ditemukan", tanpa coba lagi, dengan tautan ke beranda. Status HTTP halaman tetap 200 karena data dimuat di browser.
+4. Teks keterangan izin Keuangan yang masih menyebut verifikasi pembayaran ada di backend (`ModulIzin`), diperbaiki di `be/perbaikan-uji-browser`.
+
 ## Keputusan lampiran pengumuman
 
 Disetujui pemilik repo: satu file PDF atau gambar, maksimal 5 MB, dan lampiran pengumuman publik bisa diunduh pengunjung website. Kontrak di `docs/kontrak-api-lampiran-pengumuman.md`, ringkasannya di A2.9, A3, A4, A7, dan baris pengumuman B4. Backend di-merge lewat PR #17. Yang diputuskan saat pengerjaan FE:
@@ -745,6 +755,21 @@ Tempat deploy belum ditentukan. Syarat yang sudah pasti:
 6. **Masuk dengan Google**: `NEXT_PUBLIC_GOOGLE_CLIENT_ID` diisi sebelum `npm run build`, dan origin FE produksi (misalnya `https://tkta8.sch.id`) didaftarkan di Authorized JavaScript origins Client ID itu di Google Cloud Console. Backend memakai Client ID yang sama di `GOOGLE_CLIENT_ID`.
 
 ## Changelog
+
+### Perbaikan dari uji browser (branch `fe/perbaikan-uji-browser`, dari `main`)
+
+Pasangan backend `be/perbaikan-uji-browser` (teks izin Keuangan). Alasan tiap perubahan di "Keputusan perbaikan uji browser".
+
+- `kolom-teks.tsx` (`KolomPilih`): `key={Children.count(children)}` pada `<select>`.
+- `beranda-guru.tsx` dan `mudarris/(halaman)/tagihan/page.tsx`: teks tagihan menyebut wali kelas mencatat pembayaran tunai.
+- `detail-tagihan.tsx`: pengecekan wali kelas juga untuk peran `keuangan-lihat`.
+- `galat-muat.tsx`: 404 tampil "Data tidak ditemukan" dengan tautan ke beranda, tanpa Muat Ulang.
+
+Pengecekan: `npm run lint`, `npm run typecheck`, `npm run build`, `npm run check:slop` bersih. Browser bawaan app dengan backend asli (`localhost:3000`, database dev):
+- Kepala Sekolah: tab PPDB menampilkan 2027/2028 dan form tidak dianggap berubah; dialog Ubah Kelas TK A1 menampilkan tahun ajaran, wali kelas Nafi, dan pendamping Rina; keterangan izin Keuangan di dialog Atur Izin sudah tanpa verifikasi.
+- Wali kelas Nafi: teks baru di beranda dan daftar tagihan; `/mudarris/kelas/2` tampil "Data tidak ditemukan" dengan tombol Kembali ke Beranda.
+- Wali TA20250022: `/dashboard/kegiatan/1` tampil "Data tidak ditemukan" dengan tautan ke `/dashboard`; tidak ada error di console.
+- Belum diuji di browser: Catat Pembayaran untuk wali kelas yang juga punya izin lihat keuangan (tidak ada guru seperti itu di data demo).
 
 ### Jam absensi per rentang tanggal (branch `fe/jam-tanggal`, di atas `fe/jam-absensi`)
 

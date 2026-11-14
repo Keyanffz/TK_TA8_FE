@@ -120,7 +120,7 @@ function KeuanganKelas({ lunas, belum }: { lunas: number; belum: number }) {
           <dd className="font-bold">{belum} tagihan</dd>
         </div>
       </dl>
-      <p className="mt-3 text-xs text-muted-foreground">Hanya untuk dilihat. Pembayaran diurus petugas keuangan.</p>
+      <p className="mt-3 text-xs text-muted-foreground">Pembayaran tunai dicatat wali kelas atau petugas keuangan dari halaman tagihan.</p>
     </div>
   );
 }

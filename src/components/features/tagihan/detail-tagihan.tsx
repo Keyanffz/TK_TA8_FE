@@ -43,7 +43,7 @@ function Bagian({ judul, children }: { judul: string; children: ReactNode }) {
 
 export function DetailTagihan({ id, peran }: { id: number; peran: PeranTagihan }) {
   const { data: tagihan, isPending, isError, error, refetch } = useDetailTagihan(id);
-  const waliKelas = useWaliKelasMurid(tagihan?.murid.kelas?.id ?? null, peran === "guru");
+  const waliKelas = useWaliKelasMurid(tagihan?.murid.kelas?.id ?? null, peran === "guru" || peran === "keuangan-lihat");
 
   if (isPending) return <Skeleton aria-label="Memuat tagihan" className="h-96 rounded-xl" />;
   if (isError) return <GalatMuat error={error} onCobaLagi={() => void refetch()} />;

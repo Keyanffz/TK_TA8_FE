@@ -22,8 +22,8 @@ export default async function TagihanMudarrisPage() {
           bisaKelola
             ? "Tagihan bulanan dibuat otomatis tiap tanggal 1. Tagihan sekali bayar dibuat dari sini."
             : lihatSemua
-              ? "Tagihan semua murid. Hanya bisa dilihat."
-              : "Status tagihan murid di kelas yang Anda ampu. Hanya bisa dilihat."
+              ? "Tagihan semua murid. Wali kelas mencatat pembayaran tunai murid kelasnya dari detail tagihan."
+              : "Status tagihan murid di kelas yang Anda ampu. Wali kelas mencatat pembayaran tunai dari detail tagihan."
         }
         aksi={
           bisaKelola ? (
