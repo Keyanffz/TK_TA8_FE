@@ -47,6 +47,7 @@ Website publik dan dashboard sistem informasi TK Tarbiyatul Athfal 8 (TK Muslima
 | Usulan tampilan: ringkasan sekolah di beranda Kepala Sekolah, hero dan Visi/Misi landing, detail rekap bulanan di HP (branch `fe/usulan-tampilan`) | Selesai, di-merge (PR #36); lint, typecheck, build, `check:slop`, uji di Chromium 390 px dan 1280 px |
 | Perbaikan dari uji browser 14 November: pilihan select yang opsinya dimuat belakangan, teks tagihan wali kelas, tampilan 404 data (branch `fe/perbaikan-uji-browser`; backend `be/perbaikan-uji-browser`) | Selesai, di-merge (PR #38; backend #32); lint, typecheck, build, `check:slop`, diuji di browser dengan backend asli (lihat "Keputusan perbaikan uji browser") |
 | Temuan kecil uji browser dan keputusan onboarding wali (branch `fe/temuan-kecil-uji`; backend `be/temuan-kecil-uji`) | Selesai, di-merge (PR #39; backend #33); lint, typecheck, build, `check:slop`, diuji di browser dengan backend asli (lihat "Keputusan temuan kecil uji browser") |
+| Pratinjau dan foto kamera absensi dicerminkan (branch `ccr-c82d62d0-suio9f`) | Selesai, menunggu review; lint, typecheck, build, `check:slop`, pencerminan diuji di Chromium dengan kamera tiruan; belum diuji di HP sungguhan |
 
 Mode mock tidak dipakai: `api.json` final dari backend sudah tersedia sejak Fase 1, jadi semua request memakai backend asli dan tipe hasil generate. Tidak ada endpoint mock.
 
@@ -350,7 +351,7 @@ Fitur diminta pemilik repo (branch `fe/absensi`, backend `be/absensi`). Kontrakn
 1. Alur absen tampil di halaman yang sama (bukan dialog): 1. Lokasi, 2. Foto wajah, lalu tombol Kirim. Lokasi langsung dicari saat alur dibuka supaya sudah terbaca ketika foto selesai diambil. Tombol Kirim aktif setelah lokasi dan foto ada, juga ketika browser menghitung posisi di luar radius atau akurasinya buruk: saat itu hanya tampil peringatan, dan penolakan sebenarnya datang dari backend dengan pesannya sendiri.
 2. Keterangan kenapa tombol absen tidak muncul disusun `langkahAbsen()` (`src/lib/absensi.ts`) dari `GET /absensi/hari-ini`: `terbuka` dan `hari_kerja` dari backend, sedangkan "belum buka" atau "sudah tutup" dibedakan dengan membandingkan jam di `waktu_server` dengan jam buka. Jam perangkat tidak dipakai.
 3. Lokasi dibaca sekali (`getCurrentPosition`, batas tunggu 20 detik, tanpa cache) dan bisa diulang lewat Perbarui Lokasi; tidak memakai `watchPosition`.
-4. Pratinjau kamera dan foto yang dikirim sama-sama tidak dicerminkan, jadi foto hasil jepretan sama dengan yang terlihat di pratinjau (sebelumnya pratinjau dicerminkan dan foto tampak terbalik setelah diambil). Tombol Ambil Foto baru aktif setelah video punya gambar (`onLoadedData`), karena aliran yang baru dibuka belum punya ukuran. Aliran kamera dihentikan saat foto diambil, alur ditutup, atau halaman ditinggalkan.
+4. Pratinjau kamera dan foto yang dikirim sama-sama dicerminkan, seperti kamera depan HP, jadi foto hasil jepretan sama dengan yang terlihat di pratinjau. Riwayatnya: awalnya hanya pratinjau yang dicerminkan sehingga foto tampak terbalik setelah diambil; lalu pencerminan dihapus dari keduanya, dan pratinjau terasa terbalik saat membidik. Sejak branch `ccr-c82d62d0-suio9f` keduanya dicerminkan (lihat "Pratinjau dan foto kamera absensi dicerminkan"). Tombol Ambil Foto baru aktif setelah video punya gambar (`onLoadedData`), karena aliran yang baru dibuka belum punya ukuran. Aliran kamera dihentikan saat foto diambil, alur ditutup, atau halaman ditinggalkan.
 5. Foto dari kamera diambil lewat kanvas (JPEG kualitas 0,85, sisi terpanjang 1280 px). Foto dari galeri dikecilkan `browser-image-compression` ke ukuran dan format yang sama (`kompresFotoAbsensi`).
 6. Lokasi dan kamera butuh secure context. Di alamat `http://` selain `localhost` (misalnya `http://tkta8-fe.test` atau membuka dari HP lewat IP laptop) keduanya tidak tersedia: lokasi menampilkan pesan untuk membuka lewat https, absen masuk dan pulang menampilkan error kamera "Browser ini tidak bisa membuka kamera", sedangkan izin dan sakit (tanpa lokasi) tetap bisa dikirim dengan foto dari galeri.
 7. Foto absensi ditampilkan lewat `/api/proxy/absensi/{id}/foto` dengan komponen pratinjau yang sudah ada (`BuktiTransfer`), bukan signed URL, karena backend hanya melayani pemilik dan Kepala Sekolah. Tidak ada `Permissions-Policy` yang perlu diubah; `next.config.ts` tidak disentuh.
@@ -1104,6 +1105,16 @@ Hasil pengecekan: `npm run lint`, `npm run typecheck`, `npm run build`, dan `npm
 - 404 publik `/pengumuman/slug-tidak-ada`, 1280 px dan 390 px: status 404, navbar dan footer tetap ada.
 - 404 `/mudarris/halaman-tidak-ada` (Kepala Sekolah, 1280 px): status 404, sidebar tetap ada, Kembali ke Beranda membuka `/mudarris`. 404 `/dashboard/halaman-tidak-ada` (wali murid, 390 px): status 404, navigasi bawah tetap ada, tautan ke `/dashboard`.
 - Halaman error diuji ulang karena tampilannya dipindah: error layout satu layar dengan kode kejadian, error halaman di `/mudarris` dengan detail dan tautan beranda, error unduhan dengan muat ulang penuh, serta pesan offline dan muat ulang otomatis saat online. Tampilannya sama dengan sebelum dipindah.
+
+### Pratinjau dan foto kamera absensi dicerminkan (branch `ccr-c82d62d0-suio9f`)
+
+Laporan pemilik repo dari uji absensi: kamera tampak terbalik seperti cermin. Sejak perbaikan `fe/kamera-tanpa-cermin`, pratinjau kamera depan menampilkan gambar apa adanya, sehingga gerak ke kanan terlihat ke kiri, berbeda dengan kamera depan HP yang selalu bergerak seperti cermin. Pratinjau sekarang dicerminkan lagi (`-scale-x-100`), dan `tangkapBingkai()` mencerminkan kanvas sebelum menggambar bingkai video (`translate` lalu `scale(-1, 1)`), jadi foto yang dikirim tetap sama dengan yang terlihat di pratinjau dan masalah lama (foto terbalik setelah diambil) tidak muncul lagi. Foto dari galeri tidak diubah.
+
+Akibatnya tulisan yang difoto dengan kamera depan (misalnya surat dokter di alur izin atau sakit) ikut tercermin di foto. Untuk foto surat, tombol Pilih dari Galeri tetap tersedia.
+
+Diuji di Chromium dengan kamera tiruan (`--use-fake-device-for-media-stream`): halaman uji memakai pencerminan CSS yang sama dan kode kanvas yang sama dengan `tangkapBingkai()`; pratinjau dan foto hasil tangkapan identik, termasuk teks jam yang sama-sama tercermin. Halaman `/mudarris/absensi` belum diuji ulang karena perubahannya hanya kelas CSS dan transformasi kanvas.
+
+File yang diubah: `src/lib/gambar.ts`, `src/components/features/absensi/kamera-swafoto.tsx`, `dokumentasi.md` (Keputusan absensi nomor 4).
 
 ### Pratinjau kamera absensi tidak dicerminkan (branch `fe/kamera-tanpa-cermin`)
 
