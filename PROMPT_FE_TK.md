@@ -373,7 +373,7 @@ flowchart TD
     L -->|Ya| M[Ganti password awal, tidak boleh tanggal lahir anak]
     M --> N{profil_lengkap?}
     L -->|Tidak| N
-    N -->|Tidak| O[Onboarding: nama & no HP wajib, NIK, alamat, pekerjaan opsional]
+    N -->|Tidak| O[Onboarding: nama, no HP, alamat, pekerjaan wajib; NIK opsional]
     N -->|Ya| H
     O --> H
     H -->|Wali punya kakak/adik| P[Tambah anak: NIS + tanggal lahir]
@@ -854,7 +854,7 @@ src/
 |---|:-:|:-:|:-:|---|
 | `/dashboard` (W); `/mudarris` (SA, G) | ✓ | ✓ | ✓ | Beranda sesuai role (B5) |
 | `/dashboard/ganti-password` | | | ✓ | Ganti password awal (wajib selama `wajib_ganti_password`), tanpa menu |
-| `/dashboard/onboarding` | | | ✓ | Lengkapi profil wali (nama, no HP wajib; alamat, pekerjaan, NIK) |
+| `/dashboard/onboarding` | | | ✓ | Lengkapi profil wali (nama, no HP, alamat, pekerjaan wajib; NIK opsional) |
 | `/dashboard/anak` | | | ✓ | Kartu anak + form Tambah Anak (NIS + tanggal lahir + hubungan) |
 | `/mudarris/kelas`, `/[id]` | ✓ | ✓ scoped | | Daftar kelas, detail + murid + penempatan (SA). SA, wali kelas, dan guru pendamping kelas itu di TA aktif: tab Absensi (`?tab=absensi&tanggal=`: status tiap murid, bawaan hadir, keterangan untuk selain hadir, Simpan Absensi sekaligus), Hari Sekolah (`?tab=hari-sekolah`: pilihan hari sekolah mingguan dan daftar libur satu tanggal atau rentang dengan keterangan; ubah untuk SA dan wali kelas, guru pendamping hanya melihat), dan Rekap Absensi (`?tab=rekap-absensi&bulan=`: tabel per murid, Unduh Excel dan Unduh PDF). Deretan tab bisa digulir di layar sempit |
 | `/mudarris/murid`, `/[id]` | ✓ | ✓ scoped | | Tabel murid (filter status, badge status), detail (profil, kelas, wali, tagihan, rapor, riwayat status). Izin(data_murid, lihat): semua murid. Izin(data_murid, kelola): CRUD, Ubah Status (satu murid, terpilih massal, atau Luluskan Kelas), unduh/cetak kartu akun wali (PDF; pesan backend kalau ditolak). SA: ubah hubungan & kontak utama wali, lepas tautan |

@@ -43,6 +43,16 @@ const HALAMAN_SUBJEK: Record<string, { label: string; href: (id: number) => stri
   pendaftaran: { label: "Pendaftaran", href: (id) => `/mudarris/ppdb/${id}` },
 };
 
+// Subjek log tanpa halaman detail; tipe lain yang belum dikenal tetap ditulis apa adanya.
+const LABEL_SUBJEK: Record<string, string> = {
+  user: "Akun",
+  absensi: "Absensi",
+  akses_absen_susulan: "Akses absen susulan",
+  pembayaran: "Pembayaran",
+  keringanan: "Keringanan",
+  jenis_tagihan: "Jenis tagihan",
+};
+
 function Pelaku({ log }: { log: Log }) {
   if (!log.pelaku) return <span className="text-muted-foreground">Sistem</span>;
   const role = log.pelaku.role;
@@ -57,7 +67,7 @@ function Pelaku({ log }: { log: Log }) {
 function Subjek({ log }: { log: Log }) {
   if (!log.subjek) return <span className="text-muted-foreground">-</span>;
   const halaman = HALAMAN_SUBJEK[log.subjek.tipe];
-  if (!halaman) return <span className="text-muted-foreground">{log.subjek.tipe.replace(/_/g, " ")}</span>;
+  if (!halaman) return <span className="text-muted-foreground">{LABEL_SUBJEK[log.subjek.tipe] ?? log.subjek.tipe.replace(/_/g, " ")}</span>;
   return (
     <Link href={halaman.href(log.subjek.id)} className="font-bold text-primary-strong hover:underline">
       {halaman.label}

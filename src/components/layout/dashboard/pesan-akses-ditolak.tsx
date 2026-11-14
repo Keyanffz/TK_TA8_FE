@@ -15,7 +15,8 @@ export function PesanAksesDitolak() {
 
   useEffect(() => {
     if (!ditolak) return;
-    toast.error("Anda tidak punya akses ke halaman itu.");
+    // id tetap supaya toast tidak dobel saat efek berjalan dua kali (Strict Mode di dev).
+    toast.error("Anda tidak punya akses ke halaman itu.", { id: "akses-ditolak" });
     router.replace(pathname);
   }, [ditolak, pathname, router]);
 
