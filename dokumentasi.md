@@ -45,7 +45,7 @@ Website publik dan dashboard sistem informasi TK Tarbiyatul Athfal 8 (TK Muslima
 | Jam absensi per rentang tanggal di Pengaturan Absensi (branch `fe/jam-tanggal`; backend `be/jam-tanggal`) | Selesai, di-merge (PR #37; backend #31); lint, typecheck, build, `check:slop`, uji di Chromium 390 px |
 | Pesan error backend di kolom tab pengaturan (branch `fe/pesan-error-pengaturan`) | Selesai, di-merge (PR #35); lint, typecheck, build, `check:slop`, uji di Chromium dengan balasan 422 tiruan |
 | Usulan tampilan: ringkasan sekolah di beranda Kepala Sekolah, hero dan Visi/Misi landing, detail rekap bulanan di HP (branch `fe/usulan-tampilan`) | Selesai, di-merge (PR #36); lint, typecheck, build, `check:slop`, uji di Chromium 390 px dan 1280 px |
-| Perbaikan dari uji browser 14 November: pilihan select yang opsinya dimuat belakangan, teks tagihan wali kelas, tampilan 404 data (branch `fe/perbaikan-uji-browser`; backend `be/perbaikan-uji-browser`) | Selesai, menunggu review; lint, typecheck, build, `check:slop`, diuji di browser dengan backend asli (lihat "Keputusan perbaikan uji browser") |
+| Perbaikan dari uji browser 14 November: pilihan select yang opsinya dimuat belakangan, teks tagihan wali kelas, tampilan 404 data (branch `fe/perbaikan-uji-browser`; backend `be/perbaikan-uji-browser`) | Selesai, di-merge (PR #38; backend #32); lint, typecheck, build, `check:slop`, diuji di browser dengan backend asli (lihat "Keputusan perbaikan uji browser") |
 
 Mode mock tidak dipakai: `api.json` final dari backend sudah tersedia sejak Fase 1, jadi semua request memakai backend asli dan tipe hasil generate. Tidak ada endpoint mock.
 
