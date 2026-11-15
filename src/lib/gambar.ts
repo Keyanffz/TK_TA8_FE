@@ -37,7 +37,10 @@ export async function kompresFotoAbsensi(file: File): Promise<File> {
   return new File([hasil], "swafoto.jpg", { type: "image/jpeg", lastModified: Date.now() });
 }
 
-/** Satu bingkai video kamera menjadi JPEG maksimal 1280 px. Null kalau kamera belum menghasilkan gambar. */
+/**
+ * Satu bingkai video kamera menjadi JPEG maksimal 1280 px, dicerminkan seperti pratinjau kamera depan.
+ * Null kalau kamera belum menghasilkan gambar.
+ */
 export function tangkapBingkai(video: HTMLVideoElement): Promise<File | null> {
   const { videoWidth, videoHeight } = video;
   if (videoWidth === 0 || videoHeight === 0) return Promise.resolve(null);
@@ -48,6 +51,8 @@ export function tangkapBingkai(video: HTMLVideoElement): Promise<File | null> {
   kanvas.height = Math.round(videoHeight * skala);
   const konteks = kanvas.getContext("2d");
   if (!konteks) return Promise.resolve(null);
+  konteks.translate(kanvas.width, 0);
+  konteks.scale(-1, 1);
   konteks.drawImage(video, 0, 0, kanvas.width, kanvas.height);
 
   return new Promise((selesai) => {

@@ -121,7 +121,7 @@ export function KameraSwafoto({ kamera, foto, onFoto, bolehGaleri }: KameraSwafo
         <>
           <div className="relative overflow-hidden rounded-lg bg-foreground">
             {/* Tombol Ambil Foto baru aktif setelah video punya gambar; aliran yang baru dibuka belum punya ukuran.
-                Pratinjau tidak dicerminkan supaya sama dengan foto yang dikirim. */}
+                Pratinjau dicerminkan seperti kamera depan HP; tangkapBingkai() mencerminkan foto yang dikirim juga. */}
             <video
               ref={videoRef}
               autoPlay
@@ -129,7 +129,7 @@ export function KameraSwafoto({ kamera, foto, onFoto, bolehGaleri }: KameraSwafo
               muted
               aria-label="Pratinjau kamera depan"
               onLoadedData={tandaiTampil}
-              className="aspect-[3/4] w-full object-cover"
+              className="aspect-[3/4] w-full -scale-x-100 object-cover"
             />
             {status.tahap !== "aktif" ? (
               <p role="status" className="absolute inset-0 flex items-center justify-center px-6 text-center text-sm text-background">
