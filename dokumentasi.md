@@ -47,7 +47,7 @@ Website publik dan dashboard sistem informasi TK Tarbiyatul Athfal 8 (TK Muslima
 | Usulan tampilan: ringkasan sekolah di beranda Kepala Sekolah, hero dan Visi/Misi landing, detail rekap bulanan di HP (branch `fe/usulan-tampilan`) | Selesai, di-merge (PR #36); lint, typecheck, build, `check:slop`, uji di Chromium 390 px dan 1280 px |
 | Perbaikan dari uji browser 14 November: pilihan select yang opsinya dimuat belakangan, teks tagihan wali kelas, tampilan 404 data (branch `fe/perbaikan-uji-browser`; backend `be/perbaikan-uji-browser`) | Selesai, di-merge (PR #38; backend #32); lint, typecheck, build, `check:slop`, diuji di browser dengan backend asli (lihat "Keputusan perbaikan uji browser") |
 | Temuan kecil uji browser dan keputusan onboarding wali (branch `fe/temuan-kecil-uji`; backend `be/temuan-kecil-uji`) | Selesai, di-merge (PR #39; backend #33); lint, typecheck, build, `check:slop`, diuji di browser dengan backend asli (lihat "Keputusan temuan kecil uji browser") |
-| Pratinjau dan foto kamera absensi dicerminkan (branch `fe/update-kamera`) | Selesai, menunggu review; lint, typecheck, build, `check:slop`, pencerminan diuji di Chromium dengan kamera tiruan; belum diuji di HP sungguhan |
+| Pratinjau dan foto kamera absensi dicerminkan (branch `fe/update-kamera`) | Selesai, di-merge (PR #40); lint, typecheck, build, `check:slop`, absen masuk diuji di Chrome dengan kamera tiruan dan backend asli; belum diuji di HP sungguhan |
 
 Mode mock tidak dipakai: `api.json` final dari backend sudah tersedia sejak Fase 1, jadi semua request memakai backend asli dan tipe hasil generate. Tidak ada endpoint mock.
 
@@ -1112,7 +1112,7 @@ Laporan pemilik repo dari uji absensi: kamera tampak terbalik seperti cermin. Se
 
 Akibatnya tulisan yang difoto dengan kamera depan (misalnya surat dokter di alur izin atau sakit) ikut tercermin di foto. Untuk foto surat, tombol Pilih dari Galeri tetap tersedia.
 
-Diuji di Chromium dengan kamera tiruan (`--use-fake-device-for-media-stream`): halaman uji memakai pencerminan CSS yang sama dan kode kanvas yang sama dengan `tangkapBingkai()`; pratinjau dan foto hasil tangkapan identik, termasuk teks jam yang sama-sama tercermin. Halaman `/mudarris/absensi` belum diuji ulang karena perubahannya hanya kelas CSS dan transformasi kanvas.
+Diuji di Chrome dengan kamera tiruan (`--use-file-for-fake-video-capture`, gambar statis dengan blok merah di kiri dan teks) dan backend asli: Absen Masuk di `/mudarris/absensi` sebagai guru demo. Pratinjau dan foto yang tampil setelah Ambil Foto sama-sama tercermin (blok merah di kanan, teks terbalik), kirim 201, status jadi Hadir, dan file JPEG 720x960 yang disimpan backend juga tercermin. Ambil Ulang membuka kamera lagi. Data uji sudah dihapus. Belum diuji di HP sungguhan.
 
 File yang diubah: `src/lib/gambar.ts`, `src/components/features/absensi/kamera-swafoto.tsx`, `dokumentasi.md` (Keputusan absensi nomor 4).
 
