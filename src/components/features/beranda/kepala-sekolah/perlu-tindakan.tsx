@@ -1,4 +1,4 @@
-import { ArrowRight, BookOpenText, UserPlus, type LucideIcon } from "lucide-react";
+import { ArrowRight, BookOpenText, IdCard, UserPlus, type LucideIcon } from "lucide-react";
 import Link from "next/link";
 import type { CSSProperties } from "react";
 
@@ -12,6 +12,7 @@ type Tertunda = DashboardKepalaSekolah["tertunda"];
 const TINDAKAN: readonly { kunci: keyof Tertunda; label: string; href: string; ikon: LucideIcon }[] = [
   { kunci: "rapor_diajukan", label: "Rapor menunggu review", href: "/mudarris/rapor", ikon: BookOpenText },
   { kunci: "pendaftaran_baru", label: "Pendaftar PPDB baru", href: "/mudarris/ppdb", ikon: UserPlus },
+  { kunci: "murid_menunggu_nis", label: "Murid menunggu NIS", href: "/mudarris/murid/menunggu-nis", ikon: IdCard },
 ];
 
 /** Panel "Perlu Tindakan" (B5), hal paling penting di beranda Kepala Sekolah. */

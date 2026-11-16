@@ -21,10 +21,15 @@ export type FilterMurid = {
   status: StatusMurid | null;
   tingkat: Tingkat | null;
   tahunLulus?: number | null;
+  /** Hanya murid yang NIS-nya belum diisi Kepala Sekolah. */
+  menungguNis?: boolean;
   perHalaman?: number;
 };
 
-export function useDaftarMurid({ search, halaman, kelasId, status, tingkat, tahunLulus = null, perHalaman = MURID_PER_HALAMAN }: FilterMurid, aktif = true) {
+export function useDaftarMurid(
+  { search, halaman, kelasId, status, tingkat, tahunLulus = null, menungguNis = false, perHalaman = MURID_PER_HALAMAN }: FilterMurid,
+  aktif = true,
+) {
   const query = {
     page: halaman,
     per_page: perHalaman,
@@ -34,6 +39,7 @@ export function useDaftarMurid({ search, halaman, kelasId, status, tingkat, tahu
     "filter[status]": status ?? undefined,
     "filter[tingkat]": tingkat ?? undefined,
     "filter[tahun_lulus]": tahunLulus ?? undefined,
+    "filter[menunggu_nis]": menungguNis ? ("true" as const) : undefined,
   };
   return useQuery({
     queryKey: queryKeys.murid.daftar(query),
@@ -158,6 +164,54 @@ export function useSimpanImportMurid() {
   const segarkan = useSegarkanMurid();
   return useMutation({
     mutationFn: (file: File) => ambilData(api.POST("/murid/import", { body: { file }, bodySerializer: keFormData })),
+    onSuccess: segarkan,
+  });
+}
+
+export type IsianNis = { murid_id: number; nis: string };
+
+/** Mengisi atau mengubah NIS satu murid (Kepala Sekolah). Mengisi NIS pertama kali bisa membuat akun wali. */
+export function useIsiNis(muridId: number) {
+  const queryClient = useQueryClient();
+  const segarkan = useSegarkanMurid();
+  return useMutation({
+    mutationFn: (nis: string) => ambilData(api.PATCH("/murid/{id}/nis", { params: { path: { id: muridId } }, body: { nis } })),
+    onSuccess: async (hasil) => {
+      queryClient.setQueryData(queryKeys.murid.detail(muridId), hasil.data);
+      await segarkan();
+    },
+  });
+}
+
+export function usePratinjauNisTabel() {
+  return useMutation({
+    mutationFn: async (items: IsianNis[]) => (await ambilData(api.POST("/murid/nis/batch/pratinjau", { body: { items } }))).data,
+  });
+}
+
+export function useSimpanNisTabel() {
+  const segarkan = useSegarkanMurid();
+  return useMutation({
+    mutationFn: (items: IsianNis[]) => ambilData(api.POST("/murid/nis/batch", { body: { items } })),
+    onSuccess: segarkan,
+  });
+}
+
+/** File .xlsx murid aktif yang menunggu NIS, dengan kolom `nis` kosong untuk diisi. */
+export async function ambilDaftarMenungguNis(): Promise<Blob> {
+  return ambilData(api.GET("/murid/nis/template", { parseAs: "blob" }));
+}
+
+export function usePratinjauImportNis() {
+  return useMutation({
+    mutationFn: async (file: File) => (await ambilData(api.POST("/murid/nis/import/pratinjau", { body: { file }, bodySerializer: keFormData }))).data,
+  });
+}
+
+export function useSimpanImportNis() {
+  const segarkan = useSegarkanMurid();
+  return useMutation({
+    mutationFn: (file: File) => ambilData(api.POST("/murid/nis/import", { body: { file }, bodySerializer: keFormData })),
     onSuccess: segarkan,
   });
 }

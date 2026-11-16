@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import type { ReactNode } from "react";
 import { toast } from "sonner";
 
+import { DialogNisMurid } from "@/components/features/murid/dialog-nis-murid";
 import { DialogUbahStatus } from "@/components/features/murid/dialog-ubah-status";
 import { KartuAkunMurid } from "@/components/features/murid/kartu-akun-murid";
 import { RiwayatStatus } from "@/components/features/murid/riwayat-status";
@@ -18,7 +19,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useDetailMurid, useHapusMurid, useUbahStatusMurid } from "@/lib/api/murid";
 import { LABEL_JENIS_KELAMIN, LABEL_STATUS_MURID } from "@/lib/constants/label";
 import { NADA_STATUS_MURID } from "@/lib/constants/status";
-import { formatTanggal } from "@/lib/format";
+import { formatNis, formatTanggal } from "@/lib/format";
 
 function Baris({ label, children }: { label: string; children: ReactNode }) {
   return (
@@ -35,10 +36,12 @@ type DetailMuridProps = {
   bisaKelola: boolean;
   /** Ubah hubungan dan lepas tautan wali tetap khusus Kepala Sekolah. */
   bisaKelolaWali: boolean;
+  /** Isi dan ubah NIS khusus Kepala Sekolah. */
+  bisaIsiNis: boolean;
   tagihan?: ReactNode;
 };
 
-export function DetailMurid({ id, bisaKelola, bisaKelolaWali, tagihan }: DetailMuridProps) {
+export function DetailMurid({ id, bisaKelola, bisaKelolaWali, bisaIsiNis, tagihan }: DetailMuridProps) {
   const router = useRouter();
   const { data: murid, isPending, isError, error, refetch } = useDetailMurid(id);
   const hapus = useHapusMurid();
@@ -56,10 +59,11 @@ export function DetailMurid({ id, bisaKelola, bisaKelolaWali, tagihan }: DetailM
             <div className="min-w-0 flex-1">
               <h1 className="font-heading text-xl leading-tight font-extrabold">{murid.nama_lengkap}</h1>
               <p className="text-muted-foreground">
-                {murid.nama_panggilan} · <span className="tabular-nums">{murid.nis}</span>
+                {murid.nama_panggilan} · <span className="tabular-nums">{formatNis(murid.nis)}</span>
               </p>
               <div className="mt-2 flex flex-wrap gap-2">
                 <StatusBadge nada={NADA_STATUS_MURID[murid.status]}>{LABEL_STATUS_MURID[murid.status]}</StatusBadge>
+                {murid.nis === null ? <StatusBadge nada="menunggu">Menunggu NIS</StatusBadge> : null}
                 <span className="rounded-full bg-highlight px-2.5 py-0.5 text-xs font-bold text-highlight-foreground">
                   {murid.kelas?.nama ?? "Belum ada kelas"}
                 </span>
@@ -67,6 +71,7 @@ export function DetailMurid({ id, bisaKelola, bisaKelolaWali, tagihan }: DetailM
             </div>
             {bisaKelola ? (
               <div className="flex flex-wrap gap-2">
+                {bisaIsiNis ? <DialogNisMurid murid={murid} /> : null}
                 <Link href={`/mudarris/murid/${murid.id}/ubah`} className={buttonVariants({ variant: "outline" })}>
                   Ubah Data
                 </Link>
@@ -127,7 +132,7 @@ export function DetailMurid({ id, bisaKelola, bisaKelolaWali, tagihan }: DetailM
         <RiwayatStatus riwayat={murid.riwayat_status} />
       </div>
       <div className="flex flex-col gap-6">
-        {bisaKelola ? <KartuAkunMurid muridId={murid.id} nis={murid.nis} /> : null}
+        {bisaKelola && murid.nis !== null ? <KartuAkunMurid muridId={murid.id} nis={murid.nis} /> : null}
         <section aria-labelledby="judul-wali">
           <h2 id="judul-wali" className="mb-3 text-lg font-extrabold">
             Wali murid

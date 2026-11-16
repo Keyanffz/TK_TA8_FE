@@ -8,6 +8,7 @@ import { KolomCari } from "@/components/shared/kolom-cari";
 import { Skeleton } from "@/components/ui/skeleton";
 import { pesanError } from "@/lib/api/errors";
 import { useDaftarMurid } from "@/lib/api/murid";
+import { formatNis } from "@/lib/format";
 import type { Murid } from "@/types/domain";
 
 const HASIL_CARI = 30;
@@ -83,7 +84,7 @@ export function PilihMurid({ dipilih, onUbah, maks = Infinity, alasanNonaktif, e
                     <span className="min-w-0 flex-1">
                       <span className="block truncate font-bold">{murid.nama_lengkap}</span>
                       <span className="block text-xs text-muted-foreground">
-                        {murid.nis} · {alasan ?? murid.kelas?.nama ?? "belum punya kelas"}
+                        {formatNis(murid.nis)} · {alasan ?? murid.kelas?.nama ?? "belum punya kelas"}
                       </span>
                     </span>
                   </label>

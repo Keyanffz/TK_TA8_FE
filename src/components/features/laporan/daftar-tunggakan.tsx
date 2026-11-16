@@ -10,7 +10,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useDaftarKelas } from "@/lib/api/kelas";
 import { useLaporanTunggakan } from "@/lib/api/laporan";
-import { formatRupiah, formatTanggal } from "@/lib/format";
+import { formatNis, formatRupiah, formatTanggal } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 /** Murid dengan tagihan terlambat, sisa terbesar di atas, beserta kontak utama walinya. */
@@ -70,7 +70,7 @@ export function DaftarTunggakan() {
                     {murid.nama_lengkap}
                   </Link>
                   <p className="text-xs text-muted-foreground">
-                    <span className="tabular-nums">{murid.nis}</span> · {murid.kelas?.nama ?? "tanpa kelas"}
+                    <span className="tabular-nums">{formatNis(murid.nis)}</span> · {murid.kelas?.nama ?? "tanpa kelas"}
                   </p>
                 </div>
                 <p className="text-right">

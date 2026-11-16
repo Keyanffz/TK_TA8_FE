@@ -20,12 +20,17 @@ export default async function MuridPage() {
         judul="Murid"
         deskripsi={
           punyaIzin(sesi, "data_murid")
-            ? "Semua murid sekolah. Murid baru otomatis dibuatkan akun wali dengan username NIS."
+            ? "Semua murid sekolah. Akun wali murid baru dibuat setelah Kepala Sekolah mengisi NIS."
             : "Murid di kelas yang Anda ampu."
         }
         aksi={
           bisaKelola ? (
             <div className="flex flex-wrap gap-2">
+              {sesi.isSuperAdmin ? (
+                <Link href="/mudarris/murid/menunggu-nis" className={buttonVariants({ variant: "outline" })}>
+                  Murid Menunggu NIS
+                </Link>
+              ) : null}
               <LuluskanKelas />
               <Link href="/mudarris/murid/import" className={buttonVariants({ variant: "outline" })}>
                 Import Murid

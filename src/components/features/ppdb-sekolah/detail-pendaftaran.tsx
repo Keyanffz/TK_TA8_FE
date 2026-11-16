@@ -157,8 +157,18 @@ export function DetailPendaftaran({ id, kepalaSekolah }: { id: number; kepalaSek
         {pendaftaran.status === "diterima" && pendaftaran.murid ? (
           <KotakPesan nada="sukses" judul="Sudah menjadi murid">
             <p>
-              NIS <span className="font-bold tabular-nums">{pendaftaran.murid.nis}</span>.{" "}
-              {kepalaSekolah ? "Penempatan kelas dan kartu akun wali ada di halaman murid." : "Silakan datang ke sekolah untuk daftar ulang."}
+              {pendaftaran.murid.nis === null ? (
+                "NIS belum diisi. "
+              ) : (
+                <>
+                  NIS <span className="font-bold tabular-nums">{pendaftaran.murid.nis}</span>.{" "}
+                </>
+              )}
+              {kepalaSekolah
+                ? pendaftaran.murid.nis === null
+                  ? "Isi NIS di halaman murid; akun wali dibuat saat itu kalau pendaftar belum punya akun."
+                  : "Penempatan kelas dan kartu akun wali ada di halaman murid."
+                : "Silakan datang ke sekolah untuk daftar ulang."}
             </p>
             {kepalaSekolah ? (
               <Link href={`/mudarris/murid/${pendaftaran.murid.id}`} className={buttonVariants({ size: "sm", variant: "outline", className: "mt-3" })}>

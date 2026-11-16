@@ -8,6 +8,7 @@ import {
 } from "@/components/features/tahun-ajaran/penempatan-kenaikan";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
+import { formatNis } from "@/lib/format";
 import type { Kelas, KelasDetail } from "@/types/domain";
 
 const LABEL_STATUS: Record<StatusKenaikan, string> = { naik: "Naik kelas", tinggal: "Tinggal kelas", lulus: "Lulus" };
@@ -72,7 +73,7 @@ export function KenaikanPerKelas({ kelas, kelasTujuan, penempatan, onUbah }: Ken
                 <TableRow key={item.id} className={cn(kurang && "bg-status-bahaya-soft/50")}>
                   <TableCell>
                     <p className="font-bold">{item.nama_lengkap}</p>
-                    <p className="text-xs text-muted-foreground tabular-nums">{item.nis}</p>
+                    <p className="text-xs text-muted-foreground tabular-nums">{formatNis(item.nis)}</p>
                   </TableCell>
                   <TableCell>
                     <select

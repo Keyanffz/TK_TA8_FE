@@ -15,7 +15,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useDetailWaliMurid, useResetPasswordWali, useUbahStatusWali } from "@/lib/api/wali-murid";
 import { LABEL_HUBUNGAN, LABEL_STATUS_AKUN } from "@/lib/constants/label";
 import { NADA_STATUS_AKUN } from "@/lib/constants/status";
-import { formatTanggalWaktu } from "@/lib/format";
+import { formatNis, formatTanggalWaktu } from "@/lib/format";
 import type { WaliMuridDetail } from "@/types/domain";
 
 function AksiAkun({ wali }: { wali: WaliMuridDetail }) {
@@ -103,7 +103,7 @@ export function DetailWaliMurid({ id }: { id: number }) {
                   <span className="min-w-0 flex-1">
                     <span className="block truncate font-bold">{anak.nama_lengkap}</span>
                     <span className="block text-xs text-muted-foreground">
-                      <span className="tabular-nums">{anak.nis}</span> · {anak.kelas?.nama ?? "Belum ada kelas"} · {LABEL_HUBUNGAN[anak.hubungan]}
+                      <span className="tabular-nums">{formatNis(anak.nis)}</span> · {anak.kelas?.nama ?? "Belum ada kelas"} · {LABEL_HUBUNGAN[anak.hubungan]}
                     </span>
                   </span>
                   {anak.is_kontak_utama ? <StatusBadge nada="sukses">Kontak utama</StatusBadge> : null}

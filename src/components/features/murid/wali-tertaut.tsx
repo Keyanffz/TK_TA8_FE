@@ -81,7 +81,17 @@ function AksiWali({ murid, wali }: { murid: MuridDetail; wali: Wali }) {
 /** Wali yang tertaut ke murid. Kepala Sekolah bisa mengubah hubungan, kontak utama, dan melepas tautan. */
 export function WaliTertaut({ murid, bisaKelola }: { murid: MuridDetail; bisaKelola: boolean }) {
   if (murid.wali.length === 0) {
-    return <EmptyState ringkas judul="Belum ada wali yang tertaut." deskripsi="Wali bisa menambahkan anak ini dari akunnya dengan NIS dan tanggal lahir." />;
+    return (
+      <EmptyState
+        ringkas
+        judul="Belum ada wali yang tertaut."
+        deskripsi={
+          murid.nis === null
+            ? "Akun wali dibuat setelah Kepala Sekolah mengisi NIS murid ini."
+            : "Wali bisa menambahkan anak ini dari akunnya dengan NIS dan tanggal lahir."
+        }
+      />
+    );
   }
 
   return (

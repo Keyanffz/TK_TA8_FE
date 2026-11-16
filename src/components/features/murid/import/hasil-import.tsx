@@ -28,9 +28,8 @@ export function HasilImport({ hasil, namaFile, onUlang }: { hasil: HasilImportMu
   return (
     <div className="flex flex-col gap-4">
       <KotakPesan nada={hasil.dibuat > 0 ? "sukses" : "menunggu"} judul={`${hasil.dibuat} murid diimpor`}>
-        {hasil.akun_wali_dibuat > 0
-          ? `${hasil.akun_wali_dibuat} akun wali dibuat untuk murid aktif (username NIS, password awal tanggal lahir anak). Kartu akun bisa diunduh dari halaman detail murid.`
-          : "Tidak ada akun wali baru; murid lulus, pindah, dan keluar tidak dibuatkan akun."}
+        Murid tersimpan tanpa NIS. Akun wali murid aktif dibuat setelah Kepala Sekolah mengisi NIS di halaman Murid Menunggu NIS; murid lulus,
+        pindah, dan keluar tidak dibuatkan akun.
       </KotakPesan>
       {jumlahGagal > 0 ? (
         <KotakPesan nada="bahaya" judul={`${jumlahGagal} baris tidak diimpor`}>

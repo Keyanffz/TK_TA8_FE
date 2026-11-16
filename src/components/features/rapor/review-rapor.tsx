@@ -18,7 +18,7 @@ import { useKelasAktif } from "@/lib/api/kelas";
 import { useDaftarRapor } from "@/lib/api/rapor";
 import { LABEL_STATUS_RAPOR } from "@/lib/constants/label";
 import { NADA_STATUS_RAPOR } from "@/lib/constants/status";
-import { formatRelatif, formatTanggal } from "@/lib/format";
+import { formatNis, formatRelatif, formatTanggal } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import type { Rapor } from "@/types/domain";
 
@@ -68,7 +68,7 @@ const KOLOM: ColumnDef<Rapor>[] = [
         <Link href={`/mudarris/rapor/${row.original.id}`} className="font-bold hover:underline">
           {row.original.murid.nama_lengkap}
         </Link>
-        <p className="text-xs text-muted-foreground tabular-nums">{row.original.murid.nis}</p>
+        <p className="text-xs text-muted-foreground tabular-nums">{formatNis(row.original.murid.nis)}</p>
       </div>
     ),
   },

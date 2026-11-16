@@ -13,7 +13,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useAbsensiMuridHarian, useSimpanAbsensiMurid, type BarisAbsensiMurid } from "@/lib/api/absensi-murid";
 import { pesanError } from "@/lib/api/errors";
 import { LABEL_STATUS_ABSENSI_MURID } from "@/lib/constants/label";
-import { formatHariTanggal } from "@/lib/format";
+import { formatHariTanggal, formatNis } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import type { StatusAbsensiMurid } from "@/types/domain";
 
@@ -74,7 +74,7 @@ function FormHarian({ kelasId, data }: { kelasId: number; data: DataHarian }) {
             <li key={murid.id} className="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-center">
               <div className="min-w-0 sm:w-56">
                 <p className="truncate font-bold">{murid.nama_lengkap}</p>
-                <p className="text-xs text-muted-foreground tabular-nums">{murid.nis}</p>
+                <p className="text-xs text-muted-foreground tabular-nums">{formatNis(murid.nis)}</p>
               </div>
               <div className="flex flex-1 flex-col gap-2">
                 <PilihStatus nama={murid.nama_lengkap} nilai={baris.status} onUbah={(status) => ubah(murid.id, { status })} nonaktif={!data.bisa_dicatat} />
