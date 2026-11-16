@@ -19,7 +19,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useDetailMurid, useHapusMurid, useUbahStatusMurid } from "@/lib/api/murid";
 import { LABEL_JENIS_KELAMIN, LABEL_STATUS_MURID } from "@/lib/constants/label";
 import { NADA_STATUS_MURID } from "@/lib/constants/status";
-import { formatNis, formatTanggal } from "@/lib/format";
+import { formatTanggal } from "@/lib/format";
 
 function Baris({ label, children }: { label: string; children: ReactNode }) {
   return (
@@ -59,7 +59,13 @@ export function DetailMurid({ id, bisaKelola, bisaKelolaWali, bisaIsiNis, tagiha
             <div className="min-w-0 flex-1">
               <h1 className="font-heading text-xl leading-tight font-extrabold">{murid.nama_lengkap}</h1>
               <p className="text-muted-foreground">
-                {murid.nama_panggilan} · <span className="tabular-nums">{formatNis(murid.nis)}</span>
+                {murid.nama_panggilan}
+                {murid.nis !== null ? (
+                  <>
+                    {" "}
+                    · <span className="tabular-nums">{murid.nis}</span>
+                  </>
+                ) : null}
               </p>
               <div className="mt-2 flex flex-wrap gap-2">
                 <StatusBadge nada={NADA_STATUS_MURID[murid.status]}>{LABEL_STATUS_MURID[murid.status]}</StatusBadge>

@@ -1,7 +1,7 @@
 "use client";
 
 import type { ColumnDef } from "@tanstack/react-table";
-import { useState } from "react";
+import { createContext, useContext, useState } from "react";
 import { toast } from "sonner";
 
 import { IdentitasMurid } from "@/components/features/murid/daftar-murid";
@@ -19,15 +19,21 @@ import type { BarisNis, Murid, PratinjauNis } from "@/types/domain";
 /** Maksimal per permintaan backend; satu halaman berisi semua murid yang bisa disimpan sekaligus. */
 const MURID_PER_HALAMAN = 100;
 
-type IsianNisProps = { murid: Murid; nilai: string; alasan: string[] | undefined; onUbah: (nilai: string) => void };
+type IsianTabel = { isian: Record<number, string>; alasan: Record<number, string[]>; ubah: (muridId: number, nilai: string) => void };
 
-function IsianNisMurid({ murid, nilai, alasan, onUbah }: IsianNisProps) {
+// Kolom tabel harus sama antar-render; kalau dibuat ulang, isian di-mount ulang dan kursor lepas setiap satu huruf
+// diketik. Karena itu nilai isian dibaca lewat context, bukan lewat closure kolom.
+const KonteksIsian = createContext<IsianTabel>({ isian: {}, alasan: {}, ubah: () => undefined });
+
+function IsianNisMurid({ murid }: { murid: Murid }) {
+  const { isian, alasan: semuaAlasan, ubah } = useContext(KonteksIsian);
+  const alasan = semuaAlasan[murid.id];
   const idAlasan = `alasan-nis-${murid.id}`;
   return (
     <div className="flex min-w-40 flex-col gap-1">
       <Input
-        value={nilai}
-        onChange={(event) => onUbah(event.target.value)}
+        value={isian[murid.id] ?? ""}
+        onChange={(event) => ubah(murid.id, event.target.value)}
         aria-label={`NIS ${murid.nama_lengkap}`}
         aria-invalid={alasan ? true : undefined}
         aria-describedby={alasan ? idAlasan : undefined}
@@ -44,6 +50,13 @@ function IsianNisMurid({ murid, nilai, alasan, onUbah }: IsianNisProps) {
     </div>
   );
 }
+
+const KOLOM: ColumnDef<Murid>[] = [
+  { id: "murid", header: "Murid", cell: ({ row }) => <IdentitasMurid murid={row.original} /> },
+  { id: "kelas", header: "Kelas", cell: ({ row }) => row.original.kelas?.nama ?? <span className="text-muted-foreground">Belum ada</span> },
+  { id: "lahir", header: "Tanggal lahir", cell: ({ row }) => formatTanggal(row.original.tanggal_lahir) },
+  { id: "nis", header: "NIS", cell: ({ row }) => <IsianNisMurid murid={row.original} /> },
+];
 
 /**
  * Murid aktif yang menunggu NIS, dengan isian NIS per baris. Simpan Semua memeriksa dulu lewat pratinjau, meminta
@@ -97,55 +110,43 @@ export function TabelIsiNis() {
     });
   };
 
-  const kolom: ColumnDef<Murid>[] = [
-    { id: "murid", header: "Murid", cell: ({ row }) => <IdentitasMurid murid={row.original} /> },
-    { id: "kelas", header: "Kelas", cell: ({ row }) => row.original.kelas?.nama ?? <span className="text-muted-foreground">Belum ada</span> },
-    { id: "lahir", header: "Tanggal lahir", cell: ({ row }) => formatTanggal(row.original.tanggal_lahir) },
-    {
-      id: "nis",
-      header: "NIS",
-      cell: ({ row }) => (
-        <IsianNisMurid murid={row.original} nilai={isian[row.original.id] ?? ""} alasan={alasan[row.original.id]} onUbah={(nilai) => ubah(row.original.id, nilai)} />
-      ),
-    },
-  ];
-
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="text-sm text-muted-foreground">
-          {items.length > 0 ? `${items.length} NIS diketik.` : "Ketik NIS di baris murid, lalu simpan sekaligus."} NIS boleh berisi huruf, angka, titik,
-          strip, atau garis miring, maksimal 20 karakter.
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <p className="text-sm text-muted-foreground sm:flex-1">
+          Ketik NIS di baris murid, lalu simpan sekaligus. NIS boleh berisi huruf, angka, titik, strip, atau garis miring, maksimal 20 karakter.
         </p>
-        <Button onClick={periksa} disabled={items.length === 0 || pratinjau.isPending || simpan.isPending}>
-          {pratinjau.isPending ? "Memeriksa..." : "Simpan Semua"}
+        <Button className="shrink-0 self-start sm:self-auto" onClick={periksa} disabled={items.length === 0 || pratinjau.isPending || simpan.isPending}>
+          {pratinjau.isPending ? "Memeriksa..." : items.length > 0 ? `Simpan Semua (${items.length})` : "Simpan Semua"}
         </Button>
       </div>
       {galat ? <KotakPesan nada="bahaya">{galat}</KotakPesan> : null}
-      <TabelData
-        label="Murid menunggu NIS"
-        kolom={kolom}
-        data={daftar.data}
-        memuat={daftar.isPending}
-        galat={daftar.error}
-        onCobaLagi={() => void daftar.refetch()}
-        redup={daftar.isPlaceholderData}
-        idBaris={(murid) => murid.id}
-        onUbahHalaman={setHalaman}
-        kelasKolom={{ nis: "w-64" }}
-        kosong={<EmptyState judul="Semua murid sudah punya NIS." deskripsi="Murid baru dari tambah murid, import, atau PPDB yang diterima akan muncul di sini." />}
-        kartu={(murid) => (
-          <div className="flex flex-col gap-3 rounded-xl border border-border bg-card p-4 shadow-sm">
-            <div>
-              <IdentitasMurid murid={murid} />
-              <p className="mt-1 text-xs text-muted-foreground">
-                {murid.kelas?.nama ?? "Belum ada kelas"} · Lahir {formatTanggal(murid.tanggal_lahir)}
-              </p>
+      <KonteksIsian.Provider value={{ isian, alasan, ubah }}>
+        <TabelData
+          label="Murid menunggu NIS"
+          kolom={KOLOM}
+          data={daftar.data}
+          memuat={daftar.isPending}
+          galat={daftar.error}
+          onCobaLagi={() => void daftar.refetch()}
+          redup={daftar.isPlaceholderData}
+          idBaris={(murid) => murid.id}
+          onUbahHalaman={setHalaman}
+          kelasKolom={{ nis: "w-64" }}
+          kosong={<EmptyState judul="Semua murid sudah punya NIS." deskripsi="Murid baru dari tambah murid, import, atau PPDB yang diterima akan muncul di sini." />}
+          kartu={(murid) => (
+            <div className="flex flex-col gap-3 rounded-xl border border-border bg-card p-4 shadow-sm">
+              <div>
+                <IdentitasMurid murid={murid} />
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {murid.kelas?.nama ?? "Belum ada kelas"} · Lahir {formatTanggal(murid.tanggal_lahir)}
+                </p>
+              </div>
+              <IsianNisMurid murid={murid} />
             </div>
-            <IsianNisMurid murid={murid} nilai={isian[murid.id] ?? ""} alasan={alasan[murid.id]} onUbah={(nilai) => ubah(murid.id, nilai)} />
-          </div>
-        )}
-      />
+          )}
+        />
+      </KonteksIsian.Provider>
       <Dialog
         open={konfirmasi !== null}
         onOpenChange={(buka) => {

@@ -31,12 +31,12 @@ export function PerluTindakan({ tertunda }: { tertunda: Tertunda }) {
   return (
     <div>
       <h2 className="mb-3 font-heading text-lg font-extrabold">Perlu Tindakan</h2>
-      <ul className="grid grid-cols-2 gap-3">
+      <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         {TINDAKAN.map(({ kunci, label, href, ikon: Ikon }, indeks) => {
           const jumlah = tertunda[kunci];
           const ada = jumlah > 0;
           return (
-            <li key={kunci} className="gerak-masuk" style={{ "--i": indeks + 2 } as CSSProperties}>
+            <li key={kunci} className="gerak-masuk last:odd:col-span-2 sm:last:odd:col-span-1" style={{ "--i": indeks + 2 } as CSSProperties}>
               <Link
                 href={href}
                 className={cn(
