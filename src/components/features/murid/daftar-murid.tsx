@@ -17,7 +17,7 @@ import { useDaftarKelas } from "@/lib/api/kelas";
 import { useDaftarMurid, useUbahStatusMassal } from "@/lib/api/murid";
 import { LABEL_JENIS_KELAMIN, LABEL_STATUS_MURID, LABEL_TINGKAT, STATUS_MURID } from "@/lib/constants/label";
 import { NADA_STATUS_MURID } from "@/lib/constants/status";
-import { formatTanggal } from "@/lib/format";
+import { formatNis, formatTanggal } from "@/lib/format";
 import type { Murid } from "@/types/domain";
 
 const TINGKAT = ["A", "B"] as const;
@@ -39,7 +39,7 @@ export function IdentitasMurid({ murid }: { murid: Murid }) {
 
 const KOLOM: ColumnDef<Murid>[] = [
   { id: "murid", header: "Murid", cell: ({ row }) => <IdentitasMurid murid={row.original} /> },
-  { id: "nis", header: "NIS", cell: ({ row }) => <span className="tabular-nums">{row.original.nis}</span> },
+  { id: "nis", header: "NIS", cell: ({ row }) => <span className="tabular-nums">{formatNis(row.original.nis)}</span> },
   { id: "kelas", header: "Kelas", cell: ({ row }) => row.original.kelas?.nama ?? <span className="text-muted-foreground">Belum ada</span> },
   { id: "jk", header: "Jenis kelamin", cell: ({ row }) => LABEL_JENIS_KELAMIN[row.original.jenis_kelamin] },
   { id: "lahir", header: "Tanggal lahir", cell: ({ row }) => formatTanggal(row.original.tanggal_lahir) },
@@ -186,7 +186,7 @@ export function DaftarMurid({ bisaKelola }: { bisaKelola: boolean }) {
               <span className="min-w-0 flex-1">
                 <span className="block truncate font-bold">{murid.nama_lengkap}</span>
                 <span className="block text-xs text-muted-foreground">
-                  <span className="tabular-nums">{murid.nis}</span> · {murid.kelas?.nama ?? "Belum ada kelas"}
+                  <span className="tabular-nums">{formatNis(murid.nis)}</span> · {murid.kelas?.nama ?? "Belum ada kelas"}
                 </span>
               </span>
             </Link>

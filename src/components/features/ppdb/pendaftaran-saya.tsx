@@ -22,9 +22,10 @@ function keterangan(pendaftaran: Pendaftaran): string {
     case "diverifikasi":
       return "Berkas sudah diperiksa sekolah. Tunggu keputusan akhir.";
     case "diterima":
-      return pendaftaran.murid
-        ? `Diterima dengan NIS ${pendaftaran.murid.nis} dan sudah tertaut ke akun Anda. Silakan datang ke sekolah untuk daftar ulang.`
-        : "Diterima. Silakan datang ke sekolah untuk daftar ulang.";
+      if (!pendaftaran.murid) return "Diterima. Silakan datang ke sekolah untuk daftar ulang.";
+      return pendaftaran.murid.nis === null
+        ? "Diterima dan sudah tertaut ke akun Anda. NIS anak diisi sekolah. Silakan datang ke sekolah untuk daftar ulang."
+        : `Diterima dengan NIS ${pendaftaran.murid.nis} dan sudah tertaut ke akun Anda. Silakan datang ke sekolah untuk daftar ulang.`;
     case "ditolak":
       return pendaftaran.catatan ? `Tidak diterima. Alasan: ${pendaftaran.catatan}` : "Tidak diterima. Hubungi sekolah untuk alasannya.";
   }

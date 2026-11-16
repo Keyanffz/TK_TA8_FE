@@ -18,6 +18,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useDetailKelas, useKeluarkanMurid } from "@/lib/api/kelas";
 import { LABEL_JENIS_KELAMIN, LABEL_STATUS_KELAS_MURID, LABEL_TINGKAT } from "@/lib/constants/label";
+import { formatNis } from "@/lib/format";
 import type { KelasDetail } from "@/types/domain";
 
 // status_kelas bertipe string di api.json (enum StatusKelasMurid tidak diekspor).
@@ -42,7 +43,7 @@ function DaftarMuridKelas({ kelas, bisaKelola }: { kelas: KelasDetail; bisaKelol
               {murid.nama_lengkap}
             </Link>
             <p className="text-xs text-muted-foreground">
-              <span className="tabular-nums">{murid.nis}</span> · {murid.nama_panggilan} · {LABEL_JENIS_KELAMIN[murid.jenis_kelamin]}
+              <span className="tabular-nums">{formatNis(murid.nis)}</span> · {murid.nama_panggilan} · {LABEL_JENIS_KELAMIN[murid.jenis_kelamin]}
             </p>
           </div>
           {murid.status_kelas !== "aktif" ? <StatusBadge nada="netral">{labelStatusKelas(murid.status_kelas)}</StatusBadge> : null}

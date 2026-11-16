@@ -864,10 +864,9 @@ export interface paths {
         put?: never;
         /**
          * Memeriksa ulang file yang sama, lalu menyimpan semua baris valid dalam satu transaksi; baris invalid dilewati
-         *     dan dikembalikan di `gagal` dengan bentuk yang sama seperti pratinjau. Murid aktif dibuatkan akun wali otomatis
-         *     (username NIS, password awal tanggal lahir DDMMYYYY, wajib diganti) dan ditempatkan di `kelas` kalau diisi.
-         *     Murid lulus, pindah, dan keluar disimpan tanpa akun wali dan tidak ikut generate tagihan. Dicatat di log
-         *     aktivitas `murid` (event `diimpor`)
+         *     dan dikembalikan di `gagal` dengan bentuk yang sama seperti pratinjau. Murid disimpan tanpa NIS; akun wali murid
+         *     aktif dibuat saat Kepala Sekolah mengisi NIS. Murid aktif ditempatkan di `kelas` kalau diisi. Murid lulus,
+         *     pindah, dan keluar tidak ikut generate tagihan. Dicatat di log aktivitas `murid` (event `diimpor`)
          */
         post: operations["importMurid.simpan"];
         delete?: never;
@@ -1267,16 +1266,17 @@ export interface paths {
          * Daftar murid. Kepala Sekolah dan pemegang izin lihat data murid melihat semua murid, guru lain hanya murid di
          *     kelas yang dia ampu pada tahun ajaran aktif, wali murid hanya anaknya sendiri
          * @description Filter `filter[kelas_id]`, `filter[status]`, `filter[tingkat]` (tingkat kelas di tahun ajaran aktif),
-         *     `filter[tahun_lulus]` (daftar alumni bersama `filter[status]=lulus`). `search` mencari nama lengkap, nama
-         *     panggilan, NIS, dan NISN. Urutan `sort` = `nama` | `nis` | `created_at` | `tahun_lulus`.
+         *     `filter[tahun_lulus]` (daftar alumni bersama `filter[status]=lulus`), `filter[menunggu_nis]` (`true`: murid yang
+         *     NIS-nya belum diisi Kepala Sekolah, `false`: yang sudah). `search` mencari nama lengkap, nama panggilan, NIS, dan
+         *     NISN. Urutan `sort` = `nama` | `nis` | `created_at` | `tahun_lulus`.
          */
         get: operations["murid.index"];
         put?: never;
         /**
-         * Menambah murid (status aktif). NIS dibuat otomatis dari tahun `tanggal_masuk`. Kirim sebagai
-         *     `multipart/form-data` jika menyertakan foto
-         * @description Murid baru langsung dibuatkan akun wali: username NIS, password awal tanggal lahir anak (DDMMYYYY) yang
-         *     wajib diganti saat login pertama, hubungan `wali` sebagai kontak utama. Akun ini muncul di `wali`.
+         * Menambah murid (status aktif) tanpa NIS. Kirim sebagai `multipart/form-data` jika menyertakan foto
+         * @description NIS diisi Kepala Sekolah lewat `PATCH /murid/{id}/nis` atau pengisian massal; saat itu murid dibuatkan akun wali
+         *     (username NIS, password awal tanggal lahir anak DDMMYYYY yang wajib diganti, hubungan `wali` sebagai kontak
+         *     utama). Sampai NIS diisi, `nis` null dan `wali` kosong.
          */
         post: operations["murid.store"];
         delete?: never;
@@ -1321,12 +1321,139 @@ export interface paths {
         };
         /**
          * Kartu akun wali murid (PDF A6) untuk dicetak dan dibagikan: nama anak, kelas, NIS sebagai username, keterangan
-         *     password awal, dan alamat website. Password tidak ditulis. Ditolak 422 `BUSINESS_RULE` kalau tidak ada akun
-         *     wali aktif dengan username NIS ini
+         *     password awal, dan alamat website. Password tidak ditulis. Ditolak 422 `BUSINESS_RULE` kalau NIS belum diisi
+         *     atau tidak ada akun wali aktif dengan username NIS ini. Karakter NIS yang tidak aman untuk nama file (misalnya
+         *     garis miring) diganti `-` di nama file
          */
         get: operations["murid.kartuAkun"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/murid/{id}/nis": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Mengisi atau mengubah NIS satu murid. NIS disimpan huruf besar tanpa spasi: huruf, angka, titik, strip, dan
+         *     garis miring, maksimal 20 karakter, unik di antara NIS murid (termasuk yang dihapus) dan username akun.
+         *     Mengisi NIS murid aktif yang belum punya wali membuat akun wali otomatis (username NIS, password awal tanggal
+         *     lahir DDMMYYYY, wajib diganti); murid dari PPDB tanpa login memakai hubungan dan nomor HP formulirnya. Mengubah
+         *     NIS ikut mengganti username akun yang memakai NIS lama, dan akun itu mendapat notifikasi `username_diubah`.
+         *     Pelanggaran aturan dibalas 422 `VALIDATION_ERROR` di field `nis`
+         */
+        patch: operations["nisMurid.isi"];
+        trace?: never;
+    };
+    "/murid/nis/template": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * File .xlsx berisi murid aktif yang menunggu NIS (kolom `id`, `nama_lengkap`, `tanggal_lahir`, dan `nis` kosong
+         *     berformat teks), urut nama, untuk diisi lalu diunggah ke `POST /murid/nis/import`
+         */
+        get: operations["nisMurid.template"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/murid/nis/import/pratinjau": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Memeriksa NIS dari file tanpa menyimpan. `nomor` = nomor baris di spreadsheet. Baris invalid membawa `alasan`:
+         *     NIS kosong atau formatnya salah, NIS dobel di file (semua baris yang dobel), NIS sudah dipakai murid lain atau
+         *     username akun lain, murid tidak ditemukan atau sudah punya NIS, dan nama yang tidak sama dengan murid ber-ID itu
+         *     (dibandingkan tanpa beda huruf besar dan spasi berlebih). `akun_wali` true untuk baris yang akan membuat akun
+         *     wali. Kolom wajib yang tidak ada, file kosong, file tidak terbaca, atau lebih dari 500 baris ditolak 422
+         *     `VALIDATION_ERROR` di field `file`
+         */
+        post: operations["nisMurid.pratinjauImport"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/murid/nis/import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Memeriksa ulang file yang sama, lalu mengisi NIS semua baris valid dalam satu transaksi; baris invalid
+         *     dikembalikan di `gagal` dengan bentuk yang sama seperti pratinjau. Kalau NIS bentrok dengan data yang baru
+         *     tersimpan saat proses berjalan, tidak ada yang disimpan (422 `BUSINESS_RULE`)
+         */
+        post: operations["nisMurid.simpanImport"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/murid/nis/batch/pratinjau": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Sama dengan pratinjau import untuk NIS yang diketik di tabel web. `nomor` = urutan item mulai 1; baris kosong
+         *     sebaiknya tidak dikirim
+         */
+        post: operations["nisMurid.pratinjauBatch"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/murid/nis/batch": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Sama dengan simpan import untuk NIS yang diketik di tabel web */
+        post: operations["nisMurid.simpanBatch"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2690,7 +2817,8 @@ export interface components {
         /** AnakWaliResource */
         AnakWaliResource: {
             id: number;
-            nis: string;
+            /** @description NIS diisi Kepala Sekolah; null selama murid menunggu NIS. */
+            nis: string | null;
             nama_lengkap: string;
             nama_panggilan: string;
             jenis_kelamin: components["schemas"]["JenisKelamin"];
@@ -2702,6 +2830,17 @@ export interface components {
             foto_url: string | null;
             hubungan: components["schemas"]["Hubungan"];
             is_kontak_utama: boolean;
+        };
+        /**
+         * BatchNisMuridRequest
+         * @description `POST /murid/nis/batch/pratinjau` dan `POST /murid/nis/batch`: NIS yang diketik di tabel web. Isi tiap baris
+         *     diperiksa `NisMuridService` dan hasilnya dilaporkan per baris, bukan sebagai error validasi.
+         */
+        BatchNisMuridRequest: {
+            items: {
+                murid_id: number;
+                nis: string | null;
+            }[];
         };
         /**
          * BayarTagihanRequest
@@ -2885,6 +3024,26 @@ export interface components {
             file: Blob;
         };
         /**
+         * ImportNisMuridRequest
+         * @description `POST /murid/nis/import/pratinjau` dan `POST /murid/nis/import` (multipart): file .xlsx dari template, maksimal
+         *     2 MB. CSV tidak diterima karena Excel membuang angka nol di depan NIS saat membuka CSV.
+         */
+        ImportNisMuridRequest: {
+            /**
+             * Format: binary
+             * @description Maximum file size: 2048 kilobytes.
+             */
+            file: Blob;
+        };
+        /**
+         * IsiNisMuridRequest
+         * @description `PATCH /murid/{id}/nis`. Format, keunikan, dan aturan murid diperiksa `NisMuridService` (pesan di field `nis`).
+         */
+        IsiNisMuridRequest: {
+            /** @description Huruf, angka, titik, strip, dan garis miring, maksimal 20 karakter; disimpan huruf besar tanpa spasi. */
+            nis: string;
+        };
+        /**
          * IsiRaporRequest
          * @description `PUT /rapor/{id}`. Elemen yang tidak dikirim di `detail` tidak berubah.
          */
@@ -2932,12 +3091,13 @@ export interface components {
          *     | `pendaftaran_baru` <br/>  |
          *     | `pendaftaran_diproses` <br/>  |
          *     | `anak_tertaut` <br/>  |
+         *     | `username_diubah` <br/>  |
          *     | `absensi_tercatat` <br/>  |
          *     | `absensi_dikoreksi` <br/>  |
          *     | `absensi_susulan_diberikan` <br/>  |
          * @enum {string}
          */
-        JenisNotifikasi: "tagihan_baru" | "tagihan_tertunda" | "pengingat_tagihan" | "tagihan_terlambat" | "pembayaran_masuk" | "pembayaran_diterima" | "pembayaran_ditolak" | "pembayaran_dibatalkan" | "rapor_diajukan" | "rapor_revisi" | "rapor_terbit" | "pengumuman_baru" | "pendaftaran_baru" | "pendaftaran_diproses" | "anak_tertaut" | "absensi_tercatat" | "absensi_dikoreksi" | "absensi_susulan_diberikan";
+        JenisNotifikasi: "tagihan_baru" | "tagihan_tertunda" | "pengingat_tagihan" | "tagihan_terlambat" | "pembayaran_masuk" | "pembayaran_diterima" | "pembayaran_ditolak" | "pembayaran_dibatalkan" | "rapor_diajukan" | "rapor_revisi" | "rapor_terbit" | "pengumuman_baru" | "pendaftaran_baru" | "pendaftaran_diproses" | "anak_tertaut" | "username_diubah" | "absensi_tercatat" | "absensi_dikoreksi" | "absensi_susulan_diberikan";
         /** JenisTagihanResource */
         JenisTagihanResource: {
             id: number;
@@ -3003,7 +3163,7 @@ export interface components {
             created_at: string | null;
             murid: {
                 id: number;
-                nis: string;
+                nis: string | null;
                 nama_lengkap: string;
                 nama_panggilan: string;
                 jenis_kelamin: components["schemas"]["JenisKelamin"];
@@ -3054,7 +3214,7 @@ export interface components {
             id: number;
             murid: {
                 id: number;
-                nis: string;
+                nis: string | null;
                 nama_lengkap: string;
             };
             jenis_tagihan: {
@@ -3191,7 +3351,8 @@ export interface components {
         /** MuridDetailResource */
         MuridDetailResource: {
             id: number;
-            nis: string;
+            /** @description NIS diisi Kepala Sekolah; null selama murid menunggu NIS. */
+            nis: string | null;
             nisn: string | null;
             nik: string | null;
             nama_lengkap: string;
@@ -3252,7 +3413,8 @@ export interface components {
         /** MuridResource */
         MuridResource: {
             id: number;
-            nis: string;
+            /** @description NIS diisi Kepala Sekolah; null selama murid menunggu NIS. */
+            nis: string | null;
             nisn: string | null;
             nik: string | null;
             nama_lengkap: string;
@@ -3365,7 +3527,7 @@ export interface components {
             /** @description Murid yang dibuat saat pendaftaran diterima. */
             murid: {
                 id: number;
-                nis: string;
+                nis: string | null;
             } | null;
             /** Format: date-time */
             diproses_at: string | null;
@@ -3425,7 +3587,7 @@ export interface components {
             /** @description Murid yang dibuat saat pendaftaran diterima. */
             murid: {
                 id: number;
-                nis: string;
+                nis: string | null;
             } | null;
             /** Format: date-time */
             diproses_at: string | null;
@@ -3578,7 +3740,7 @@ export interface components {
             id: number;
             murid: {
                 id: number;
-                nis: string;
+                nis: string | null;
                 nama_lengkap: string;
                 nama_panggilan: string;
             };
@@ -3624,7 +3786,7 @@ export interface components {
             id: number;
             murid: {
                 id: number;
-                nis: string;
+                nis: string | null;
                 nama_lengkap: string;
                 nama_panggilan: string;
             };
@@ -3975,7 +4137,7 @@ export interface components {
             kode: string;
             murid: {
                 id: number;
-                nis: string;
+                nis: string | null;
                 nama_lengkap: string;
                 nama_panggilan: string;
                 kelas: {
@@ -4010,7 +4172,7 @@ export interface components {
             kode: string;
             murid: {
                 id: number;
-                nis: string;
+                nis: string | null;
                 nama_lengkap: string;
                 nama_panggilan: string;
                 kelas: {
@@ -5455,7 +5617,7 @@ export interface operations {
                             murid: {
                                 murid: {
                                     id: number;
-                                    nis: string;
+                                    nis: string | null;
                                     nama_lengkap: string;
                                 };
                                 status: components["schemas"]["StatusAbsensiMurid"] | null;
@@ -5577,7 +5739,7 @@ export interface operations {
                             murid: {
                                 murid: {
                                     id: number;
-                                    nis: string;
+                                    nis: string | null;
                                     nama_lengkap: string;
                                 };
                                 status: components["schemas"]["StatusAbsensiMurid"] | null;
@@ -5699,7 +5861,7 @@ export interface operations {
                             murid: {
                                 murid: {
                                     id: number;
-                                    nis: string;
+                                    nis: string | null;
                                     nama_lengkap: string;
                                 };
                                 hadir: number;
@@ -6889,6 +7051,7 @@ export interface operations {
                             tertunda: {
                                 rapor_diajukan: number;
                                 pendaftaran_baru: number;
+                                murid_menunggu_nis: number;
                             };
                             pengumuman_terbaru: components["schemas"]["PengumumanResource"][];
                             agenda_mendatang: components["schemas"]["AgendaResource"][];
@@ -9456,7 +9619,6 @@ export interface operations {
                         message: string;
                         data: {
                             dibuat: number;
-                            akun_wali_dibuat: number;
                             gagal: {
                                 nomor: number;
                                 data: {
@@ -12183,7 +12345,7 @@ export interface operations {
                             jumlah_murid: number;
                             murid: {
                                 id: number;
-                                nis: string;
+                                nis: string | null;
                                 nama_lengkap: string;
                                 kelas: {
                                     id: number;
@@ -12637,6 +12799,7 @@ export interface operations {
                 "filter[status]"?: components["schemas"]["StatusMurid"];
                 "filter[tingkat]"?: components["schemas"]["Tingkat"];
                 "filter[tahun_lulus]"?: number;
+                "filter[menunggu_nis]"?: "true" | "false" | "1" | "0";
             };
             header?: never;
             path?: never;
@@ -12785,7 +12948,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description BUSINESS_RULE / VALIDATION_ERROR */
+            /** @description VALIDATION_ERROR */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -12795,7 +12958,7 @@ export interface operations {
                         success: boolean;
                         message: string;
                         /** @enum {string} */
-                        code: "BUSINESS_RULE" | "VALIDATION_ERROR";
+                        code: "VALIDATION_ERROR";
                         errors: {
                             [key: string]: string[];
                         };
@@ -13200,6 +13363,606 @@ export interface operations {
                         /** @enum {string} */
                         code: "BUSINESS_RULE";
                         errors: null;
+                    };
+                };
+            };
+            /** @description TOO_MANY_REQUESTS */
+            429: {
+                headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "TOO_MANY_REQUESTS";
+                        errors: null;
+                    };
+                };
+            };
+        };
+    };
+    "nisMurid.isi": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["IsiNisMuridRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        data: components["schemas"]["MuridDetailResource"];
+                        meta: null;
+                    };
+                };
+            };
+            /** @description UNAUTHENTICATED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "UNAUTHENTICATED";
+                        errors: null;
+                    };
+                };
+            };
+            /** @description FORBIDDEN / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "FORBIDDEN" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        errors: null;
+                    };
+                };
+            };
+            /** @description NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "NOT_FOUND";
+                        errors: null;
+                    };
+                };
+            };
+            /** @description VALIDATION_ERROR */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "VALIDATION_ERROR";
+                        errors: {
+                            [key: string]: string[];
+                        };
+                    };
+                };
+            };
+            /** @description TOO_MANY_REQUESTS */
+            429: {
+                headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "TOO_MANY_REQUESTS";
+                        errors: null;
+                    };
+                };
+            };
+        };
+    };
+    "nisMurid.template": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Daftar murid menunggu NIS (.xlsx) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": Blob;
+                };
+            };
+            /** @description UNAUTHENTICATED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "UNAUTHENTICATED";
+                        errors: null;
+                    };
+                };
+            };
+            /** @description FORBIDDEN / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "FORBIDDEN" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        errors: null;
+                    };
+                };
+            };
+            /** @description TOO_MANY_REQUESTS */
+            429: {
+                headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "TOO_MANY_REQUESTS";
+                        errors: null;
+                    };
+                };
+            };
+        };
+    };
+    "nisMurid.pratinjauImport": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["ImportNisMuridRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        data: {
+                            ringkasan: {
+                                total: number;
+                                valid: number;
+                                invalid: number;
+                                akun_wali: number;
+                            };
+                            baris: {
+                                nomor: number;
+                                murid_id: number | null;
+                                nama_lengkap: string | null;
+                                nis: string | null;
+                                valid: boolean;
+                                akun_wali: boolean;
+                                alasan: string[];
+                            }[];
+                        };
+                        meta: null;
+                    };
+                };
+            };
+            /** @description UNAUTHENTICATED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "UNAUTHENTICATED";
+                        errors: null;
+                    };
+                };
+            };
+            /** @description FORBIDDEN / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "FORBIDDEN" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        errors: null;
+                    };
+                };
+            };
+            /** @description VALIDATION_ERROR */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "VALIDATION_ERROR";
+                        errors: {
+                            [key: string]: string[];
+                        };
+                    };
+                };
+            };
+            /** @description TOO_MANY_REQUESTS */
+            429: {
+                headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "TOO_MANY_REQUESTS";
+                        errors: null;
+                    };
+                };
+            };
+        };
+    };
+    "nisMurid.simpanImport": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["ImportNisMuridRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        data: {
+                            diisi: number;
+                            akun_wali_dibuat: number;
+                            gagal: {
+                                nomor: number;
+                                murid_id: number | null;
+                                nama_lengkap: string | null;
+                                nis: string | null;
+                                valid: boolean;
+                                akun_wali: boolean;
+                                alasan: string[];
+                            }[];
+                        };
+                        meta: null;
+                    };
+                };
+            };
+            /** @description UNAUTHENTICATED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "UNAUTHENTICATED";
+                        errors: null;
+                    };
+                };
+            };
+            /** @description FORBIDDEN / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "FORBIDDEN" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        errors: null;
+                    };
+                };
+            };
+            /** @description VALIDATION_ERROR / BUSINESS_RULE */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "VALIDATION_ERROR" | "BUSINESS_RULE";
+                        errors: {
+                            [key: string]: string[];
+                        };
+                    };
+                };
+            };
+            /** @description TOO_MANY_REQUESTS */
+            429: {
+                headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "TOO_MANY_REQUESTS";
+                        errors: null;
+                    };
+                };
+            };
+        };
+    };
+    "nisMurid.pratinjauBatch": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BatchNisMuridRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        data: {
+                            ringkasan: {
+                                total: number;
+                                valid: number;
+                                invalid: number;
+                                akun_wali: number;
+                            };
+                            baris: {
+                                nomor: number;
+                                murid_id: number | null;
+                                nama_lengkap: string | null;
+                                nis: string | null;
+                                valid: boolean;
+                                akun_wali: boolean;
+                                alasan: string[];
+                            }[];
+                        };
+                        meta: null;
+                    };
+                };
+            };
+            /** @description UNAUTHENTICATED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "UNAUTHENTICATED";
+                        errors: null;
+                    };
+                };
+            };
+            /** @description FORBIDDEN / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "FORBIDDEN" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        errors: null;
+                    };
+                };
+            };
+            /** @description VALIDATION_ERROR */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "VALIDATION_ERROR";
+                        errors: {
+                            [key: string]: string[];
+                        };
+                    };
+                };
+            };
+            /** @description TOO_MANY_REQUESTS */
+            429: {
+                headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "TOO_MANY_REQUESTS";
+                        errors: null;
+                    };
+                };
+            };
+        };
+    };
+    "nisMurid.simpanBatch": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BatchNisMuridRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        data: {
+                            diisi: number;
+                            akun_wali_dibuat: number;
+                            gagal: {
+                                nomor: number;
+                                murid_id: number | null;
+                                nama_lengkap: string | null;
+                                nis: string | null;
+                                valid: boolean;
+                                akun_wali: boolean;
+                                alasan: string[];
+                            }[];
+                        };
+                        meta: null;
+                    };
+                };
+            };
+            /** @description UNAUTHENTICATED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "UNAUTHENTICATED";
+                        errors: null;
+                    };
+                };
+            };
+            /** @description FORBIDDEN / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "FORBIDDEN" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        errors: null;
+                    };
+                };
+            };
+            /** @description BUSINESS_RULE / VALIDATION_ERROR */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "BUSINESS_RULE" | "VALIDATION_ERROR";
+                        errors: {
+                            [key: string]: string[];
+                        };
                     };
                 };
             };

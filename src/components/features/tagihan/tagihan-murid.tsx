@@ -13,6 +13,11 @@ import { namaTagihan, tagihanTerbuka } from "@/lib/tagihan";
 
 const JUMLAH_TAMPIL = 8;
 
+/** Halaman Tagihan mencari kode, nama, atau NIS; murid yang menunggu NIS dicari lewat nama lengkapnya. */
+function kataCariMurid(murid: { nis: string | null; nama_lengkap: string } | undefined): string {
+  return murid?.nis ?? murid?.nama_lengkap ?? "";
+}
+
 /** Tagihan terbaru di detail murid (B4); daftar lengkap lewat halaman Tagihan. */
 export function TagihanMurid({ muridId }: { muridId: number }) {
   const { data, isPending, isError, error, refetch } = useDaftarTagihan({ halaman: 1, muridId, perHalaman: JUMLAH_TAMPIL });
@@ -24,7 +29,7 @@ export function TagihanMurid({ muridId }: { muridId: number }) {
           Tagihan
         </h2>
         {data && data.meta.total > JUMLAH_TAMPIL ? (
-          <Link href={`/mudarris/tagihan?cari=${encodeURIComponent(data.data[0]?.murid.nis ?? "")}`} className="text-sm font-bold text-primary-strong hover:underline">
+          <Link href={`/mudarris/tagihan?cari=${encodeURIComponent(kataCariMurid(data.data[0]?.murid))}`} className="text-sm font-bold text-primary-strong hover:underline">
             Semua {data.meta.total} tagihan
           </Link>
         ) : null}

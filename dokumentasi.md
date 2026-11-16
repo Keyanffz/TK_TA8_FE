@@ -48,6 +48,7 @@ Website publik dan dashboard sistem informasi TK Tarbiyatul Athfal 8 (TK Muslima
 | Perbaikan dari uji browser 14 November: pilihan select yang opsinya dimuat belakangan, teks tagihan wali kelas, tampilan 404 data (branch `fe/perbaikan-uji-browser`; backend `be/perbaikan-uji-browser`) | Selesai, di-merge (PR #38; backend #32); lint, typecheck, build, `check:slop`, diuji di browser dengan backend asli (lihat "Keputusan perbaikan uji browser") |
 | Temuan kecil uji browser dan keputusan onboarding wali (branch `fe/temuan-kecil-uji`; backend `be/temuan-kecil-uji`) | Selesai, di-merge (PR #39; backend #33); lint, typecheck, build, `check:slop`, diuji di browser dengan backend asli (lihat "Keputusan temuan kecil uji browser") |
 | Pratinjau dan foto kamera absensi dicerminkan (branch `fe/update-kamera`) | Selesai, di-merge (PR #40); lint, typecheck, build, `check:slop`, absen masuk diuji di Chrome dengan kamera tiruan dan backend asli; belum diuji di HP sungguhan |
+| NIS murid diisi Kepala Sekolah: halaman Murid Menunggu NIS (tabel dan Excel), isi/ubah NIS di detail murid, NIS kosong tampil "-" (branch `fe/nis-manual`; backend `be/nis-manual`) | Selesai, di-merge (PR #41; backend #34); lint, typecheck, build, `check:slop`, dicek di browser bawaan app dengan backend dan database uji (lihat Changelog) |
 
 Mode mock tidak dipakai: `api.json` final dari backend sudah tersedia sejak Fase 1, jadi semua request memakai backend asli dan tipe hasil generate. Tidak ada endpoint mock.
 
@@ -544,6 +545,18 @@ Sumber: uji browser menyeluruh 14 November 2026 di `main`. Hanya empat temuan ut
 3. **404 saat memuat data** (`GalatMuat`): data yang tidak ada atau bukan milik akun (misalnya kelas lain untuk wali kelas, kegiatan kelas lain untuk wali murid) tampil "Data belum bisa dimuat" dengan tombol Muat Ulang. Sekarang 404 diperlakukan seperti 403: judul "Data tidak ditemukan", tanpa coba lagi, dengan tautan ke beranda. Status HTTP halaman tetap 200 karena data dimuat di browser.
 4. Teks keterangan izin Keuangan yang masih menyebut verifikasi pembayaran ada di backend (`ModulIzin`), diperbaiki di `be/perbaikan-uji-browser`.
 
+## Keputusan NIS murid diisi Kepala Sekolah (menunggu review)
+
+Keputusan pemilik repo (analisis 16 November): NIS diisi Kepala Sekolah dengan format bebas, akun wali dibuat saat NIS diisi, username ikut berubah saat NIS diubah. Kontrak di `docs/kontrak-api-fitur-baru.md` bagian 5. Yang diputuskan saat pengerjaan FE:
+
+1. NIS kosong ditampilkan `"-"` lewat satu helper `formatNis()` di `src/lib/format.ts`, mengikuti pola `?? "-"` yang sudah ada. Pengecualian: kartu anak di dashboard wali menulis "NIS belum diisi sekolah", detail murid memberi badge "Menunggu NIS", dan teks PPDB yang menyebut NIS memakai kalimat sendiri.
+2. Halaman `/mudarris/murid/menunggu-nis` khusus Kepala Sekolah, dibuka dari tombol "Murid Menunggu NIS" di halaman Murid dan kartu "Murid menunggu NIS" di panel Perlu Tindakan. Tidak ada menu sidebar baru.
+3. Tabel memuat sampai 100 murid per halaman (batas backend per permintaan). NIS yang diketik disimpan per murid, jadi tetap ada saat pindah halaman tabel. Simpan Semua: pratinjau tabel, tandai baris bermasalah, dialog konfirmasi "Simpan N NIS? X akun wali akan dibuat", lalu simpan; baris yang tersimpan hilang dari tabel, baris gagal tetap berisi NIS yang diketik beserta alasannya. Kalau tidak ada baris valid, dialog tidak dibuka dan pesannya tampil di atas tabel.
+4. Import NIS memakai alur tiga langkah seperti Import Murid (`PenandaLangkah`, `KotakPesan`, `simpanBlob`), hanya menerima .xlsx. Baris gagal ditampilkan di tabel, tanpa unduhan CSV, karena file yang sama cukup diperbaiki lalu diunggah ulang.
+5. Detail murid: tombol "Isi NIS" atau "Ubah NIS" hanya untuk Kepala Sekolah. Dialog memperingatkan kalau ada akun wali yang username-nya NIS sekarang (username ikut berubah, password tidak, wali mendapat notifikasi), dan memberi tahu kalau akun wali akan dibuat. Kartu akun disembunyikan selama NIS kosong; nama file unduhannya mengganti karakter seperti garis miring dengan `-`, sama dengan backend.
+6. Tautan "Semua tagihan" di detail murid mencari NIS, atau nama lengkap untuk murid yang menunggu NIS (pencarian tagihan backend mencakup nama dan NIS).
+7. Notifikasi `username_diubah` memakai ikon `UserPen` dengan nada menunggu.
+
 ## Keputusan temuan kecil uji browser (menunggu review)
 
 1. **Onboarding wali** (keputusan pemilik repo): nama, nomor HP, alamat, dan pekerjaan wajib; NIK opsional. Ini yang sudah dijalankan kode, karena backend baru menandai `profil_lengkap` setelah nomor HP, alamat, dan pekerjaan terisi (A7), dan wali dengan profil belum lengkap selalu diarahkan ke onboarding (B3). Yang salah hanya teks flowchart A6 ("alamat, pekerjaan opsional"), dibetulkan di PROMPT FE dan BE; baris `/dashboard/onboarding` di B4 ikut diperjelas. Kode tidak berubah.
@@ -706,8 +719,9 @@ Andika hanya punya bobot 400 dan 700, jadi `font-semibold` tampil sebagai 700.
 | `/mudarris/hak-akses` | SA | Hak Akses Guru: tabel guru aktif dan izinnya per modul, dialog atur izin per modul (tidak ada / lihat / kelola) dan terapkan preset |
 | `/mudarris/tahun-ajaran`, `/mudarris/tahun-ajaran/kenaikan` | SA | Tambah/ubah/aktifkan/hapus; wizard kenaikan kelas |
 | `/mudarris/kelas`, `/mudarris/kelas/[id]` | SA, G (kelas diampu, tanpa aksi) | Kartu kelas per tahun ajaran; detail + murid; SA tambah/ubah/hapus kelas, tempatkan dan keluarkan murid |
-| `/mudarris/murid`, `/mudarris/murid/baru`, `/mudarris/murid/[id]`, `/mudarris/murid/[id]/ubah` | SA, G (murid kelasnya, lihat saja; semua murid dengan izin `data_murid`) | Tabel + saringan status; detail, riwayat status, kartu akun, wali tertaut (ubah hubungan, kontak utama, lepas: SA). Izin `data_murid` `kelola`: tambah/ubah/hapus, Ubah Status satu murid, pilih beberapa murid lalu ubah status, Luluskan Kelas, Import Murid |
+| `/mudarris/murid`, `/mudarris/murid/baru`, `/mudarris/murid/[id]`, `/mudarris/murid/[id]/ubah` | SA, G (murid kelasnya, lihat saja; semua murid dengan izin `data_murid`) | Tabel + saringan status; detail, riwayat status, kartu akun (hanya kalau NIS sudah diisi), wali tertaut (ubah hubungan, kontak utama, lepas: SA). Izin `data_murid` `kelola`: tambah/ubah/hapus, Ubah Status satu murid, pilih beberapa murid lalu ubah status, Luluskan Kelas, Import Murid. SA: Isi NIS / Ubah NIS di detail, tombol Murid Menunggu NIS |
 | `/mudarris/murid/import` | SA, G (`data_murid` `kelola`) | Wizard: unduh template, unggah .xlsx/.csv, pratinjau per baris, impor baris valid, unduh CSV baris gagal |
+| `/mudarris/murid/menunggu-nis` | SA | Murid aktif tanpa NIS: isian NIS per baris + Simpan Semua (pratinjau, konfirmasi jumlah akun wali, simpan), lalu isi lewat Excel (unduh daftar, unggah .xlsx, pratinjau, simpan, ringkasan) |
 | `/mudarris/alumni` | SA, G (`data_murid` `lihat`) | Murid lulus, saringan tahun lulus + cari; tombol Import Data Alumni untuk izin `kelola` |
 | `/mudarris/wali-murid`, `/mudarris/wali-murid/[id]` | SA | Daftar wali; ubah data, aktif/nonaktif, reset password, anak tertaut |
 | `/mudarris/pengaturan` | SA, G (`konten_website`, hanya tab Beranda Wali) | Tab Rekening, Tagihan, PPDB, Beranda Wali, Elemen Penilaian (`?tab=`) |
@@ -764,6 +778,28 @@ Tempat deploy belum ditentukan. Syarat yang sudah pasti:
 6. **Masuk dengan Google**: `NEXT_PUBLIC_GOOGLE_CLIENT_ID` diisi sebelum `npm run build`, dan origin FE produksi (misalnya `https://tkta8.sch.id`) didaftarkan di Authorized JavaScript origins Client ID itu di Google Cloud Console. Backend memakai Client ID yang sama di `GOOGLE_CLIENT_ID`.
 
 ## Changelog
+
+### NIS murid diisi Kepala Sekolah (branch `fe/nis-manual`, dari `main`)
+
+Pasangan backend `be/nis-manual`. Bagian A disalin dari PROMPT BE (commit pertama branch ini); B4 diperbarui untuk halaman baru. Alasan di "Keputusan NIS murid diisi Kepala Sekolah".
+
+File baru:
+- `src/app/mudarris/(halaman)/murid/menunggu-nis/page.tsx`: halaman Murid Menunggu NIS (khusus Kepala Sekolah).
+- `src/components/features/murid/nis/tabel-isi-nis.tsx`: tabel murid menunggu NIS dengan isian per baris, Simpan Semua, dan dialog konfirmasi.
+- `src/components/features/murid/nis/import-nis.tsx` dan `tabel-pratinjau-nis.tsx`: isi NIS lewat Excel dan tabel hasil pemeriksaannya.
+- `src/components/features/murid/dialog-nis-murid.tsx`: isi atau ubah NIS di detail murid.
+
+File yang diubah:
+- `src/types/api.d.ts` (hasil `gen:api`), `src/types/domain.ts` (`PratinjauNis`, `BarisNis`, `HasilSimpanNis`), `src/lib/api/murid.ts` (saringan `menungguNis`, hook isi NIS, tabel, dan import NIS), `src/lib/format.ts` (`formatNis`).
+- Tampilan NIS lewat `formatNis` di daftar murid, alumni, detail kelas, absensi murid, rapor (kelas, review, detail), keringanan, tunggakan, kenaikan kelas, detail wali murid, dan pemilih murid.
+- `detail-murid.tsx` dan halaman detail: tombol Isi/Ubah NIS untuk Kepala Sekolah, badge Menunggu NIS, kartu akun hanya kalau NIS ada. `kartu-akun-murid.tsx`: nama file aman untuk garis miring. `wali-tertaut.tsx`: keterangan kosong untuk murid tanpa NIS.
+- Halaman Murid: tombol Murid Menunggu NIS (SA) dan deskripsi baru. `perlu-tindakan.tsx`: kartu Murid menunggu NIS. `lib/constants/notifikasi.ts`: `username_diubah`.
+- Teks yang menyebut NIS atau akun wali otomatis: Tambah Murid (deskripsi, toast), Import Murid (deskripsi, `hasil-import.tsx` tanpa `akun_wali_dibuat`), dialog Terima PPDB, detail pendaftaran, PPDB wali (`pendaftaran-saya.tsx`), kartu anak wali (`daftar-anak.tsx`).
+- `tagihan-murid.tsx`: tautan Semua tagihan untuk murid tanpa NIS mencari nama lengkap.
+
+Uji browser (diminta pemilik repo, backend `TK_TA8_uji`, token uji sudah dicabut): beranda Kepala Sekolah, tabel isi NIS (dobel ditandai, konfirmasi, simpan, baris gagal tetap terisi), pratinjau Excel, Isi/Ubah NIS di detail murid (pesan NIS terpakai, peringatan username), daftar murid, dialog Terima PPDB dan detail pendaftaran, kartu anak wali. Temuan yang diperbaiki: isian tabel di-mount ulang setiap huruf (kolom dipindah ke level modul, nilai lewat context), tabel bergeser saat NIS pertama diketik (teks petunjuk tetap, jumlah di tombol), kartu ketiga Perlu Tindakan sendirian (3 kolom di layar lebar), dan "Nama · -" di detail murid tanpa NIS. Belum dicek: tampilan notifikasi `username_diubah` di sisi wali.
+
+Pengecekan: `npm run gen:api`, `npm run lint`, `npm run typecheck`, `npm run build` (halaman `/mudarris/murid/menunggu-nis` ikut terbangun), `npm run check:slop` bersih. FE tidak punya test otomatis. Tampilan tidak dicek di browser (diminta pemilik repo, dicek sendiri); Delivery Gate anti-slop diperiksa dari kode: tombol punya aksi nyata, tabel punya state memuat/kosong/galat, isian punya label (`aria-label` di tabel, label di dialog), dialog bisa ditutup Escape, tanpa em dash di teks baru.
 
 ### Temuan kecil uji browser (branch `fe/temuan-kecil-uji`, dari `main`)
 

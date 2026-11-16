@@ -19,6 +19,7 @@ import { useDaftarTahunAjaran } from "@/lib/api/tahun-ajaran";
 import { LABEL_STATUS_RAPOR } from "@/lib/constants/label";
 import { NADA_STATUS_RAPOR } from "@/lib/constants/status";
 import { cn } from "@/lib/utils";
+import { formatNis } from "@/lib/format";
 import type { KelasDetail, Rapor } from "@/types/domain";
 
 const SEMESTER = [1, 2] as const;
@@ -31,7 +32,7 @@ function BarisMurid({ murid, rapor, semester }: { murid: KelasDetail["murid"][nu
     <li className="flex min-h-16 flex-wrap items-center gap-3 px-4 py-3">
       <div className="min-w-0 flex-1">
         <p className="font-bold">{murid.nama_lengkap}</p>
-        <p className="text-xs text-muted-foreground tabular-nums">{murid.nis}</p>
+        <p className="text-xs text-muted-foreground tabular-nums">{formatNis(murid.nis)}</p>
       </div>
       {rapor ? (
         <>

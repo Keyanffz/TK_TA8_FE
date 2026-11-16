@@ -16,7 +16,7 @@ export default async function ImportMuridPage() {
       <TautanKembali href="/mudarris/murid">Kembali ke daftar murid</TautanKembali>
       <KepalaHalaman
         judul="Import Murid"
-        deskripsi="Masukkan banyak murid sekaligus dari Excel atau CSV. Murid aktif dibuatkan akun wali seperti saat ditambah satu per satu."
+        deskripsi="Masukkan banyak murid sekaligus dari Excel atau CSV. Murid tersimpan tanpa NIS; akun wali murid aktif dibuat setelah Kepala Sekolah mengisi NIS."
       />
       <WizardImport />
     </div>

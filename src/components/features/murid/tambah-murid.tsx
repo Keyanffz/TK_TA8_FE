@@ -16,7 +16,7 @@ export function TambahMurid() {
       labelSimpan="Simpan Murid"
       kirim={async (body) => {
         const { data } = await tambah.mutateAsync(body);
-        toast.success(`${data.nama_lengkap} tersimpan dengan NIS ${data.nis}. Akun wali otomatis sudah dibuat.`);
+        toast.success(`${data.nama_lengkap} tersimpan. Akun wali dibuat setelah Kepala Sekolah mengisi NIS.`);
         router.replace(`/mudarris/murid/${data.id}`);
       }}
     />

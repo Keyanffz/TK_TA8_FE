@@ -1,4 +1,4 @@
-import { ArrowRight, BookOpenText, UserPlus, type LucideIcon } from "lucide-react";
+import { ArrowRight, BookOpenText, IdCard, UserPlus, type LucideIcon } from "lucide-react";
 import Link from "next/link";
 import type { CSSProperties } from "react";
 
@@ -12,6 +12,7 @@ type Tertunda = DashboardKepalaSekolah["tertunda"];
 const TINDAKAN: readonly { kunci: keyof Tertunda; label: string; href: string; ikon: LucideIcon }[] = [
   { kunci: "rapor_diajukan", label: "Rapor menunggu review", href: "/mudarris/rapor", ikon: BookOpenText },
   { kunci: "pendaftaran_baru", label: "Pendaftar PPDB baru", href: "/mudarris/ppdb", ikon: UserPlus },
+  { kunci: "murid_menunggu_nis", label: "Murid menunggu NIS", href: "/mudarris/murid/menunggu-nis", ikon: IdCard },
 ];
 
 /** Panel "Perlu Tindakan" (B5), hal paling penting di beranda Kepala Sekolah. */
@@ -30,12 +31,12 @@ export function PerluTindakan({ tertunda }: { tertunda: Tertunda }) {
   return (
     <div>
       <h2 className="mb-3 font-heading text-lg font-extrabold">Perlu Tindakan</h2>
-      <ul className="grid grid-cols-2 gap-3">
+      <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         {TINDAKAN.map(({ kunci, label, href, ikon: Ikon }, indeks) => {
           const jumlah = tertunda[kunci];
           const ada = jumlah > 0;
           return (
-            <li key={kunci} className="gerak-masuk" style={{ "--i": indeks + 2 } as CSSProperties}>
+            <li key={kunci} className="gerak-masuk last:odd:col-span-2 sm:last:odd:col-span-1" style={{ "--i": indeks + 2 } as CSSProperties}>
               <Link
                 href={href}
                 className={cn(

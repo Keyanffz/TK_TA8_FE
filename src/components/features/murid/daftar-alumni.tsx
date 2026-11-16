@@ -10,12 +10,12 @@ import { KolomCari } from "@/components/shared/kolom-cari";
 import { KELAS_KONTROL_SARINGAN } from "@/components/shared/kolom-teks";
 import { TabelData } from "@/components/shared/tabel-data";
 import { useDaftarMurid, useTahunLulus } from "@/lib/api/murid";
-import { formatTanggal } from "@/lib/format";
+import { formatNis, formatTanggal } from "@/lib/format";
 import type { Murid } from "@/types/domain";
 
 const KOLOM: ColumnDef<Murid>[] = [
   { id: "murid", header: "Murid", cell: ({ row }) => <IdentitasMurid murid={row.original} /> },
-  { id: "nis", header: "NIS", cell: ({ row }) => <span className="tabular-nums">{row.original.nis}</span> },
+  { id: "nis", header: "NIS", cell: ({ row }) => <span className="tabular-nums">{formatNis(row.original.nis)}</span> },
   { id: "tahun", header: "Tahun lulus", cell: ({ row }) => <span className="font-bold tabular-nums">{row.original.tahun_lulus ?? "-"}</span> },
   { id: "tanggal", header: "Tanggal lulus", cell: ({ row }) => (row.original.tanggal_keluar ? formatTanggal(row.original.tanggal_keluar) : "-") },
   { id: "keterangan", header: "Keterangan", cell: ({ row }) => <span className="line-clamp-2 max-w-xs">{row.original.keterangan_status ?? "-"}</span> },
@@ -78,7 +78,7 @@ export function DaftarAlumni() {
           <Link href={`/mudarris/murid/${murid.id}`} className="flex flex-col gap-1 rounded-xl border border-border bg-card p-4 shadow-sm">
             <span className="font-bold">{murid.nama_lengkap}</span>
             <span className="text-sm text-muted-foreground">
-              <span className="tabular-nums">{murid.nis}</span> · Lulus {murid.tahun_lulus ?? "-"}
+              <span className="tabular-nums">{formatNis(murid.nis)}</span> · Lulus {murid.tahun_lulus ?? "-"}
               {murid.tanggal_keluar ? ` (${formatTanggal(murid.tanggal_keluar)})` : ""}
             </span>
           </Link>

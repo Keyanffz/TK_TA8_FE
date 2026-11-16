@@ -13,7 +13,7 @@ import { useDetailRapor, useElemenPenilaian } from "@/lib/api/rapor";
 import { useSession } from "@/lib/auth/use-session";
 import { LABEL_STATUS_RAPOR } from "@/lib/constants/label";
 import { NADA_STATUS_RAPOR } from "@/lib/constants/status";
-import { formatTanggal, formatTanggalWaktu } from "@/lib/format";
+import { formatNis, formatTanggal, formatTanggalWaktu } from "@/lib/format";
 import { periodeRapor } from "@/lib/rapor";
 
 export function DetailRapor({ id }: { id: number }) {
@@ -37,7 +37,7 @@ export function DetailRapor({ id }: { id: number }) {
             {periodeRapor(rapor)} · {rapor.kelas.nama}
           </p>
           <h1 className="text-xl leading-tight font-extrabold">{rapor.murid.nama_lengkap}</h1>
-          <p className="text-sm text-muted-foreground tabular-nums">{rapor.murid.nis}</p>
+          <p className="text-sm text-muted-foreground tabular-nums">{formatNis(rapor.murid.nis)}</p>
         </header>
         {bolehIsi ? (
           <EditorRapor

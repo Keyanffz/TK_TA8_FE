@@ -18,6 +18,7 @@ export default async function DetailMuridPage({ params }: PageProps<"/mudarris/m
         id={id}
         bisaKelola={punyaIzin(sesi, "data_murid", "kelola")}
         bisaKelolaWali={sesi.isSuperAdmin}
+        bisaIsiNis={sesi.isSuperAdmin}
         tagihan={<TagihanMurid muridId={id} />}
       />
     </div>

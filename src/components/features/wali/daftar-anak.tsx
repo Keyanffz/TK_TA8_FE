@@ -75,7 +75,7 @@ export function DaftarAnak() {
             <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
               <div>
                 <dt className="text-muted-foreground">NIS</dt>
-                <dd className="font-bold tabular-nums">{anak.nis}</dd>
+                <dd className={anak.nis === null ? "text-muted-foreground" : "font-bold tabular-nums"}>{anak.nis ?? "NIS belum diisi sekolah"}</dd>
               </div>
               <div>
                 <dt className="text-muted-foreground">Tanggal lahir</dt>

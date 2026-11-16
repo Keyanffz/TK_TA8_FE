@@ -77,6 +77,10 @@ export type DaftarIzin = DataRespons<"izinGuru.index">;
 export type PratinjauImportMurid = DataRespons<"importMurid.pratinjau">;
 export type BarisImportMurid = PratinjauImportMurid["baris"][number];
 export type HasilImportMurid = DataRespons<"importMurid.simpan">;
+/** Pratinjau dan hasil simpan NIS; bentuknya sama untuk tabel web dan file Excel. */
+export type PratinjauNis = DataRespons<"nisMurid.pratinjauBatch">;
+export type BarisNis = PratinjauNis["baris"][number];
+export type HasilSimpanNis = DataRespons<"nisMurid.simpanBatch">;
 
 export type Dashboard = DataRespons<"dashboard.dashboard">;
 export type LaporanKeuangan = DataRespons<"laporan.keuangan">;

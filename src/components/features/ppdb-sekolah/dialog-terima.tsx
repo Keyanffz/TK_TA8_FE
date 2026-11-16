@@ -54,8 +54,10 @@ export function DialogTerima({ pendaftaran }: { pendaftaran: PendaftaranDetail }
         <DialogHeader>
           <DialogTitle>Terima {pendaftaran.nama_panggilan}?</DialogTitle>
           <DialogDescription>
-            Data murid dibuat dengan NIS baru untuk Tahun Ajaran {pendaftaran.tahun_ajaran.nama}.{" "}
-            {pendaftaran.wali ? `Murid langsung tertaut ke akun ${pendaftaran.wali.nama}.` : "Akun wali dibuat otomatis dengan username NIS anak; kartu akunnya bisa dicetak dari halaman murid."}
+            Data murid dibuat tanpa NIS untuk Tahun Ajaran {pendaftaran.tahun_ajaran.nama}.{" "}
+            {pendaftaran.wali
+              ? `Murid langsung tertaut ke akun ${pendaftaran.wali.nama}.`
+              : "Akun wali dibuat setelah Anda mengisi NIS murid ini, memakai hubungan dan nomor HP dari formulir."}
           </DialogDescription>
         </DialogHeader>
         <KolomPilih

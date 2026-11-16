@@ -92,3 +92,8 @@ const bulanTahun = new Intl.DateTimeFormat("id-ID", { month: "long", year: "nume
 export function formatBulan(nilai: string): string {
   return bulanTahun.format(new Date(`${nilai}-01T00:00:00Z`));
 }
+
+/** NIS diisi Kepala Sekolah; murid yang masih menunggu NIS ditampilkan "-". */
+export function formatNis(nis: string | null): string {
+  return nis ?? "-";
+}

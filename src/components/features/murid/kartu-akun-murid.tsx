@@ -21,7 +21,8 @@ export function KartuAkunMurid({ muridId, nis }: { muridId: number; nis: string 
     setGalat(null);
     setMemproses(aksi);
     try {
-      if (aksi === "unduh") simpanBlob(await ambilKartuAkun(muridId), `kartu-akun-${nis}.pdf`);
+      // NIS boleh berisi garis miring, yang tidak boleh ada di nama file; sama dengan nama file dari backend.
+      if (aksi === "unduh") simpanBlob(await ambilKartuAkun(muridId), `kartu-akun-${nis.replace(/[^A-Za-z0-9._-]/g, "-")}.pdf`);
       else await bukaBlobDiTabBaru(() => ambilKartuAkun(muridId));
     } catch (error) {
       setGalat(pesanError(error));

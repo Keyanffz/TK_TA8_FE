@@ -12,7 +12,7 @@ import { KolomCari } from "@/components/shared/kolom-cari";
 import { TabelData } from "@/components/shared/tabel-data";
 import { Button } from "@/components/ui/button";
 import { useDaftarKeringanan, useHapusKeringanan } from "@/lib/api/keringanan";
-import { formatRupiah, formatTanggal } from "@/lib/format";
+import { formatNis, formatRupiah, formatTanggal } from "@/lib/format";
 import type { Keringanan } from "@/types/domain";
 
 function nilaiPotongan(keringanan: Keringanan): string {
@@ -63,7 +63,7 @@ const KOLOM: ColumnDef<Keringanan>[] = [
     cell: ({ row }) => (
       <span>
         <span className="block font-bold">{row.original.murid.nama_lengkap}</span>
-        <span className="block text-xs text-muted-foreground tabular-nums">{row.original.murid.nis}</span>
+        <span className="block text-xs text-muted-foreground tabular-nums">{formatNis(row.original.murid.nis)}</span>
       </span>
     ),
   },

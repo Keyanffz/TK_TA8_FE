@@ -14,7 +14,7 @@ export default async function TambahMuridPage() {
     <div className="mx-auto max-w-3xl px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
       <KepalaHalaman
         judul="Tambah Murid"
-        deskripsi="NIS dibuat otomatis. Akun wali ikut dibuat dengan username NIS dan password awal tanggal lahir anak."
+        deskripsi="Murid tersimpan tanpa NIS. Setelah Kepala Sekolah mengisi NIS, akun wali dibuat dengan username NIS dan password awal tanggal lahir anak."
       />
       <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
         <TambahMurid />
