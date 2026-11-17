@@ -95,6 +95,15 @@ export function WizardImport() {
             <span className="font-bold">Petunjuk</span>. Data alumni tahun-tahun lalu bisa dimasukkan sekaligus dengan kolom status dan tahun lulus;
             alumni tidak dibuatkan akun wali dan tidak ditagih. Maksimal 500 baris per file.
           </p>
+          <ul className="max-w-prose list-disc pl-5 text-sm">
+            <li>
+              Kolom bertanda <span className="font-bold">*</span> wajib diisi. Kolom formulir data murid lainnya (alamat lengkap, kesehatan, ayah, ibu,
+              wali, kontak utama) boleh dikosongkan; murid tetap diimpor dan tertandai &ldquo;Data belum lengkap&rdquo;.
+            </li>
+            <li>Kolom pilihan, misalnya agama, pekerjaan, dan penghasilan, punya daftar pilihan di Excel. Daftar lengkapnya ada di sheet Petunjuk.</li>
+            <li>Kolom NIK dan nomor HP sudah berformat teks, jadi angka nol di depan dan digit terakhir tidak berubah.</li>
+            <li>Kalau kontak utama diisi, nomor HP orang itu wajib diisi karena dipakai untuk akun wali murid.</li>
+          </ul>
           <div className="flex flex-wrap gap-2">
             <Button variant="outline" onClick={() => void unduhTemplate()} disabled={mengunduh}>
               <Download aria-hidden="true" />

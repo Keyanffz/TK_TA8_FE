@@ -4,6 +4,7 @@ import { useState } from "react";
 
 import { StatusBadge } from "@/components/shared/status-badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { HUBUNGAN, LABEL_HUBUNGAN } from "@/lib/constants/label";
 import type { BarisImportMurid, PratinjauImportMurid } from "@/types/domain";
 
 function Keterangan({ baris }: { baris: BarisImportMurid }) {
@@ -13,6 +14,18 @@ function Keterangan({ baris }: { baris: BarisImportMurid }) {
     <>
       {status}
       {tahunLulus ? ` ${tahunLulus}` : ""}
+    </>
+  );
+}
+
+function KontakUtama({ baris }: { baris: BarisImportMurid }) {
+  const peran = HUBUNGAN.find((nilai) => nilai === baris.data.kontak_utama);
+  if (!peran) return <span className="text-muted-foreground">Belum diisi</span>;
+  const noHp = baris.data[`${peran}_no_hp`];
+  return (
+    <>
+      {LABEL_HUBUNGAN[peran]}
+      {noHp ? <span className="block text-xs text-muted-foreground tabular-nums">{noHp}</span> : null}
     </>
   );
 }
@@ -45,6 +58,7 @@ export function TabelPratinjau({ pratinjau }: { pratinjau: PratinjauImportMurid 
               <TableHead>Nama lengkap</TableHead>
               <TableHead>NISN</TableHead>
               <TableHead>Status</TableHead>
+              <TableHead>Kontak utama</TableHead>
               <TableHead>Hasil pemeriksaan</TableHead>
             </TableRow>
           </TableHeader>
@@ -56,6 +70,9 @@ export function TabelPratinjau({ pratinjau }: { pratinjau: PratinjauImportMurid 
                 <TableCell className="tabular-nums">{item.data.nisn ?? "-"}</TableCell>
                 <TableCell className="capitalize">
                   <Keterangan baris={item} />
+                </TableCell>
+                <TableCell>
+                  <KontakUtama baris={item} />
                 </TableCell>
                 <TableCell>
                   {item.valid ? (

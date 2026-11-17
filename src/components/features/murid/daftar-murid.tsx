@@ -21,6 +21,8 @@ import { formatNis, formatTanggal } from "@/lib/format";
 import type { Murid } from "@/types/domain";
 
 const TINGKAT = ["A", "B"] as const;
+const KELENGKAPAN = ["belum", "lengkap"] as const;
+const LABEL_KELENGKAPAN = { belum: "Data belum lengkap", lengkap: "Data lengkap" } as const;
 const KELAS_CENTANG = "size-5 accent-primary";
 
 export function IdentitasMurid({ murid }: { murid: Murid }) {
@@ -46,9 +48,18 @@ const KOLOM: ColumnDef<Murid>[] = [
   {
     id: "status",
     header: "Status",
-    cell: ({ row }) => <StatusBadge nada={NADA_STATUS_MURID[row.original.status]}>{LABEL_STATUS_MURID[row.original.status]}</StatusBadge>,
+    cell: ({ row }) => <BadgeMurid murid={row.original} />,
   },
 ];
+
+function BadgeMurid({ murid }: { murid: Murid }) {
+  return (
+    <span className="flex flex-wrap justify-end gap-1 sm:justify-start">
+      <StatusBadge nada={NADA_STATUS_MURID[murid.status]}>{LABEL_STATUS_MURID[murid.status]}</StatusBadge>
+      {murid.data_lengkap ? null : <StatusBadge nada="menunggu">Data belum lengkap</StatusBadge>}
+    </span>
+  );
+}
 
 /** `bisaKelola` (izin kelola data murid) menampilkan kotak centang untuk mengubah status beberapa murid sekaligus. */
 export function DaftarMurid({ bisaKelola }: { bisaKelola: boolean }) {
@@ -56,13 +67,14 @@ export function DaftarMurid({ bisaKelola }: { bisaKelola: boolean }) {
   const [kelasId, setKelasId] = useQueryState("kelas", parseAsInteger);
   const [status, setStatus] = useQueryState("status", parseAsStringLiteral(STATUS_MURID));
   const [tingkat, setTingkat] = useQueryState("tingkat", parseAsStringLiteral(TINGKAT));
+  const [kelengkapan, setKelengkapan] = useQueryState("lengkap", parseAsStringLiteral(KELENGKAPAN));
   const [halaman, setHalaman] = useQueryState("page", parseAsInteger.withDefault(1));
   const [dipilih, setDipilih] = useState<number[]>([]);
   const kelas = useDaftarKelas(null);
-  const daftar = useDaftarMurid({ search: cari, halaman, kelasId, status, tingkat });
+  const daftar = useDaftarMurid({ search: cari, halaman, kelasId, status, tingkat, dataLengkap: kelengkapan === null ? null : kelengkapan === "lengkap" });
   const massal = useUbahStatusMassal();
   const kelasTahunAktif = (kelas.data ?? []).filter((item) => item.tahun_ajaran.is_aktif);
-  const adaFilter = cari || kelasId || status || tingkat;
+  const adaFilter = cari || kelasId || status || tingkat || kelengkapan;
   const idHalaman = (daftar.data?.data ?? []).map((murid) => murid.id);
   const semuaDipilih = idHalaman.length > 0 && idHalaman.every((id) => dipilih.includes(id));
 
@@ -98,7 +110,7 @@ export function DaftarMurid({ bisaKelola }: { bisaKelola: boolean }) {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-[1fr_auto_auto_auto]">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-[1fr_auto_auto_auto_auto]">
         <KolomCari nilai={cari} onUbah={(nilai) => ubahFilter(() => setCari(nilai || null))} label="Cari murid" placeholder="Cari nama atau NIS" />
         <select aria-label="Saring kelas" className={KELAS_KONTROL_SARINGAN} value={kelasId ?? ""} onChange={(e) => ubahFilter(() => setKelasId(e.target.value ? Number(e.target.value) : null))}>
           <option value="">Semua kelas</option>
@@ -131,6 +143,19 @@ export function DaftarMurid({ bisaKelola }: { bisaKelola: boolean }) {
           {STATUS_MURID.map((nilai) => (
             <option key={nilai} value={nilai}>
               {LABEL_STATUS_MURID[nilai]}
+            </option>
+          ))}
+        </select>
+        <select
+          aria-label="Saring kelengkapan data"
+          className={KELAS_KONTROL_SARINGAN}
+          value={kelengkapan ?? ""}
+          onChange={(e) => ubahFilter(() => setKelengkapan(KELENGKAPAN.find((nilai) => nilai === e.target.value) ?? null))}
+        >
+          <option value="">Semua kelengkapan</option>
+          {KELENGKAPAN.map((nilai) => (
+            <option key={nilai} value={nilai}>
+              {LABEL_KELENGKAPAN[nilai]}
             </option>
           ))}
         </select>
@@ -190,7 +215,7 @@ export function DaftarMurid({ bisaKelola }: { bisaKelola: boolean }) {
                 </span>
               </span>
             </Link>
-            <StatusBadge nada={NADA_STATUS_MURID[murid.status]}>{LABEL_STATUS_MURID[murid.status]}</StatusBadge>
+            <BadgeMurid murid={murid} />
           </div>
         )}
       />

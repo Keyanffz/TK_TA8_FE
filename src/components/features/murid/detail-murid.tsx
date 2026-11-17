@@ -5,6 +5,10 @@ import { useRouter } from "next/navigation";
 import type { ReactNode } from "react";
 import { toast } from "sonner";
 
+import { BerkasFisik } from "@/components/features/formulir-murid/berkas-fisik";
+import { DataKurang } from "@/components/features/formulir-murid/data-kurang";
+import { isianDariData } from "@/components/features/formulir-murid/isian";
+import { RingkasanFormulir } from "@/components/features/formulir-murid/ringkasan-formulir";
 import { DialogNisMurid } from "@/components/features/murid/dialog-nis-murid";
 import { DialogUbahStatus } from "@/components/features/murid/dialog-ubah-status";
 import { KartuAkunMurid } from "@/components/features/murid/kartu-akun-murid";
@@ -16,8 +20,8 @@ import { GalatMuat } from "@/components/shared/galat-muat";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useDetailMurid, useHapusMurid, useUbahStatusMurid } from "@/lib/api/murid";
-import { LABEL_JENIS_KELAMIN, LABEL_STATUS_MURID } from "@/lib/constants/label";
+import { useBerkasMurid, useDetailMurid, useHapusMurid, useUbahStatusMurid } from "@/lib/api/murid";
+import { LABEL_STATUS_MURID } from "@/lib/constants/label";
 import { NADA_STATUS_MURID } from "@/lib/constants/status";
 import { formatTanggal } from "@/lib/format";
 
@@ -32,7 +36,7 @@ function Baris({ label, children }: { label: string; children: ReactNode }) {
 
 type DetailMuridProps = {
   id: number;
-  /** Izin kelola data murid: ubah, hapus, ubah status, kartu akun. */
+  /** Izin kelola data murid: ubah, hapus, ubah status, kartu akun, centang berkas. */
   bisaKelola: boolean;
   /** Ubah hubungan dan lepas tautan wali tetap khusus Kepala Sekolah. */
   bisaKelolaWali: boolean;
@@ -46,6 +50,7 @@ export function DetailMurid({ id, bisaKelola, bisaKelolaWali, bisaIsiNis, tagiha
   const { data: murid, isPending, isError, error, refetch } = useDetailMurid(id);
   const hapus = useHapusMurid();
   const ubahStatus = useUbahStatusMurid(id);
+  const berkas = useBerkasMurid(id);
 
   if (isPending) return <Skeleton aria-label="Memuat data murid" className="h-96 rounded-xl" />;
   if (isError) return <GalatMuat error={error} onCobaLagi={() => void refetch()} />;
@@ -70,6 +75,7 @@ export function DetailMurid({ id, bisaKelola, bisaKelolaWali, bisaIsiNis, tagiha
               <div className="mt-2 flex flex-wrap gap-2">
                 <StatusBadge nada={NADA_STATUS_MURID[murid.status]}>{LABEL_STATUS_MURID[murid.status]}</StatusBadge>
                 {murid.nis === null ? <StatusBadge nada="menunggu">Menunggu NIS</StatusBadge> : null}
+                {murid.data_lengkap ? null : <StatusBadge nada="menunggu">Data belum lengkap</StatusBadge>}
                 <span className="rounded-full bg-highlight px-2.5 py-0.5 text-xs font-bold text-highlight-foreground">
                   {murid.kelas?.nama ?? "Belum ada kelas"}
                 </span>
@@ -110,13 +116,6 @@ export function DetailMurid({ id, bisaKelola, bisaKelolaWali, bisaIsiNis, tagiha
             </div>
           ) : null}
           <dl className="mt-5 grid gap-4 sm:grid-cols-2">
-            <Baris label="Jenis kelamin">{LABEL_JENIS_KELAMIN[murid.jenis_kelamin]}</Baris>
-            <Baris label="Tempat, tanggal lahir">
-              {murid.tempat_lahir}, {formatTanggal(murid.tanggal_lahir)}
-            </Baris>
-            <Baris label="Agama">{murid.agama}</Baris>
-            <Baris label="Anak ke-">{murid.anak_ke ?? "-"}</Baris>
-            <Baris label="NIK">{murid.nik ?? "-"}</Baris>
             <Baris label="NISN">{murid.nisn ?? "-"}</Baris>
             <Baris label="Tanggal masuk">{formatTanggal(murid.tanggal_masuk)}</Baris>
             {murid.status !== "aktif" ? (
@@ -129,16 +128,30 @@ export function DetailMurid({ id, bisaKelola, bisaKelolaWali, bisaIsiNis, tagiha
                 <Baris label="Keterangan status">{murid.keterangan_status}</Baris>
               </div>
             ) : null}
-            <div className="sm:col-span-2">
-              <Baris label="Alamat">{murid.alamat}</Baris>
-            </div>
           </dl>
+        </section>
+        {murid.data_kurang.length > 0 ? (
+          <div className="flex flex-col gap-2">
+            <DataKurang field={murid.data_kurang} />
+            {bisaKelola ? (
+              <Link href={`/mudarris/murid/${murid.id}/ubah?langkah=konfirmasi`} className={buttonVariants({ variant: "outline", className: "self-start" })}>
+                Lengkapi Data
+              </Link>
+            ) : null}
+          </div>
+        ) : null}
+        <section aria-labelledby="judul-formulir">
+          <h2 id="judul-formulir" className="mb-3 text-lg font-extrabold">
+            Formulir data murid
+          </h2>
+          <RingkasanFormulir isian={isianDariData(murid)} tampilkanNik={"nik" in murid} />
         </section>
         {tagihan}
         <RiwayatStatus riwayat={murid.riwayat_status} />
       </div>
       <div className="flex flex-col gap-6">
         {bisaKelola && murid.nis !== null ? <KartuAkunMurid muridId={murid.id} nis={murid.nis} /> : null}
+        <BerkasFisik berkas={murid.berkas} ubah={bisaKelola ? (body) => berkas.mutateAsync(body) : null} />
         <section aria-labelledby="judul-wali">
           <h2 id="judul-wali" className="mb-3 text-lg font-extrabold">
             Wali murid
