@@ -95,7 +95,15 @@ export function DaftarAnak() {
                 </div>
               ) : null}
             </dl>
-            <div className="mt-4">
+            {anak.data_lengkap ? null : (
+              <StatusBadge nada="menunggu" className="mt-4">
+                Data belum lengkap
+              </StatusBadge>
+            )}
+            <div className="mt-4 flex flex-wrap items-center gap-2">
+              <Link href={`/dashboard/anak/${anak.id}`} className={buttonVariants({ variant: anak.data_lengkap ? "outline" : "default" })}>
+                {anak.data_lengkap ? "Lihat Data" : "Lengkapi Data"}
+              </Link>
               {aktif ? (
                 <p className="text-sm font-bold text-primary-strong">Sedang ditampilkan di beranda</p>
               ) : (
