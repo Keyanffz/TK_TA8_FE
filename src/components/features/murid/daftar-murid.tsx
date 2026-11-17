@@ -54,7 +54,7 @@ const KOLOM: ColumnDef<Murid>[] = [
 
 function BadgeMurid({ murid }: { murid: Murid }) {
   return (
-    <span className="flex flex-wrap justify-end gap-1 sm:justify-start">
+    <span className="flex flex-wrap gap-1">
       <StatusBadge nada={NADA_STATUS_MURID[murid.status]}>{LABEL_STATUS_MURID[murid.status]}</StatusBadge>
       {murid.data_lengkap ? null : <StatusBadge nada="menunggu">Data belum lengkap</StatusBadge>}
     </span>
@@ -206,16 +206,20 @@ export function DaftarMurid({ bisaKelola }: { bisaKelola: boolean }) {
                 onChange={(event) => centang(murid.id, event.target.checked)}
               />
             ) : null}
-            <Link href={`/mudarris/murid/${murid.id}`} className="flex min-w-0 flex-1 items-center gap-3">
-              <FotoProfil nama={murid.nama_lengkap} url={murid.foto_url} ukuran={44} className="size-11 text-sm" />
-              <span className="min-w-0 flex-1">
-                <span className="block truncate font-bold">{murid.nama_lengkap}</span>
-                <span className="block text-xs text-muted-foreground">
-                  <span className="tabular-nums">{formatNis(murid.nis)}</span> · {murid.kelas?.nama ?? "Belum ada kelas"}
+            <div className="flex min-w-0 flex-1 flex-col gap-2">
+              <Link href={`/mudarris/murid/${murid.id}`} className="flex min-w-0 items-center gap-3">
+                <FotoProfil nama={murid.nama_lengkap} url={murid.foto_url} ukuran={44} className="size-11 text-sm" />
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate font-bold">{murid.nama_lengkap}</span>
+                  <span className="block text-xs text-muted-foreground">
+                    <span className="tabular-nums">{formatNis(murid.nis)}</span> · {murid.kelas?.nama ?? "Belum ada kelas"}
+                  </span>
                 </span>
-              </span>
-            </Link>
-            <BadgeMurid murid={murid} />
+              </Link>
+              <div className="pl-14">
+                <BadgeMurid murid={murid} />
+              </div>
+            </div>
           </div>
         )}
       />
