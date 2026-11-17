@@ -402,6 +402,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/wali/anak/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Wali melengkapi isian formulir data anaknya yang masih kosong, termasuk NIK. Isian yang sudah terisi tidak bisa
+         *     diubah: nilai lain untuk isian itu dibalas 422 `VALIDATION_ERROR` di field tersebut, dan perubahan dilakukan
+         *     lewat sekolah. Anak yang tidak tertaut ke akun ini dibalas 404
+         */
+        patch: operations["anak.lengkapi"];
+        trace?: never;
+    };
     "/auth/staff/login": {
         parameters: {
             query?: never;
@@ -842,7 +863,8 @@ export interface paths {
         put?: never;
         /**
          * Memeriksa setiap baris file tanpa menyimpan apa pun. `nomor` = nomor baris di spreadsheet (judul kolom di baris
-         *     1). `data` berisi isi baris setelah dirapikan (tanggal menjadi YYYY-MM-DD, status kosong menjadi `aktif`).
+         *     1). `data` berisi semua kolom template setelah dirapikan (tanggal menjadi YYYY-MM-DD, status kosong menjadi `aktif`,
+         *     kolom pilihan menjadi kode).
          *     Kolom wajib yang tidak ada, file kosong, file tidak terbaca, atau lebih dari 500 baris ditolak 422
          *     `VALIDATION_ERROR` di field `file`
          */
@@ -1267,8 +1289,9 @@ export interface paths {
          *     kelas yang dia ampu pada tahun ajaran aktif, wali murid hanya anaknya sendiri
          * @description Filter `filter[kelas_id]`, `filter[status]`, `filter[tingkat]` (tingkat kelas di tahun ajaran aktif),
          *     `filter[tahun_lulus]` (daftar alumni bersama `filter[status]=lulus`), `filter[menunggu_nis]` (`true`: murid yang
-         *     NIS-nya belum diisi Kepala Sekolah, `false`: yang sudah). `search` mencari nama lengkap, nama panggilan, NIS, dan
-         *     NISN. Urutan `sort` = `nama` | `nis` | `created_at` | `tahun_lulus`.
+         *     NIS-nya belum diisi Kepala Sekolah, `false`: yang sudah), `filter[data_lengkap]` (`false`: murid dengan field
+         *     wajib formulir yang masih kosong). `search` mencari nama lengkap, nama panggilan, NIS, dan NISN. Urutan `sort` =
+         *     `nama` | `nis` | `created_at` | `tahun_lulus`.
          */
         get: operations["murid.index"];
         put?: never;
@@ -1332,6 +1355,23 @@ export interface paths {
         options?: never;
         head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/murid/{id}/berkas": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Mencentang atau menghapus centang Kartu Keluarga dan akta kelahiran murid yang sudah diserahkan ke sekolah */
+        patch: operations["murid.berkas"];
         trace?: never;
     };
     "/murid/{id}/nis": {
@@ -1658,7 +1698,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Menandai berkas pendaftar (akta kelahiran, kartu keluarga, pas foto) sudah diterima dan dicek di sekolah */
+        /**
+         * Menandai data formulir pendaftar sudah dicek sekolah. Centang Kartu Keluarga dan akta kelahiran terpisah, lewat
+         *     `PATCH /pendaftaran/{id}/berkas`
+         */
         post: operations["pendaftaran.verifikasi"];
         delete?: never;
         options?: never;
@@ -1676,8 +1719,9 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Menerima pendaftar yang sudah diverifikasi: membuat data murid, menautkannya ke wali pendaftar, dan
-         *     menempatkannya di kelas kalau `kelas_id` dikirim
+         * Menerima pendaftar yang sudah diverifikasi: membuat data murid (isian formulir, orang tua, dan centang berkas
+         *     ikut disalin), menautkannya ke wali pendaftar, dan menempatkannya di kelas kalau `kelas_id` dikirim. Berkas yang
+         *     belum lengkap tidak menahan penerimaan
          */
         post: operations["pendaftaran.terima"];
         delete?: never;
@@ -1702,6 +1746,67 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/pendaftaran/{id}/mengundurkan-diri": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Mencatat pendaftar yang tidak jadi masuk; datanya tetap disimpan dan tidak dihitung kuota. Pendaftar yang sudah
+         *     diterima hanya bisa mundur kalau muridnya belum punya tagihan, rapor, atau absensi: murid itu dihapus, NIS, NISN,
+         *     dan NIK-nya dikosongkan, dan akun wali otomatis yang belum dipakai dinonaktifkan. Tanpa notifikasi ke wali
+         */
+        post: operations["pendaftaran.mengundurkanDiri"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/pendaftaran/{id}/batalkan-mundur": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Mengembalikan pendaftar yang mundur sebelum diterima ke status sebelumnya (`status_sebelum_mundur`). Ditolak
+         *     kalau pendaftar mundur setelah diterima, kuota sudah penuh, atau NIK anak sudah dipakai pendaftaran lain
+         */
+        post: operations["pendaftaran.batalkanMundur"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/pendaftaran/{id}/berkas": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Mencentang atau menghapus centang Kartu Keluarga dan akta kelahiran yang sudah diserahkan ke sekolah, untuk
+         *     pendaftaran yang diajukan atau diverifikasi
+         */
+        patch: operations["pendaftaran.berkas"];
+        trace?: never;
+    };
     "/pendaftaran": {
         parameters: {
             query?: never;
@@ -1712,14 +1817,16 @@ export interface paths {
         /**
          * Daftar pendaftaran PPDB. Kepala Sekolah melihat semua, wali murid hanya miliknya
          * @description Filter `filter[status]`, `filter[tahun_ajaran_id]`, `filter[tingkat_tujuan]`. `search` mencari kode dan nama
-         *     anak. Urutan `sort` = `created_at` | `nama` (bawaan `-created_at`).
+         *     anak. Urutan `sort` = `created_at` | `nama` (bawaan `-created_at`). Tanpa `filter[status]`, daftar Kepala
+         *     Sekolah tidak memuat pendaftar yang mengundurkan diri; lihat dengan `filter[status]=mengundurkan_diri`.
          */
         get: operations["pendaftaran.index"];
         put?: never;
         /**
          * Wali yang sudah login mendaftarkan kakak/adik untuk tahun ajaran PPDB di pengaturan. Tanpa unggahan; akta
-         *     kelahiran, kartu keluarga, dan pas foto dibawa ke sekolah. Ditolak kalau PPDB ditutup, kuota penuh, atau NIK
-         *     anak sudah punya pendaftaran selain ditolak atau sudah menjadi murid. Anak yang diterima ditautkan ke akun ini
+         *     kelahiran dan kartu keluarga dibawa ke sekolah. Formulir wajib lengkap dan `pernyataan` wajib dicentang. Ditolak
+         *     kalau PPDB ditutup, kuota penuh, atau NIK anak sudah punya pendaftaran yang sedang diproses atau diterima atau
+         *     sudah menjadi murid. Anak yang diterima ditautkan ke akun ini dengan `hubungan`
          */
         post: operations["pendaftaran.store"];
         delete?: never;
@@ -1755,8 +1862,9 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Pendaftaran PPDB tanpa login, dengan isian dan aturan yang sama seperti `POST /pendaftaran`. Dibatasi 3 pendaftaran per jam per IP. Simpan `kode` untuk mengecek status lewat
-         *     `GET /public/pendaftaran/status`. Kalau diterima, sekolah membuatkan akun wali dengan username NIS anak
+         * Pendaftaran PPDB tanpa login, dengan isian dan aturan yang sama seperti `POST /pendaftaran` tanpa `hubungan`.
+         *     Dibatasi 3 pendaftaran per jam per IP. Simpan `kode` untuk mengecek status lewat `GET /public/pendaftaran/status`.
+         *     Kalau diterima, sekolah membuatkan akun wali dengan username NIS anak untuk kontak utama formulir
          */
         post: operations["pendaftaran.storePublik"];
         delete?: never;
@@ -2757,6 +2865,12 @@ export interface components {
             /** Format: date-time */
             dikoreksi_at: string | null;
         };
+        /**
+         * Agama
+         * @description Nilai disimpan sama dengan labelnya, karena kolom agama murid lama berisi teks yang sama dari dropdown FE. Kolom `agama` tidak di-cast ke enum supaya teks lama di luar daftar ini tetap terbaca.
+         * @enum {string}
+         */
+        Agama: "Islam" | "Kristen" | "Katolik" | "Hindu" | "Buddha" | "Konghucu";
         /** AgendaResource */
         AgendaResource: {
             id: number;
@@ -2830,6 +2944,8 @@ export interface components {
             foto_url: string | null;
             hubungan: components["schemas"]["Hubungan"];
             is_kontak_utama: boolean;
+            /** @description false kalau ada field wajib formulir data anak yang kosong; wali bisa melengkapinya lewat `PATCH /wali/anak/{id}`. */
+            data_lengkap: boolean;
         };
         /**
          * BatchNisMuridRequest
@@ -2866,11 +2982,40 @@ export interface components {
             catatan: string;
         };
         /**
+         * BerkasFisikRequest
+         * @description `PATCH /pendaftaran/{id}/berkas` dan `PATCH /murid/{id}/berkas`: `true` mencentang berkas yang sudah diterima
+         *     sekolah, `false` menghapus centangnya. Minimal satu berkas dikirim.
+         */
+        BerkasFisikRequest: {
+            kartu_keluarga?: boolean;
+            akta_kelahiran?: boolean;
+        };
+        /** BerkasFisikResource */
+        BerkasFisikResource: {
+            kartu_keluarga: {
+                diterima_at: string;
+                diterima_oleh: {
+                    id: number;
+                    nama: string;
+                } | null;
+            } | null;
+            akta_kelahiran: {
+                diterima_at: string;
+                diterima_oleh: {
+                    id: number;
+                    nama: string;
+                } | null;
+            } | null;
+        };
+        /**
          * BuatPendaftaranRequest
-         * @description `POST /pendaftaran` dan `POST /public/pendaftaran`. Tanpa unggahan; berkas dibawa pendaftar ke sekolah.
+         * @description `POST /pendaftaran` dan `POST /public/pendaftaran`. Tanpa unggahan; Kartu Keluarga dan akta kelahiran diserahkan
+         *     ke sekolah. Formulir PPDB online wajib lengkap (aturan wajib di `KelengkapanFormulir`) dan wajib menyetujui
+         *     pernyataan bahwa data benar; waktu kirimnya `created_at`. `hubungan` hanya untuk wali yang login: hubungan akun
+         *     itu dengan anak, dipakai saat menautkan anak yang diterima.
          */
         BuatPendaftaranRequest: {
-            hubungan: components["schemas"]["Hubungan"];
+            hubungan?: string;
             tingkat_tujuan: components["schemas"]["Tingkat"];
             nama_lengkap: string;
             nama_panggilan: string;
@@ -2879,13 +3024,83 @@ export interface components {
             /** Format: date */
             tanggal_lahir: string;
             nik: string;
-            agama: string;
+            agama: components["schemas"]["Agama"];
             alamat: string;
-            nama_ayah?: string | null;
-            pekerjaan_ayah?: string | null;
-            nama_ibu?: string | null;
-            pekerjaan_ibu?: string | null;
-            no_hp: string;
+            anak_ke?: number | null;
+            desa_kelurahan?: string | null;
+            kecamatan?: string | null;
+            kabupaten_kota?: string | null;
+            provinsi?: string | null;
+            asal_sekolah?: string | null;
+            kewarganegaraan?: components["schemas"]["Kewarganegaraan"] | null;
+            jumlah_saudara_kandung?: number | null;
+            jumlah_saudara_tiri?: number | null;
+            jumlah_saudara_angkat?: number | null;
+            status_yatim_piatu?: components["schemas"]["StatusYatimPiatu"] | null;
+            bahasa_sehari_hari?: string | null;
+            jarak_rumah_km?: number | null;
+            golongan_darah?: components["schemas"]["GolonganDarah"] | null;
+            riwayat_penyakit?: string | null;
+            tinggi_badan?: number | null;
+            berat_badan?: number | null;
+            imunisasi?: components["schemas"]["Imunisasi"][] | null;
+            imunisasi_lainnya?: string | null;
+            ciri_khusus?: string | null;
+            kontak_utama?: components["schemas"]["Hubungan"] | null;
+            ayah?: {
+                status?: components["schemas"]["StatusOrangTua"] | null;
+                nama?: string | null;
+                tempat_lahir?: string | null;
+                /** Format: date */
+                tanggal_lahir?: string | null;
+                agama?: components["schemas"]["Agama"] | null;
+                kewarganegaraan?: components["schemas"]["Kewarganegaraan"] | null;
+                pendidikan_terakhir?: components["schemas"]["PendidikanTerakhir"] | null;
+                pekerjaan?: components["schemas"]["Pekerjaan"] | null;
+                pekerjaan_lainnya?: string | null;
+                penghasilan?: components["schemas"]["Penghasilan"] | null;
+                alamat_sama_dengan_anak?: boolean | null;
+                alamat_rumah?: string | null;
+                alamat_kantor?: string | null;
+                no_hp?: string | null;
+            };
+            ibu?: {
+                status?: components["schemas"]["StatusOrangTua"] | null;
+                nama?: string | null;
+                tempat_lahir?: string | null;
+                /** Format: date */
+                tanggal_lahir?: string | null;
+                agama?: components["schemas"]["Agama"] | null;
+                kewarganegaraan?: components["schemas"]["Kewarganegaraan"] | null;
+                pendidikan_terakhir?: components["schemas"]["PendidikanTerakhir"] | null;
+                pekerjaan?: components["schemas"]["Pekerjaan"] | null;
+                pekerjaan_lainnya?: string | null;
+                penghasilan?: components["schemas"]["Penghasilan"] | null;
+                alamat_sama_dengan_anak?: boolean | null;
+                alamat_rumah?: string | null;
+                alamat_kantor?: string | null;
+                no_hp?: string | null;
+            };
+            wali?: {
+                hubungan?: components["schemas"]["HubunganWali"] | null;
+                hubungan_lainnya?: string | null;
+                nama?: string | null;
+                tempat_lahir?: string | null;
+                /** Format: date */
+                tanggal_lahir?: string | null;
+                agama?: components["schemas"]["Agama"] | null;
+                kewarganegaraan?: components["schemas"]["Kewarganegaraan"] | null;
+                pendidikan_terakhir?: components["schemas"]["PendidikanTerakhir"] | null;
+                pekerjaan?: components["schemas"]["Pekerjaan"] | null;
+                pekerjaan_lainnya?: string | null;
+                penghasilan?: components["schemas"]["Penghasilan"] | null;
+                alamat_sama_dengan_anak?: boolean | null;
+                alamat_rumah?: string | null;
+                alamat_kantor?: string | null;
+                no_hp?: string | null;
+            };
+            /** @enum {unknown} */
+            pernyataan?: "yes" | "on" | "1" | 1 | "true" | true;
         };
         /**
          * BuatRaporRequest
@@ -2972,6 +3187,11 @@ export interface components {
         GenerateTagihanRequest: {
             periode: string;
         };
+        /**
+         * GolonganDarah
+         * @enum {string}
+         */
+        GolonganDarah: "A" | "B" | "AB" | "O" | "tidak_tahu";
         /** GuruPublikResource */
         GuruPublikResource: {
             id: number;
@@ -3012,6 +3232,12 @@ export interface components {
          */
         Hubungan: "ayah" | "ibu" | "wali";
         /**
+         * HubunganWali
+         * @description Hubungan wali (selain ayah dan ibu) dengan anak di formulir data murid.
+         * @enum {string}
+         */
+        HubunganWali: "kakek" | "nenek" | "paman" | "bibi" | "kakak" | "lainnya";
+        /**
          * ImportMuridRequest
          * @description `POST /murid/import/pratinjau` dan `POST /murid/import` (multipart): file .xlsx atau .csv dari template, maksimal
          *     2 MB. CSV boleh memakai pemisah koma atau titik koma.
@@ -3035,6 +3261,11 @@ export interface components {
              */
             file: Blob;
         };
+        /**
+         * Imunisasi
+         * @enum {string}
+         */
+        Imunisasi: "bcg" | "hepatitis_b" | "polio" | "dpt" | "campak_mr";
         /**
          * IsiNisMuridRequest
          * @description `PATCH /murid/{id}/nis`. Format, keunikan, dan aturan murid diperiksa `NisMuridService` (pesan di field `nis`).
@@ -3236,6 +3467,11 @@ export interface components {
             created_at: string | null;
         };
         /**
+         * Kewarganegaraan
+         * @enum {string}
+         */
+        Kewarganegaraan: "wni" | "wna";
+        /**
          * KoreksiAbsensiBaruRequest
          * @description `POST /absensi/koreksi`: absen masuk atau pulang untuk tanggal yang belum punya baris jenis itu. Tidak hadir
          *     tidak bisa dibuat di sini; baris itu dibuat scheduler.
@@ -3271,6 +3507,87 @@ export interface components {
              * @description Opsional: foto atau dokumen pendukung (JPG, PNG, WebP, atau PDF, maks 5 MB). Body multipart kalau dikirim.
              */
             lampiran?: Blob | null;
+        };
+        /**
+         * LengkapiDataAnakRequest
+         * @description `PATCH /wali/anak/{id}`: isian formulir yang masih kosong. Isian yang sudah terisi tidak bisa diubah wali; nilai
+         *     lain untuk isian itu ditolak di `MuridService::lengkapi()`.
+         */
+        LengkapiDataAnakRequest: {
+            nik?: string | null;
+            anak_ke?: number | null;
+            desa_kelurahan?: string | null;
+            kecamatan?: string | null;
+            kabupaten_kota?: string | null;
+            provinsi?: string | null;
+            asal_sekolah?: string | null;
+            kewarganegaraan?: components["schemas"]["Kewarganegaraan"] | null;
+            jumlah_saudara_kandung?: number | null;
+            jumlah_saudara_tiri?: number | null;
+            jumlah_saudara_angkat?: number | null;
+            status_yatim_piatu?: components["schemas"]["StatusYatimPiatu"] | null;
+            bahasa_sehari_hari?: string | null;
+            jarak_rumah_km?: number | null;
+            golongan_darah?: components["schemas"]["GolonganDarah"] | null;
+            riwayat_penyakit?: string | null;
+            tinggi_badan?: number | null;
+            berat_badan?: number | null;
+            imunisasi?: components["schemas"]["Imunisasi"][] | null;
+            imunisasi_lainnya?: string | null;
+            ciri_khusus?: string | null;
+            kontak_utama?: components["schemas"]["Hubungan"] | null;
+            ayah?: {
+                status?: components["schemas"]["StatusOrangTua"] | null;
+                nama?: string | null;
+                tempat_lahir?: string | null;
+                /** Format: date */
+                tanggal_lahir?: string | null;
+                agama?: components["schemas"]["Agama"] | null;
+                kewarganegaraan?: components["schemas"]["Kewarganegaraan"] | null;
+                pendidikan_terakhir?: components["schemas"]["PendidikanTerakhir"] | null;
+                pekerjaan?: components["schemas"]["Pekerjaan"] | null;
+                pekerjaan_lainnya?: string | null;
+                penghasilan?: components["schemas"]["Penghasilan"] | null;
+                alamat_sama_dengan_anak?: boolean | null;
+                alamat_rumah?: string | null;
+                alamat_kantor?: string | null;
+                no_hp?: string | null;
+            };
+            ibu?: {
+                status?: components["schemas"]["StatusOrangTua"] | null;
+                nama?: string | null;
+                tempat_lahir?: string | null;
+                /** Format: date */
+                tanggal_lahir?: string | null;
+                agama?: components["schemas"]["Agama"] | null;
+                kewarganegaraan?: components["schemas"]["Kewarganegaraan"] | null;
+                pendidikan_terakhir?: components["schemas"]["PendidikanTerakhir"] | null;
+                pekerjaan?: components["schemas"]["Pekerjaan"] | null;
+                pekerjaan_lainnya?: string | null;
+                penghasilan?: components["schemas"]["Penghasilan"] | null;
+                alamat_sama_dengan_anak?: boolean | null;
+                alamat_rumah?: string | null;
+                alamat_kantor?: string | null;
+                no_hp?: string | null;
+            };
+            wali?: {
+                hubungan?: components["schemas"]["HubunganWali"] | null;
+                hubungan_lainnya?: string | null;
+                nama?: string | null;
+                tempat_lahir?: string | null;
+                /** Format: date */
+                tanggal_lahir?: string | null;
+                agama?: components["schemas"]["Agama"] | null;
+                kewarganegaraan?: components["schemas"]["Kewarganegaraan"] | null;
+                pendidikan_terakhir?: components["schemas"]["PendidikanTerakhir"] | null;
+                pekerjaan?: components["schemas"]["Pekerjaan"] | null;
+                pekerjaan_lainnya?: string | null;
+                penghasilan?: components["schemas"]["Penghasilan"] | null;
+                alamat_sama_dengan_anak?: boolean | null;
+                alamat_rumah?: string | null;
+                alamat_kantor?: string | null;
+                no_hp?: string | null;
+            };
         };
         /**
          * LengkapiProfilWaliRequest
@@ -3348,13 +3665,19 @@ export interface components {
          * @enum {string}
          */
         ModulIzin: "keuangan" | "konten_website" | "laporan_absensi" | "data_murid" | "pengumuman";
+        /**
+         * MundurPendaftaranRequest
+         * @description `POST /pendaftaran/{id}/mengundurkan-diri`: alasan opsional, disimpan di `catatan`.
+         */
+        MundurPendaftaranRequest: {
+            alasan?: string | null;
+        };
         /** MuridDetailResource */
         MuridDetailResource: {
             id: number;
             /** @description NIS diisi Kepala Sekolah; null selama murid menunggu NIS. */
             nis: string | null;
             nisn: string | null;
-            nik: string | null;
             nama_lengkap: string;
             nama_panggilan: string;
             jenis_kelamin: components["schemas"]["JenisKelamin"];
@@ -3375,6 +3698,8 @@ export interface components {
             sekolah_tujuan: string | null;
             /** @description Keterangan perubahan status terakhir; null untuk murid aktif. */
             keterangan_status: string | null;
+            /** @description false kalau ada field wajib formulir data murid yang kosong ("Data belum lengkap"). */
+            data_lengkap: boolean;
             kelas: {
                 id: number;
                 nama: string;
@@ -3382,6 +3707,39 @@ export interface components {
             } | null;
             /** Format: date-time */
             created_at: string | null;
+            nik?: string | null;
+            desa_kelurahan: string | null;
+            kecamatan: string | null;
+            kabupaten_kota: string | null;
+            provinsi: string | null;
+            asal_sekolah: string | null;
+            kewarganegaraan: components["schemas"]["Kewarganegaraan"] | null;
+            jumlah_saudara_kandung: number | null;
+            jumlah_saudara_tiri: number | null;
+            jumlah_saudara_angkat: number | null;
+            status_yatim_piatu: components["schemas"]["StatusYatimPiatu"] | null;
+            bahasa_sehari_hari: string | null;
+            /** @description Kilometer. */
+            jarak_rumah_km: number | null;
+            golongan_darah: components["schemas"]["GolonganDarah"] | null;
+            riwayat_penyakit: string | null;
+            /** @description Sentimeter, data saat masuk (terpisah dari tinggi badan di rapor). */
+            tinggi_badan: number | null;
+            /** @description Kilogram, data saat masuk. */
+            berat_badan: number | null;
+            imunisasi: components["schemas"]["Imunisasi"][] | null;
+            imunisasi_lainnya: string | null;
+            ciri_khusus: string | null;
+            kontak_utama: components["schemas"]["Hubungan"] | null;
+            /** @description Isian formulir per peran; null kalau belum diisi. Terpisah dari `wali` (akun wali murid yang tertaut). */
+            orang_tua: {
+                ayah: components["schemas"]["OrangTuaResource"] | null;
+                ibu: components["schemas"]["OrangTuaResource"] | null;
+                wali: components["schemas"]["OrangTuaResource"] | null;
+            };
+            /** @description Field wajib formulir yang masih kosong, dengan nama field request (`nik`, `ayah.pekerjaan`). */
+            data_kurang: string[];
+            berkas: components["schemas"]["BerkasFisikResource"];
             wali: {
                 id: number;
                 nama: string;
@@ -3416,7 +3774,6 @@ export interface components {
             /** @description NIS diisi Kepala Sekolah; null selama murid menunggu NIS. */
             nis: string | null;
             nisn: string | null;
-            nik: string | null;
             nama_lengkap: string;
             nama_panggilan: string;
             jenis_kelamin: components["schemas"]["JenisKelamin"];
@@ -3437,6 +3794,8 @@ export interface components {
             sekolah_tujuan: string | null;
             /** @description Keterangan perubahan status terakhir; null untuk murid aktif. */
             keterangan_status: string | null;
+            /** @description false kalau ada field wajib formulir data murid yang kosong ("Data belum lengkap"). */
+            data_lengkap: boolean;
             kelas: {
                 id: number;
                 nama: string;
@@ -3464,6 +3823,31 @@ export interface components {
             /** Format: date-time */
             created_at: string | null;
         };
+        /** OrangTuaResource */
+        OrangTuaResource: {
+            status: components["schemas"]["StatusOrangTua"] | null;
+            hubungan: components["schemas"]["HubunganWali"] | null;
+            hubungan_lainnya: string | null;
+            nama: string | null;
+            tempat_lahir: string | null;
+            tanggal_lahir: string | null;
+            agama: string | null;
+            kewarganegaraan: components["schemas"]["Kewarganegaraan"] | null;
+            pendidikan_terakhir: components["schemas"]["PendidikanTerakhir"] | null;
+            pekerjaan: components["schemas"]["Pekerjaan"] | null;
+            pekerjaan_lainnya: string | null;
+            penghasilan: components["schemas"]["Penghasilan"] | null;
+            alamat_sama_dengan_anak: boolean;
+            alamat_rumah: string | null;
+            alamat_kantor: string | null;
+            no_hp: string | null;
+        };
+        /**
+         * Pekerjaan
+         * @description Pilihan pekerjaan orang tua, disederhanakan dari daftar Dapodik.
+         * @enum {string}
+         */
+        Pekerjaan: "tidak_bekerja" | "mengurus_rumah_tangga" | "pns_tni_polri" | "karyawan_swasta" | "karyawan_bumn" | "wiraswasta" | "pedagang" | "petani_peternak" | "nelayan" | "buruh" | "pensiunan" | "lainnya";
         /** PembayaranResource */
         PembayaranResource: {
             id: number;
@@ -3508,21 +3892,15 @@ export interface components {
                 nama: string;
             };
             tingkat_tujuan: components["schemas"]["Tingkat"];
-            hubungan: components["schemas"]["Hubungan"];
+            hubungan: components["schemas"]["Hubungan"] | null;
             nama_lengkap: string;
             nama_panggilan: string;
             jenis_kelamin: components["schemas"]["JenisKelamin"];
             tempat_lahir: string;
             tanggal_lahir: string;
-            nik: string;
             agama: string;
             alamat: string;
-            nama_ayah: string | null;
-            pekerjaan_ayah: string | null;
-            nama_ibu: string | null;
-            pekerjaan_ibu: string | null;
-            no_hp: string;
-            /** @description Alasan penolakan. */
+            /** @description Alasan penolakan atau alasan mengundurkan diri. */
             catatan: string | null;
             /** @description Murid yang dibuat saat pendaftaran diterima. */
             murid: {
@@ -3533,6 +3911,38 @@ export interface components {
             diproses_at: string | null;
             /** Format: date-time */
             created_at: string | null;
+            nik: string;
+            anak_ke: number | null;
+            desa_kelurahan: string | null;
+            kecamatan: string | null;
+            kabupaten_kota: string | null;
+            provinsi: string | null;
+            asal_sekolah: string | null;
+            kewarganegaraan: components["schemas"]["Kewarganegaraan"] | null;
+            jumlah_saudara_kandung: number | null;
+            jumlah_saudara_tiri: number | null;
+            jumlah_saudara_angkat: number | null;
+            status_yatim_piatu: components["schemas"]["StatusYatimPiatu"] | null;
+            bahasa_sehari_hari: string | null;
+            /** @description Kilometer. */
+            jarak_rumah_km: number | null;
+            golongan_darah: components["schemas"]["GolonganDarah"] | null;
+            riwayat_penyakit: string | null;
+            /** @description Sentimeter. */
+            tinggi_badan: number | null;
+            /** @description Kilogram. */
+            berat_badan: number | null;
+            imunisasi: components["schemas"]["Imunisasi"][] | null;
+            imunisasi_lainnya: string | null;
+            ciri_khusus: string | null;
+            kontak_utama: components["schemas"]["Hubungan"] | null;
+            orang_tua: {
+                ayah: components["schemas"]["OrangTuaResource"] | null;
+                ibu: components["schemas"]["OrangTuaResource"] | null;
+                wali: components["schemas"]["OrangTuaResource"] | null;
+            };
+            berkas: components["schemas"]["BerkasFisikResource"];
+            status_sebelum_mundur: components["schemas"]["StatusPendaftaran"] | null;
             /** @description Wali pendaftar; null untuk pendaftaran tanpa login yang belum diterima. */
             wali: {
                 id: number;
@@ -3568,21 +3978,15 @@ export interface components {
                 nama: string;
             };
             tingkat_tujuan: components["schemas"]["Tingkat"];
-            hubungan: components["schemas"]["Hubungan"];
+            hubungan: components["schemas"]["Hubungan"] | null;
             nama_lengkap: string;
             nama_panggilan: string;
             jenis_kelamin: components["schemas"]["JenisKelamin"];
             tempat_lahir: string;
             tanggal_lahir: string;
-            nik: string;
             agama: string;
             alamat: string;
-            nama_ayah: string | null;
-            pekerjaan_ayah: string | null;
-            nama_ibu: string | null;
-            pekerjaan_ibu: string | null;
-            no_hp: string;
-            /** @description Alasan penolakan. */
+            /** @description Alasan penolakan atau alasan mengundurkan diri. */
             catatan: string | null;
             /** @description Murid yang dibuat saat pendaftaran diterima. */
             murid: {
@@ -3594,6 +3998,17 @@ export interface components {
             /** Format: date-time */
             created_at: string | null;
         };
+        /**
+         * PendidikanTerakhir
+         * @enum {string}
+         */
+        PendidikanTerakhir: "tidak_sekolah" | "sd" | "smp" | "slta" | "d1_d3" | "d4_s1" | "s2" | "s3";
+        /**
+         * Penghasilan
+         * @description Rentang penghasilan per bulan, mengikuti rentang Dapodik.
+         * @enum {string}
+         */
+        Penghasilan: "di_bawah_500rb" | "500rb_1jt" | "1jt_2jt" | "2jt_5jt" | "5jt_20jt" | "di_atas_20jt" | "tidak_berpenghasilan";
         /** PengumumanPublikResource */
         PengumumanPublikResource: {
             id: number;
@@ -4014,9 +4429,11 @@ export interface components {
         };
         /**
          * SimpanMuridRequest
-         * @description `POST /murid` dan `PUT /murid/{id}` (multipart jika menyertakan foto). NIS dibuat otomatis saat murid dibuat dan
-         *     tidak bisa diubah. Status dan data kelulusan/kepindahan hanya diubah lewat `PATCH /murid/{id}/status`, supaya
-         *     setiap perubahan status tercatat di riwayat.
+         * @description `POST /murid` dan `PUT /murid/{id}` (multipart jika menyertakan foto). NIS diisi Kepala Sekolah lewat
+         *     `PATCH /murid/{id}/nis`. Status dan data kelulusan/kepindahan hanya diubah lewat `PATCH /murid/{id}/status`, supaya
+         *     setiap perubahan status tercatat di riwayat. Staf boleh menyimpan formulir yang belum lengkap (wajib hanya data
+         *     diri lama); murid itu tertandai `data_lengkap = false`. Kontak utama tetap harus orang yang masih hidup dan
+         *     punya nomor HP.
          */
         SimpanMuridRequest: {
             nisn?: string | null;
@@ -4033,6 +4450,78 @@ export interface components {
             catatan_khusus?: string | null;
             /** Format: date */
             tanggal_masuk: string;
+            desa_kelurahan?: string | null;
+            kecamatan?: string | null;
+            kabupaten_kota?: string | null;
+            provinsi?: string | null;
+            asal_sekolah?: string | null;
+            kewarganegaraan?: components["schemas"]["Kewarganegaraan"] | null;
+            jumlah_saudara_kandung?: number | null;
+            jumlah_saudara_tiri?: number | null;
+            jumlah_saudara_angkat?: number | null;
+            status_yatim_piatu?: components["schemas"]["StatusYatimPiatu"] | null;
+            bahasa_sehari_hari?: string | null;
+            jarak_rumah_km?: number | null;
+            golongan_darah?: components["schemas"]["GolonganDarah"] | null;
+            riwayat_penyakit?: string | null;
+            tinggi_badan?: number | null;
+            berat_badan?: number | null;
+            imunisasi?: components["schemas"]["Imunisasi"][] | null;
+            imunisasi_lainnya?: string | null;
+            ciri_khusus?: string | null;
+            kontak_utama?: components["schemas"]["Hubungan"] | null;
+            ayah?: {
+                status?: components["schemas"]["StatusOrangTua"] | null;
+                nama?: string | null;
+                tempat_lahir?: string | null;
+                /** Format: date */
+                tanggal_lahir?: string | null;
+                agama?: components["schemas"]["Agama"] | null;
+                kewarganegaraan?: components["schemas"]["Kewarganegaraan"] | null;
+                pendidikan_terakhir?: components["schemas"]["PendidikanTerakhir"] | null;
+                pekerjaan?: components["schemas"]["Pekerjaan"] | null;
+                pekerjaan_lainnya?: string | null;
+                penghasilan?: components["schemas"]["Penghasilan"] | null;
+                alamat_sama_dengan_anak?: boolean | null;
+                alamat_rumah?: string | null;
+                alamat_kantor?: string | null;
+                no_hp?: string | null;
+            };
+            ibu?: {
+                status?: components["schemas"]["StatusOrangTua"] | null;
+                nama?: string | null;
+                tempat_lahir?: string | null;
+                /** Format: date */
+                tanggal_lahir?: string | null;
+                agama?: components["schemas"]["Agama"] | null;
+                kewarganegaraan?: components["schemas"]["Kewarganegaraan"] | null;
+                pendidikan_terakhir?: components["schemas"]["PendidikanTerakhir"] | null;
+                pekerjaan?: components["schemas"]["Pekerjaan"] | null;
+                pekerjaan_lainnya?: string | null;
+                penghasilan?: components["schemas"]["Penghasilan"] | null;
+                alamat_sama_dengan_anak?: boolean | null;
+                alamat_rumah?: string | null;
+                alamat_kantor?: string | null;
+                no_hp?: string | null;
+            };
+            wali?: {
+                hubungan?: components["schemas"]["HubunganWali"] | null;
+                hubungan_lainnya?: string | null;
+                nama?: string | null;
+                tempat_lahir?: string | null;
+                /** Format: date */
+                tanggal_lahir?: string | null;
+                agama?: components["schemas"]["Agama"] | null;
+                kewarganegaraan?: components["schemas"]["Kewarganegaraan"] | null;
+                pendidikan_terakhir?: components["schemas"]["PendidikanTerakhir"] | null;
+                pekerjaan?: components["schemas"]["Pekerjaan"] | null;
+                pekerjaan_lainnya?: string | null;
+                penghasilan?: components["schemas"]["Penghasilan"] | null;
+                alamat_sama_dengan_anak?: boolean | null;
+                alamat_rumah?: string | null;
+                alamat_kantor?: string | null;
+                no_hp?: string | null;
+            };
             /**
              * Format: binary
              * @description Maximum file size: 5120 kilobytes.
@@ -4111,6 +4600,11 @@ export interface components {
          */
         StatusMurid: "aktif" | "lulus" | "pindah" | "keluar";
         /**
+         * StatusOrangTua
+         * @enum {string}
+         */
+        StatusOrangTua: "kandung" | "tiri" | "angkat";
+        /**
          * StatusPembayaran
          * @description `menunggu` dan `ditolak` hanya ada di riwayat transfer lama; sejak pembayaran dicatat tunai oleh petugas, pembayaran baru langsung `diterima` dan hanya bisa berubah menjadi `dibatalkan`.
          * @enum {string}
@@ -4120,7 +4614,7 @@ export interface components {
          * StatusPendaftaran
          * @enum {string}
          */
-        StatusPendaftaran: "diajukan" | "diverifikasi" | "diterima" | "ditolak";
+        StatusPendaftaran: "diajukan" | "diverifikasi" | "diterima" | "ditolak" | "mengundurkan_diri";
         /**
          * StatusRapor
          * @enum {string}
@@ -4131,6 +4625,11 @@ export interface components {
          * @enum {string}
          */
         StatusTagihan: "belum_bayar" | "menunggu_verifikasi" | "lunas" | "terlambat" | "dibatalkan";
+        /**
+         * StatusYatimPiatu
+         * @enum {string}
+         */
+        StatusYatimPiatu: "tidak" | "yatim" | "piatu" | "yatim_piatu";
         /** TagihanDetailResource */
         TagihanDetailResource: {
             id: number;
@@ -6607,6 +7106,115 @@ export interface operations {
             };
         };
     };
+    "anak.lengkapi": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["LengkapiDataAnakRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        data: components["schemas"]["MuridDetailResource"];
+                        meta: null;
+                    };
+                };
+            };
+            /** @description UNAUTHENTICATED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "UNAUTHENTICATED";
+                        errors: null;
+                    };
+                };
+            };
+            /** @description FORBIDDEN / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "FORBIDDEN" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        errors: null;
+                    };
+                };
+            };
+            /** @description NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "NOT_FOUND";
+                        errors: null;
+                    };
+                };
+            };
+            /** @description VALIDATION_ERROR */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "VALIDATION_ERROR";
+                        errors: {
+                            [key: string]: string[];
+                        };
+                    };
+                };
+            };
+            /** @description TOO_MANY_REQUESTS */
+            429: {
+                headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "TOO_MANY_REQUESTS";
+                        errors: null;
+                    };
+                };
+            };
+        };
+    };
     "auth.loginStaff": {
         parameters: {
             query?: never;
@@ -7052,6 +7660,7 @@ export interface operations {
                                 rapor_diajukan: number;
                                 pendaftaran_baru: number;
                                 murid_menunggu_nis: number;
+                                murid_data_belum_lengkap: number;
                             };
                             pengumuman_terbaru: components["schemas"]["PengumumanResource"][];
                             agenda_mendatang: components["schemas"]["AgendaResource"][];
@@ -9512,8 +10121,28 @@ export interface operations {
                                     tanggal_lahir: string | null;
                                     agama: string | null;
                                     alamat: string | null;
+                                    desa_kelurahan: string | null;
+                                    kecamatan: string | null;
+                                    kabupaten_kota: string | null;
+                                    provinsi: string | null;
+                                    kewarganegaraan: string | null;
                                     anak_ke: string | null;
+                                    jumlah_saudara_kandung: string | null;
+                                    jumlah_saudara_tiri: string | null;
+                                    jumlah_saudara_angkat: string | null;
+                                    status_yatim_piatu: string | null;
+                                    asal_sekolah: string | null;
+                                    bahasa_sehari_hari: string | null;
+                                    jarak_rumah_km: string | null;
+                                    golongan_darah: string | null;
+                                    riwayat_penyakit: string | null;
+                                    tinggi_badan: string | null;
+                                    berat_badan: string | null;
+                                    imunisasi: string | null;
+                                    imunisasi_lainnya: string | null;
+                                    ciri_khusus: string | null;
                                     catatan_khusus: string | null;
+                                    kontak_utama: string | null;
                                     tanggal_masuk: string | null;
                                     status: string;
                                     tanggal_status: string | null;
@@ -9521,6 +10150,46 @@ export interface operations {
                                     sekolah_tujuan: string | null;
                                     keterangan: string | null;
                                     kelas: string | null;
+                                    ayah_status: string | null;
+                                    ayah_nama: string | null;
+                                    ayah_tempat_lahir: string | null;
+                                    ayah_tanggal_lahir: string | null;
+                                    ayah_agama: string | null;
+                                    ayah_kewarganegaraan: string | null;
+                                    ayah_pendidikan_terakhir: string | null;
+                                    ayah_pekerjaan: string | null;
+                                    ayah_pekerjaan_lainnya: string | null;
+                                    ayah_penghasilan: string | null;
+                                    ayah_alamat_rumah: string | null;
+                                    ayah_alamat_kantor: string | null;
+                                    ayah_no_hp: string | null;
+                                    ibu_status: string | null;
+                                    ibu_nama: string | null;
+                                    ibu_tempat_lahir: string | null;
+                                    ibu_tanggal_lahir: string | null;
+                                    ibu_agama: string | null;
+                                    ibu_kewarganegaraan: string | null;
+                                    ibu_pendidikan_terakhir: string | null;
+                                    ibu_pekerjaan: string | null;
+                                    ibu_pekerjaan_lainnya: string | null;
+                                    ibu_penghasilan: string | null;
+                                    ibu_alamat_rumah: string | null;
+                                    ibu_alamat_kantor: string | null;
+                                    ibu_no_hp: string | null;
+                                    wali_hubungan: string | null;
+                                    wali_hubungan_lainnya: string | null;
+                                    wali_nama: string | null;
+                                    wali_tempat_lahir: string | null;
+                                    wali_tanggal_lahir: string | null;
+                                    wali_agama: string | null;
+                                    wali_kewarganegaraan: string | null;
+                                    wali_pendidikan_terakhir: string | null;
+                                    wali_pekerjaan: string | null;
+                                    wali_pekerjaan_lainnya: string | null;
+                                    wali_penghasilan: string | null;
+                                    wali_alamat_rumah: string | null;
+                                    wali_alamat_kantor: string | null;
+                                    wali_no_hp: string | null;
                                 };
                                 valid: boolean;
                                 alasan: string[];
@@ -9631,8 +10300,28 @@ export interface operations {
                                     tanggal_lahir: string | null;
                                     agama: string | null;
                                     alamat: string | null;
+                                    desa_kelurahan: string | null;
+                                    kecamatan: string | null;
+                                    kabupaten_kota: string | null;
+                                    provinsi: string | null;
+                                    kewarganegaraan: string | null;
                                     anak_ke: string | null;
+                                    jumlah_saudara_kandung: string | null;
+                                    jumlah_saudara_tiri: string | null;
+                                    jumlah_saudara_angkat: string | null;
+                                    status_yatim_piatu: string | null;
+                                    asal_sekolah: string | null;
+                                    bahasa_sehari_hari: string | null;
+                                    jarak_rumah_km: string | null;
+                                    golongan_darah: string | null;
+                                    riwayat_penyakit: string | null;
+                                    tinggi_badan: string | null;
+                                    berat_badan: string | null;
+                                    imunisasi: string | null;
+                                    imunisasi_lainnya: string | null;
+                                    ciri_khusus: string | null;
                                     catatan_khusus: string | null;
+                                    kontak_utama: string | null;
                                     tanggal_masuk: string | null;
                                     status: string;
                                     tanggal_status: string | null;
@@ -9640,6 +10329,46 @@ export interface operations {
                                     sekolah_tujuan: string | null;
                                     keterangan: string | null;
                                     kelas: string | null;
+                                    ayah_status: string | null;
+                                    ayah_nama: string | null;
+                                    ayah_tempat_lahir: string | null;
+                                    ayah_tanggal_lahir: string | null;
+                                    ayah_agama: string | null;
+                                    ayah_kewarganegaraan: string | null;
+                                    ayah_pendidikan_terakhir: string | null;
+                                    ayah_pekerjaan: string | null;
+                                    ayah_pekerjaan_lainnya: string | null;
+                                    ayah_penghasilan: string | null;
+                                    ayah_alamat_rumah: string | null;
+                                    ayah_alamat_kantor: string | null;
+                                    ayah_no_hp: string | null;
+                                    ibu_status: string | null;
+                                    ibu_nama: string | null;
+                                    ibu_tempat_lahir: string | null;
+                                    ibu_tanggal_lahir: string | null;
+                                    ibu_agama: string | null;
+                                    ibu_kewarganegaraan: string | null;
+                                    ibu_pendidikan_terakhir: string | null;
+                                    ibu_pekerjaan: string | null;
+                                    ibu_pekerjaan_lainnya: string | null;
+                                    ibu_penghasilan: string | null;
+                                    ibu_alamat_rumah: string | null;
+                                    ibu_alamat_kantor: string | null;
+                                    ibu_no_hp: string | null;
+                                    wali_hubungan: string | null;
+                                    wali_hubungan_lainnya: string | null;
+                                    wali_nama: string | null;
+                                    wali_tempat_lahir: string | null;
+                                    wali_tanggal_lahir: string | null;
+                                    wali_agama: string | null;
+                                    wali_kewarganegaraan: string | null;
+                                    wali_pendidikan_terakhir: string | null;
+                                    wali_pekerjaan: string | null;
+                                    wali_pekerjaan_lainnya: string | null;
+                                    wali_penghasilan: string | null;
+                                    wali_alamat_rumah: string | null;
+                                    wali_alamat_kantor: string | null;
+                                    wali_no_hp: string | null;
                                 };
                                 valid: boolean;
                                 alasan: string[];
@@ -12800,6 +13529,7 @@ export interface operations {
                 "filter[tingkat]"?: components["schemas"]["Tingkat"];
                 "filter[tahun_lulus]"?: number;
                 "filter[menunggu_nis]"?: "true" | "false" | "1" | "0";
+                "filter[data_lengkap]"?: "true" | "false" | "1" | "0";
             };
             header?: never;
             path?: never;
@@ -13363,6 +14093,116 @@ export interface operations {
                         /** @enum {string} */
                         code: "BUSINESS_RULE";
                         errors: null;
+                    };
+                };
+            };
+            /** @description TOO_MANY_REQUESTS */
+            429: {
+                headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "TOO_MANY_REQUESTS";
+                        errors: null;
+                    };
+                };
+            };
+        };
+    };
+    "murid.berkas": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["BerkasFisikRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        /** @constant */
+                        message: "Centang berkas tersimpan.";
+                        data: components["schemas"]["MuridDetailResource"];
+                        meta: null;
+                    };
+                };
+            };
+            /** @description UNAUTHENTICATED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "UNAUTHENTICATED";
+                        errors: null;
+                    };
+                };
+            };
+            /** @description FORBIDDEN / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "FORBIDDEN" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        errors: null;
+                    };
+                };
+            };
+            /** @description NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "NOT_FOUND";
+                        errors: null;
+                    };
+                };
+            };
+            /** @description BUSINESS_RULE / VALIDATION_ERROR */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "BUSINESS_RULE" | "VALIDATION_ERROR";
+                        errors: {
+                            [key: string]: string[];
+                        };
                     };
                 };
             };
@@ -15146,6 +15986,328 @@ export interface operations {
                     "application/json": {
                         success: boolean;
                         message: string;
+                        data: components["schemas"]["PendaftaranDetailResource"];
+                        meta: null;
+                    };
+                };
+            };
+            /** @description UNAUTHENTICATED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "UNAUTHENTICATED";
+                        errors: null;
+                    };
+                };
+            };
+            /** @description FORBIDDEN / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "FORBIDDEN" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        errors: null;
+                    };
+                };
+            };
+            /** @description NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "NOT_FOUND";
+                        errors: null;
+                    };
+                };
+            };
+            /** @description BUSINESS_RULE / VALIDATION_ERROR */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "BUSINESS_RULE" | "VALIDATION_ERROR";
+                        errors: {
+                            [key: string]: string[];
+                        };
+                    };
+                };
+            };
+            /** @description TOO_MANY_REQUESTS */
+            429: {
+                headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "TOO_MANY_REQUESTS";
+                        errors: null;
+                    };
+                };
+            };
+        };
+    };
+    "pendaftaran.mengundurkanDiri": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["MundurPendaftaranRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        data: components["schemas"]["PendaftaranDetailResource"];
+                        meta: null;
+                    };
+                };
+            };
+            /** @description UNAUTHENTICATED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "UNAUTHENTICATED";
+                        errors: null;
+                    };
+                };
+            };
+            /** @description FORBIDDEN / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "FORBIDDEN" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        errors: null;
+                    };
+                };
+            };
+            /** @description NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "NOT_FOUND";
+                        errors: null;
+                    };
+                };
+            };
+            /** @description BUSINESS_RULE / VALIDATION_ERROR */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "BUSINESS_RULE" | "VALIDATION_ERROR";
+                        errors: {
+                            [key: string]: string[];
+                        };
+                    };
+                };
+            };
+            /** @description TOO_MANY_REQUESTS */
+            429: {
+                headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "TOO_MANY_REQUESTS";
+                        errors: null;
+                    };
+                };
+            };
+        };
+    };
+    "pendaftaran.batalkanMundur": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        data: components["schemas"]["PendaftaranDetailResource"];
+                        meta: null;
+                    };
+                };
+            };
+            /** @description UNAUTHENTICATED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "UNAUTHENTICATED";
+                        errors: null;
+                    };
+                };
+            };
+            /** @description FORBIDDEN / ACCOUNT_INACTIVE / PASSWORD_WAJIB_DIGANTI */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "FORBIDDEN" | "ACCOUNT_INACTIVE" | "PASSWORD_WAJIB_DIGANTI";
+                        errors: null;
+                    };
+                };
+            };
+            /** @description NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "NOT_FOUND";
+                        errors: null;
+                    };
+                };
+            };
+            /** @description BUSINESS_RULE */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "BUSINESS_RULE";
+                        errors: null;
+                    };
+                };
+            };
+            /** @description TOO_MANY_REQUESTS */
+            429: {
+                headers: {
+                    /** @description Jumlah detik sampai boleh mencoba lagi. */
+                    "Retry-After": number;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        message: string;
+                        /** @enum {string} */
+                        code: "TOO_MANY_REQUESTS";
+                        errors: null;
+                    };
+                };
+            };
+        };
+    };
+    "pendaftaran.berkas": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["BerkasFisikRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success: boolean;
+                        /** @constant */
+                        message: "Centang berkas tersimpan.";
                         data: components["schemas"]["PendaftaranDetailResource"];
                         meta: null;
                     };

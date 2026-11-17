@@ -11,6 +11,9 @@ import type { Hubungan, StatusMurid, Tingkat } from "@/types/domain";
 
 export const MURID_PER_HALAMAN = 20;
 
+// Ubah murid mengganti seluruh isian, jadi isian yang dikosongkan ikut dikirim sebagai string kosong.
+const keFormDataPenuh: typeof keFormData = (body) => keFormData(body, { kirimKosong: true });
+
 export type BodyMurid = components["schemas"]["SimpanMuridRequest"];
 export type BodyUbahStatus = components["schemas"]["UbahStatusMuridRequest"];
 type BodyUbahStatusMassal = components["schemas"]["UbahStatusMassalRequest"];
@@ -23,11 +26,13 @@ export type FilterMurid = {
   tahunLulus?: number | null;
   /** Hanya murid yang NIS-nya belum diisi Kepala Sekolah. */
   menungguNis?: boolean;
+  /** `false`: hanya murid yang formulir datanya belum lengkap. */
+  dataLengkap?: boolean | null;
   perHalaman?: number;
 };
 
 export function useDaftarMurid(
-  { search, halaman, kelasId, status, tingkat, tahunLulus = null, menungguNis = false, perHalaman = MURID_PER_HALAMAN }: FilterMurid,
+  { search, halaman, kelasId, status, tingkat, tahunLulus = null, menungguNis = false, dataLengkap = null, perHalaman = MURID_PER_HALAMAN }: FilterMurid,
   aktif = true,
 ) {
   const query = {
@@ -40,6 +45,7 @@ export function useDaftarMurid(
     "filter[tingkat]": tingkat ?? undefined,
     "filter[tahun_lulus]": tahunLulus ?? undefined,
     "filter[menunggu_nis]": menungguNis ? ("true" as const) : undefined,
+    "filter[data_lengkap]": dataLengkap === null ? undefined : dataLengkap ? ("true" as const) : ("false" as const),
   };
   return useQuery({
     queryKey: queryKeys.murid.daftar(query),
@@ -79,16 +85,31 @@ function useSegarkanMurid() {
 export function useTambahMurid() {
   const segarkan = useSegarkanMurid();
   return useMutation({
-    mutationFn: (body: BodyMurid) => ambilData(api.POST("/murid", { body, bodySerializer: keFormData })),
+    mutationFn: (body: BodyMurid) => ambilData(api.POST("/murid", { body, bodySerializer: keFormDataPenuh })),
     onSuccess: segarkan,
   });
 }
 
 export function useUbahMurid(id: number) {
+  const queryClient = useQueryClient();
   const segarkan = useSegarkanMurid();
   return useMutation({
-    mutationFn: (body: BodyMurid) => ambilData(api.PUT("/murid/{id}", { params: { path: { id } }, body, bodySerializer: keFormData })),
-    onSuccess: segarkan,
+    mutationFn: (body: BodyMurid) => ambilData(api.PUT("/murid/{id}", { params: { path: { id } }, body, bodySerializer: keFormDataPenuh })),
+    onSuccess: async (hasil) => {
+      queryClient.setQueryData(queryKeys.murid.detail(id), hasil.data);
+      await segarkan();
+    },
+  });
+}
+
+export type CentangBerkas = components["schemas"]["BerkasFisikRequest"];
+
+/** Centang Kartu Keluarga dan akta kelahiran yang sudah diserahkan ke sekolah; `false` menghapus centang. */
+export function useBerkasMurid(id: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (body: CentangBerkas) => ambilData(api.PATCH("/murid/{id}/berkas", { params: { path: { id } }, body })),
+    onSuccess: (hasil) => queryClient.setQueryData(queryKeys.murid.detail(id), hasil.data),
   });
 }
 

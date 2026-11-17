@@ -68,6 +68,13 @@ export const LABEL_HUBUNGAN: Record<Hubungan, string> = {
 
 export const OPSI_HUBUNGAN = HUBUNGAN.map((nilai) => ({ nilai, label: LABEL_HUBUNGAN[nilai] }));
 
+/** Peran orang tua di formulir data murid, sama dengan nilai `kontak_utama`. */
+export const LABEL_PERAN_ORANG_TUA: Record<Hubungan, string> = {
+  ayah: "Ayah",
+  ibu: "Ibu",
+  wali: "Wali (selain ayah dan ibu)",
+};
+
 export const LABEL_TINGKAT: Record<Tingkat, string> = {
   A: "Kelompok A",
   B: "Kelompok B",
@@ -80,8 +87,6 @@ export const LABEL_JENIS_KELAMIN: Record<JenisKelamin, string> = {
 
 export const OPSI_JENIS_KELAMIN = (["L", "P"] as const).map((nilai) => ({ nilai, label: LABEL_JENIS_KELAMIN[nilai] }));
 
-// Enam agama yang diakui di data kependudukan; backend menyimpannya sebagai teks (maks 20).
-export const AGAMA = ["Islam", "Kristen", "Katolik", "Hindu", "Buddha", "Konghucu"] as const;
 
 export const LABEL_STATUS_KELAS_MURID: Record<StatusKelasMurid, string> = {
   aktif: "Aktif",
@@ -152,9 +157,10 @@ export const LABEL_STATUS_RAPOR: Record<StatusRapor, string> = {
 
 export const LABEL_STATUS_PENDAFTARAN: Record<StatusPendaftaran, string> = {
   diajukan: "Diajukan",
-  diverifikasi: "Berkas diverifikasi",
+  diverifikasi: "Data diverifikasi",
   diterima: "Diterima",
   ditolak: "Ditolak",
+  mengundurkan_diri: "Mengundurkan diri",
 };
 
 export const LABEL_STATUS_ABSENSI: Record<StatusAbsensi, string> = {

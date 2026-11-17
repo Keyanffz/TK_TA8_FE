@@ -12,6 +12,7 @@ import { KartuAnak } from "@/components/features/beranda/wali/kartu-anak";
 import { KartuTagihan } from "@/components/features/beranda/wali/kartu-tagihan";
 import { useAnakAktif } from "@/components/layout/dashboard/anak-aktif";
 import { GalatMuat } from "@/components/shared/galat-muat";
+import { KotakPesan } from "@/components/shared/kotak-pesan";
 import { buttonVariants } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useDashboardWali } from "@/lib/api/dashboard";
@@ -48,6 +49,14 @@ function BerandaAnak({ namaWali, anak }: { namaWali: string; anak: AnakRingkas }
           <GalatMuat error={error} onCobaLagi={() => void refetch()} />
         ) : (
           <>
+            {data.anak && !data.anak.data_lengkap && anak.status === "aktif" ? (
+              <KotakPesan nada="menunggu" judul={`Data ${data.anak.nama_panggilan} belum lengkap`}>
+                <p>Lengkapi isian formulir data murid yang masih kosong. Isian yang sudah ada hanya bisa diubah lewat sekolah.</p>
+                <Link href={`/dashboard/anak/${data.anak.id}`} className={buttonVariants({ size: "sm", className: "mt-3" })}>
+                  Lengkapi Data
+                </Link>
+              </KotakPesan>
+            ) : null}
             {data.info_sekolah ? (
               <InfoSekolah
                 judul={data.info_sekolah.judul}

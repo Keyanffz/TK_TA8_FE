@@ -1,0 +1,41 @@
+// Dibuat `npm run gen:api` dari enum di components.schemas api.json backend. Jangan diedit manual.
+import type { components } from "@/types/api";
+
+type Skema = components["schemas"];
+
+export const NILAI_ENUM = {
+  Agama: ["Islam","Kristen","Katolik","Hindu","Buddha","Konghucu"],
+  GolonganDarah: ["A","B","AB","O","tidak_tahu"],
+  Hubungan: ["ayah","ibu","wali"],
+  HubunganWali: ["kakek","nenek","paman","bibi","kakak","lainnya"],
+  Imunisasi: ["bcg","hepatitis_b","polio","dpt","campak_mr"],
+  JenisAbsensi: ["masuk","pulang"],
+  JenisAgenda: ["kegiatan","libur","rapat","lainnya"],
+  JenisKelamin: ["L","P"],
+  JenisNotifikasi: ["tagihan_baru","tagihan_tertunda","pengingat_tagihan","tagihan_terlambat","pembayaran_masuk","pembayaran_diterima","pembayaran_ditolak","pembayaran_dibatalkan","rapor_diajukan","rapor_revisi","rapor_terbit","pengumuman_baru","pendaftaran_baru","pendaftaran_diproses","anak_tertaut","username_diubah","absensi_tercatat","absensi_dikoreksi","absensi_susulan_diberikan"],
+  Kewarganegaraan: ["wni","wna"],
+  LevelIzin: ["lihat","kelola"],
+  MetodeBayar: ["transfer","tunai"],
+  ModulIzin: ["keuangan","konten_website","laporan_absensi","data_murid","pengumuman"],
+  NadaInfo: ["info","penting","peringatan"],
+  Pekerjaan: ["tidak_bekerja","mengurus_rumah_tangga","pns_tni_polri","karyawan_swasta","karyawan_bumn","wiraswasta","pedagang","petani_peternak","nelayan","buruh","pensiunan","lainnya"],
+  PendidikanTerakhir: ["tidak_sekolah","sd","smp","slta","d1_d3","d4_s1","s2","s3"],
+  Penghasilan: ["di_bawah_500rb","500rb_1jt","1jt_2jt","2jt_5jt","5jt_20jt","di_atas_20jt","tidak_berpenghasilan"],
+  Perangkat: ["web","mobile"],
+  PeriodeTagihan: ["bulanan","sekali"],
+  PresetIzin: ["bendahara","admin_website","admin_absensi","tata_usaha"],
+  Role: ["super_admin","guru","wali_murid"],
+  StatusAbsensi: ["hadir","terlambat","tidak_hadir","izin","sakit"],
+  StatusAbsensiMurid: ["hadir","izin","sakit","alpa"],
+  StatusAkun: ["aktif","nonaktif"],
+  StatusMurid: ["aktif","lulus","pindah","keluar"],
+  StatusOrangTua: ["kandung","tiri","angkat"],
+  StatusPembayaran: ["menunggu","diterima","ditolak","dibatalkan"],
+  StatusPendaftaran: ["diajukan","diverifikasi","diterima","ditolak","mengundurkan_diri"],
+  StatusRapor: ["draft","diajukan","revisi","terbit"],
+  StatusTagihan: ["belum_bayar","menunggu_verifikasi","lunas","terlambat","dibatalkan"],
+  StatusYatimPiatu: ["tidak","yatim","piatu","yatim_piatu"],
+  TargetPengumuman: ["semua","guru","wali_murid","kelas","murid"],
+  Tingkat: ["A","B"],
+  TipeKeringanan: ["persen","nominal"],
+} as const satisfies { readonly [Nama in "Agama" | "GolonganDarah" | "Hubungan" | "HubunganWali" | "Imunisasi" | "JenisAbsensi" | "JenisAgenda" | "JenisKelamin" | "JenisNotifikasi" | "Kewarganegaraan" | "LevelIzin" | "MetodeBayar" | "ModulIzin" | "NadaInfo" | "Pekerjaan" | "PendidikanTerakhir" | "Penghasilan" | "Perangkat" | "PeriodeTagihan" | "PresetIzin" | "Role" | "StatusAbsensi" | "StatusAbsensiMurid" | "StatusAkun" | "StatusMurid" | "StatusOrangTua" | "StatusPembayaran" | "StatusPendaftaran" | "StatusRapor" | "StatusTagihan" | "StatusYatimPiatu" | "TargetPengumuman" | "Tingkat" | "TipeKeringanan"]: readonly Skema[Nama][] };

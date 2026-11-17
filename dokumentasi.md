@@ -49,6 +49,7 @@ Website publik dan dashboard sistem informasi TK Tarbiyatul Athfal 8 (TK Muslima
 | Temuan kecil uji browser dan keputusan onboarding wali (branch `fe/temuan-kecil-uji`; backend `be/temuan-kecil-uji`) | Selesai, di-merge (PR #39; backend #33); lint, typecheck, build, `check:slop`, diuji di browser dengan backend asli (lihat "Keputusan temuan kecil uji browser") |
 | Pratinjau dan foto kamera absensi dicerminkan (branch `fe/update-kamera`) | Selesai, di-merge (PR #40); lint, typecheck, build, `check:slop`, absen masuk diuji di Chrome dengan kamera tiruan dan backend asli; belum diuji di HP sungguhan |
 | NIS murid diisi Kepala Sekolah: halaman Murid Menunggu NIS (tabel dan Excel), isi/ubah NIS di detail murid, NIS kosong tampil "-" (branch `fe/nis-manual`; backend `be/nis-manual`) | Selesai, di-merge (PR #41; backend #34); lint, typecheck, build, `check:slop`, dicek di browser bawaan app dengan backend dan database uji (lihat Changelog) |
+| Formulir data murid sesuai formulir resmi sekolah (branch `fe/formulir-murid`; backend `be/formulir-murid`) | Selesai, menunggu review. Lint, typecheck, build, `check:slop` bersih; belum dicek di browser (dicek pemilik repo) |
 
 Mode mock tidak dipakai: `api.json` final dari backend sudah tersedia sejak Fase 1, jadi semua request memakai backend asli dan tipe hasil generate. Tidak ada endpoint mock.
 
@@ -545,6 +546,16 @@ Sumber: uji browser menyeluruh 14 November 2026 di `main`. Hanya empat temuan ut
 3. **404 saat memuat data** (`GalatMuat`): data yang tidak ada atau bukan milik akun (misalnya kelas lain untuk wali kelas, kegiatan kelas lain untuk wali murid) tampil "Data belum bisa dimuat" dengan tombol Muat Ulang. Sekarang 404 diperlakukan seperti 403: judul "Data tidak ditemukan", tanpa coba lagi, dengan tautan ke beranda. Status HTTP halaman tetap 200 karena data dimuat di browser.
 4. Teks keterangan izin Keuangan yang masih menyebut verifikasi pembayaran ada di backend (`ModulIzin`), diperbaiki di `be/perbaikan-uji-browser`.
 
+## Keputusan formulir data murid (menunggu review)
+
+1. Nilai pilihan dropdown dari `src/types/enum-api.ts`, dibuat `npm run gen:api` dari enum di `components.schemas` api.json. Opsi `enumValues` openapi-typescript tidak dipakai: membuat 788 konstanta (termasuk kode error per endpoint) dan `api.d.ts` tidak boleh berisi nilai runtime. Label Indonesia tetap di `lib/constants/formulir.ts` (`Record<Enum, string>`, jadi enum baru dari backend membuat typecheck gagal sampai labelnya ditambah).
+2. Satu set komponen di `components/features/formulir-murid/` dipakai PPDB, tambah/ubah murid, dan Lengkapi Data wali lewat `FormProvider`; tiap pemakai punya skema sendiri. PPDB: `periksaWajib()` (sama dengan `KelengkapanFormulir` backend) supaya tiap langkah bisa diperiksa sebelum lanjut. Staf: hanya format, 8 field wajib lama, dan kontak utama; isian kosong ditampilkan dari `data_kurang` backend, tidak dihitung ulang di FE.
+3. Tambah murid yang masih belum lengkap setelah disimpan langsung dibuka di halaman ubah langkah Konfirmasi (`?langkah=konfirmasi`), yang menampilkan `data_kurang` dengan tombol ke langkahnya. Ubah murid tetap di Konfirmasi kalau masih kurang, dengan tombol "Selesai, Lengkapi Nanti".
+4. Ubah murid mengirim multipart dengan `keFormData(body, { kirimKosong: true })`: null dan array kosong dikirim sebagai string kosong supaya isian yang dikosongkan ikut terhapus; objek `ayah`/`ibu`/`wali` dikirim sebagai `ayah[nama]`. Wali yang ditutup dikirim dengan nama dan nomor HP kosong sehingga backend menghapusnya. Ayah atau ibu yang sudah meninggal hanya mengirim nama. NIK hanya dikirim kalau backend mengirimkannya ke pengguna itu.
+5. Lengkapi Data wali menampilkan hanya isian yang kosong di data tersimpan (`TampilkanIsian`), lalu mengirim seluruh isian: isian terisi bernilai sama sehingga diabaikan backend. Bagian yang semua isiannya terisi diganti teks "Semua isian di bagian ini sudah terisi."
+6. Label status pendaftaran `diverifikasi` menjadi "Data diverifikasi" dan tombolnya "Data Sudah Dicek", karena verifikasi sekarang berarti data formulir dicek; berkas dicentang terpisah.
+7. Daftar pendaftar tidak lagi menampilkan nama orang tua dan nomor HP (tidak ada di bentuk daftar backend); kolomnya diganti tanggal lahir dan jalur pendaftar (akun wali atau tanpa akun).
+
 ## Keputusan NIS murid diisi Kepala Sekolah (menunggu review)
 
 Keputusan pemilik repo (analisis 16 November): NIS diisi Kepala Sekolah dengan format bebas, akun wali dibuat saat NIS diisi, username ikut berubah saat NIS diubah. Kontrak di `docs/kontrak-api-fitur-baru.md` bagian 5. Yang diputuskan saat pengerjaan FE:
@@ -706,7 +717,8 @@ Andika hanya punya bobot 400 dan 700, jadi `font-semibold` tampil sebagai 700.
 | `/dashboard` (W); `/mudarris` (SA, G) | SA, G, W | Beranda per role (B5): SA panel Perlu Tindakan, statistik, keuangan bulan ini, grafik pemasukan; G kelas diampu, progres rapor, tagihan kelas; W kartu anak, kartu tagihan, rapor terbaru, kegiatan, pengumuman, agenda |
 | `/dashboard/ganti-password` | pengguna dengan `wajib_ganti_password` | Ganti password awal (tanggal lahir anak). Tanpa menu, dengan tombol Keluar; yang tidak wajib diarahkan ke beranda |
 | `/dashboard/onboarding` | W (profil belum lengkap) | Lengkapi nama, nomor HP, alamat, pekerjaan, NIK opsional. Tanpa menu; wali yang sudah lengkap diarahkan ke beranda |
-| `/dashboard/anak` | W | Kartu anak tertaut + form Tambah Anak (NIS, tanggal lahir, hubungan) |
+| `/dashboard/anak` | W | Kartu anak tertaut (badge Data belum lengkap, Lihat/Lengkapi Data) + form Tambah Anak (NIS, tanggal lahir, hubungan) |
+| `/dashboard/anak/[id]` | W | Formulir data anak dan Lengkapi Data untuk isian yang masih kosong |
 | `/dashboard/ppdb` (W); `/mudarris/ppdb` (SA, G) | SA, W | SA: ringkasan status PPDB + tabel pendaftar per status. W: pendaftaran miliknya + tombol daftar |
 | `/dashboard/ppdb/daftar` | W | Form yang sama dengan form publik (`POST /pendaftaran`), nomor HP dan alamat terisi dari profil |
 | `/dashboard/ppdb/[id]` (W); `/mudarris/ppdb/[id]` (SA, G) | SA, W (miliknya) | Detail; SA: verifikasi berkas yang dibawa ke sekolah, terima (pilih kelas), tolak |
@@ -778,6 +790,22 @@ Tempat deploy belum ditentukan. Syarat yang sudah pasti:
 6. **Masuk dengan Google**: `NEXT_PUBLIC_GOOGLE_CLIENT_ID` diisi sebelum `npm run build`, dan origin FE produksi (misalnya `https://tkta8.sch.id`) didaftarkan di Authorized JavaScript origins Client ID itu di Google Cloud Console. Backend memakai Client ID yang sama di `GOOGLE_CLIENT_ID`.
 
 ## Changelog
+
+### Formulir data murid sesuai formulir resmi sekolah (branch `fe/formulir-murid`, dari `main`)
+
+Kontrak backend: `docs/kontrak-api-fitur-baru.md` bagian 8 (PR backend `be/formulir-murid`).
+
+- `scripts/gen-api.mjs`: juga menulis `src/types/enum-api.ts` (`NILAI_ENUM`). `src/types/domain.ts`: tipe enum formulir, `OrangTua`, `BerkasFisik`.
+- `lib/constants/formulir.ts` (baru): label dan opsi enum formulir. `label.ts`: `LABEL_PERAN_ORANG_TUA`, label `mengundurkan_diri`, `AGAMA` dihapus (diganti `OPSI_AGAMA`). `status.ts`: nada `mengundurkan_diri`.
+- `components/features/formulir-murid/` (baru): `skema.ts`, `isian.ts`, `label-field.ts`, `kolom-formulir.tsx`, `langkah-data-anak.tsx`, `langkah-kesehatan.tsx`, `langkah-orang-tua.tsx`, `form-orang-tua.tsx`, `ringkasan-formulir.tsx`, `wizard-formulir.tsx`, `data-kurang.tsx`, `berkas-fisik.tsx`.
+- PPDB: `form-pendaftaran.tsx` dan `skema-pendaftaran.ts` ditulis ulang (4 langkah, pernyataan, "Anda sebagai" untuk wali login); `langkah-data-anak.tsx`, `langkah-orang-tua.tsx`, `ringkasan-pendaftaran.tsx` lama dihapus; `penanda-langkah.tsx` bisa diklik; teks status di `hasil-status-ppdb.tsx`, `pendaftaran-saya.tsx`, `daftar-ppdb-publik.tsx`.
+- PPDB Kepala Sekolah: `detail-pendaftaran.tsx` (ringkasan formulir, berkas, alasan mundur), `aksi-pendaftaran.tsx` (baru; verifikasi, terima, tolak, mengundurkan diri, batalkan mundur), `dialog-terima.tsx` (peringatan berkas), `daftar-pendaftar.tsx` (tab Mengundurkan diri, kolom baru). `dialog-konfirmasi.tsx`: `alasanOpsional`.
+- Murid: `form-murid.tsx` (wizard staf), `tambah-murid.tsx`, `ubah-murid.tsx` + `ubah/page.tsx` (`?langkah=konfirmasi`), `detail-murid.tsx` (badge, data kurang, formulir, berkas), `daftar-murid.tsx` (badge dan saringan kelengkapan), import: teks petunjuk dan kolom Kontak utama di pratinjau.
+- Beranda: kartu "Data murid belum lengkap" di Perlu Tindakan (grid 2/4 kolom); pengingat di beranda wali.
+- Wali: `daftar-anak.tsx` (badge, Lihat/Lengkapi Data), `data-anak.tsx` dan `lengkapi-data-anak.tsx` (baru), route `/dashboard/anak/[id]`.
+- API: `multipart.ts` (objek bertingkat, `kirimKosong`), `murid.ts` (filter `data_lengkap`, `useBerkasMurid`, ubah murid mengisi cache detail), `ppdb.ts` (`useBerkasPendaftaran`, `useMundurPendaftaran`, `useBatalkanMundur`), `wali.ts` (`useLengkapiDataAnak`).
+
+Pengecekan: `npm run gen:api`, lint, typecheck, build (68 halaman), `check:slop` bersih. FE tidak punya test otomatis. Tidak dicek di browser dan tanpa screenshot sesuai permintaan pemilik repo; Delivery Gate anti-slop dicek dari kode.
 
 ### NIS murid diisi Kepala Sekolah (branch `fe/nis-manual`, dari `main`)
 

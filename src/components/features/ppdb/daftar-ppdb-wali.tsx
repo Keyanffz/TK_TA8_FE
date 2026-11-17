@@ -17,8 +17,8 @@ export function DaftarPpdbWali({ noHp, alamat }: { noHp: string; alamat: string 
 
   return (
     <FormPendaftaran
-      nilaiAwal={{ no_hp: noHp, alamat }}
-      kirim={async (nilai) => (await ambilData(api.POST("/pendaftaran", { body: keBodyPendaftaran(nilai) }))).data}
+      akun={{ noHp, alamat }}
+      kirim={async (nilai) => (await ambilData(api.POST("/pendaftaran", { body: keBodyPendaftaran(nilai, true) }))).data}
       onBerhasil={async (pendaftaran) => {
         toast.success(`Pendaftaran ${pendaftaran.nama_panggilan} terkirim dengan kode ${pendaftaran.kode}.`);
         await queryClient.invalidateQueries({ queryKey: queryKeys.pendaftaranSaya });

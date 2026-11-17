@@ -8,18 +8,19 @@ import { idDariParam } from "@/lib/halaman";
 
 export const metadata: Metadata = { title: "Ubah Data Murid" };
 
-export default async function UbahMuridPage({ params }: PageProps<"/mudarris/murid/[id]/ubah">) {
+export default async function UbahMuridPage({ params, searchParams }: PageProps<"/mudarris/murid/[id]/ubah">) {
   await wajibAkses((sesi) => punyaIzin(sesi, "data_murid", "kelola"));
   const id = idDariParam((await params).id);
+  const { langkah } = await searchParams;
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
       <KepalaHalaman
         judul="Ubah Data Murid"
-        deskripsi="Kalau tanggal lahir diubah dan akun wali otomatis belum pernah dipakai, password awalnya ikut berubah."
+        deskripsi="Pilih langkah di atas untuk langsung ke bagian yang ingin diubah. Kalau tanggal lahir diubah dan akun wali otomatis belum pernah dipakai, password awalnya ikut berubah."
       />
       <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
-        <UbahMurid id={id} />
+        <UbahMurid id={id} keKonfirmasi={langkah === "konfirmasi"} />
       </div>
     </div>
   );

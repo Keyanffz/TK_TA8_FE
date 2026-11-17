@@ -4,6 +4,7 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tansta
 
 import { ambilData } from "@/lib/api/ambil-data";
 import { api } from "@/lib/api/client";
+import type { CentangBerkas } from "@/lib/api/murid";
 import { queryKeys } from "@/lib/api/query-keys";
 import { segarkanWebsite } from "@/lib/api/website";
 import { TAG_PUBLIK } from "@/lib/constants/sekolah";
@@ -75,6 +76,32 @@ export function useTolakPendaftaran(id: number) {
   const segarkan = useSegarkanPendaftaran();
   return useMutation({
     mutationFn: (alasan: string) => ambilData(api.POST("/pendaftaran/{id}/tolak", { params: { path: { id } }, body: { alasan } })),
+    onSuccess: segarkan,
+  });
+}
+
+export function useBerkasPendaftaran(id: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (body: CentangBerkas) => ambilData(api.PATCH("/pendaftaran/{id}/berkas", { params: { path: { id } }, body })),
+    onSuccess: (hasil) => queryClient.setQueryData(queryKeys.pendaftaran.detail(id), hasil.data),
+  });
+}
+
+/** Pendaftar yang tidak jadi masuk. Untuk pendaftar yang sudah diterima, backend ikut menghapus data muridnya. */
+export function useMundurPendaftaran(id: number) {
+  const segarkan = useSegarkanPendaftaran();
+  return useMutation({
+    mutationFn: (alasan: string) =>
+      ambilData(api.POST("/pendaftaran/{id}/mengundurkan-diri", { params: { path: { id } }, body: { alasan: alasan || null } })),
+    onSuccess: segarkan,
+  });
+}
+
+export function useBatalkanMundur(id: number) {
+  const segarkan = useSegarkanPendaftaran();
+  return useMutation({
+    mutationFn: () => ambilData(api.POST("/pendaftaran/{id}/batalkan-mundur", { params: { path: { id } } })),
     onSuccess: segarkan,
   });
 }

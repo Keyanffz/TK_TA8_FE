@@ -20,7 +20,7 @@ function keterangan(pendaftaran: Pendaftaran): string {
     case "diajukan":
       return "Bawa akta kelahiran, Kartu Keluarga, dan pas foto anak ke sekolah untuk diperiksa.";
     case "diverifikasi":
-      return "Berkas sudah diperiksa sekolah. Tunggu keputusan akhir.";
+      return "Data formulir sudah diperiksa sekolah. Tunggu keputusan akhir.";
     case "diterima":
       if (!pendaftaran.murid) return "Diterima. Silakan datang ke sekolah untuk daftar ulang.";
       return pendaftaran.murid.nis === null
@@ -28,6 +28,8 @@ function keterangan(pendaftaran: Pendaftaran): string {
         : `Diterima dengan NIS ${pendaftaran.murid.nis} dan sudah tertaut ke akun Anda. Silakan datang ke sekolah untuk daftar ulang.`;
     case "ditolak":
       return pendaftaran.catatan ? `Tidak diterima. Alasan: ${pendaftaran.catatan}` : "Tidak diterima. Hubungi sekolah untuk alasannya.";
+    case "mengundurkan_diri":
+      return "Dicatat mengundurkan diri. Hubungi sekolah kalau ingin mendaftar lagi.";
   }
 }
 
