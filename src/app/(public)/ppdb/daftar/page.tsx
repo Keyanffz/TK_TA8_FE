@@ -19,31 +19,34 @@ export default async function DaftarPpdbPage() {
       <JudulHalaman
         judul="Formulir Pendaftaran Murid Baru"
         deskripsi={ppdb.tahun_ajaran ? `Tahun Ajaran ${ppdb.tahun_ajaran.nama}. Akta kelahiran, Kartu Keluarga, dan pas foto anak dibawa ke sekolah setelah formulir terkirim.` : undefined}
+        warnaTepi="text-primary-soft"
       />
-      <div className="mx-auto max-w-3xl px-4 py-10 sm:px-6 md:py-14">
-        {bisaDaftar ? (
-          <>
-            <p className="mb-8 text-sm text-muted-foreground">
-              Anak Anda yang lain sudah bersekolah di sini?{" "}
-              <Link href={urlLogin(RUTE_LOGIN.wali, "/dashboard/ppdb")} className="font-bold text-primary-strong hover:underline">
-                Masuk sebagai wali murid
-              </Link>{" "}
-              lalu daftarkan dari dashboard, supaya adiknya langsung tertaut ke akun Anda.
-            </p>
-            <DaftarPpdbPublik />
-          </>
-        ) : (
-          <KotakPesan nada="menunggu" judul={ppdb.dibuka ? "Kuota sudah penuh" : "Pendaftaran sedang ditutup"}>
-            <p>
-              {ppdb.dibuka
-                ? "Kuota murid baru tahun ini sudah terisi. Hubungi sekolah untuk menanyakan daftar tunggu."
-                : "Formulir bisa diisi saat pendaftaran dibuka. Jadwalnya ada di halaman info PPDB."}
-            </p>
-            <Link href="/ppdb" className={buttonVariants({ variant: "outline", size: "sm", className: "mt-3" })}>
-              Lihat Info PPDB
-            </Link>
-          </KotakPesan>
-        )}
+      <div className="bg-primary-soft">
+        <div className="mx-auto max-w-3xl px-4 pt-6 pb-10 sm:px-6 md:pb-14">
+          {bisaDaftar ? (
+            <>
+              <p className="mb-6 text-sm text-muted-foreground">
+                Anak Anda yang lain sudah bersekolah di sini?{" "}
+                <Link href={urlLogin(RUTE_LOGIN.wali, "/dashboard/ppdb")} className="font-bold text-primary-strong hover:underline">
+                  Masuk sebagai wali murid
+                </Link>{" "}
+                lalu daftarkan dari dashboard, supaya adiknya langsung tertaut ke akun Anda.
+              </p>
+              <DaftarPpdbPublik />
+            </>
+          ) : (
+            <KotakPesan nada="menunggu" judul={ppdb.dibuka ? "Kuota sudah penuh" : "Pendaftaran sedang ditutup"}>
+              <p>
+                {ppdb.dibuka
+                  ? "Kuota murid baru tahun ini sudah terisi. Hubungi sekolah untuk menanyakan daftar tunggu."
+                  : "Formulir bisa diisi saat pendaftaran dibuka. Jadwalnya ada di halaman info PPDB."}
+              </p>
+              <Link href="/ppdb" className={buttonVariants({ variant: "outline", size: "sm", className: "mt-3" })}>
+                Lihat Info PPDB
+              </Link>
+            </KotakPesan>
+          )}
+        </div>
       </div>
     </>
   );

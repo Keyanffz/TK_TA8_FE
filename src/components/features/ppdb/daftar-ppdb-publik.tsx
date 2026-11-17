@@ -63,15 +63,17 @@ export function DaftarPpdbPublik() {
   if (hasil) return <BuktiPendaftaran {...hasil} />;
 
   return (
-    <FormPendaftaran
-      kirim={async (nilai) => {
-        const { data } = await ambilData(api.POST("/public/pendaftaran", { body: keBodyPendaftaran(nilai, false) }));
-        return { pendaftaran: data, tanggalLahir: formatTanggal(nilai.tanggal_lahir) };
-      }}
-      onBerhasil={(baru) => {
-        setHasil(baru);
-        window.scrollTo({ top: 0, behavior: "smooth" });
-      }}
-    />
+    <div className="rounded-xl border border-border border-t-4 border-t-primary bg-card p-5 shadow-md sm:p-8">
+      <FormPendaftaran
+        kirim={async (nilai) => {
+          const { data } = await ambilData(api.POST("/public/pendaftaran", { body: keBodyPendaftaran(nilai, false) }));
+          return { pendaftaran: data, tanggalLahir: formatTanggal(nilai.tanggal_lahir) };
+        }}
+        onBerhasil={(baru) => {
+          setHasil(baru);
+          window.scrollTo({ top: 0, behavior: "smooth" });
+        }}
+      />
+    </div>
   );
 }
