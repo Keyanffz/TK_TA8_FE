@@ -3,10 +3,10 @@
 import type { ReactNode } from "react";
 import { Controller } from "react-hook-form";
 
-import { Baris, IsianPilih, IsianTeks, KelompokIsian, useIsianFormulir, useTampil } from "@/components/features/formulir-murid/kolom-formulir";
+import { Baris, hanyaAngka, IsianPilih, IsianTeks, KelompokIsian, tanpaSpasi, useIsianFormulir, useTampil } from "@/components/features/formulir-murid/kolom-formulir";
 import { KolomRadio } from "@/components/shared/kolom-radio";
 import { FieldGroup } from "@/components/ui/field";
-import { OPSI_AGAMA, OPSI_KEWARGANEGARAAN, OPSI_STATUS_YATIM_PIATU } from "@/lib/constants/formulir";
+import { OPSI_AGAMA, OPSI_KEWARGANEGARAAN } from "@/lib/constants/formulir";
 import { OPSI_JENIS_KELAMIN } from "@/lib/constants/label";
 import { hariIniJakarta } from "@/lib/tanggal";
 
@@ -20,7 +20,7 @@ export function LangkahDataAnak({ tambahan }: { tambahan?: ReactNode }) {
       <KelompokIsian judul="Identitas anak" field={["nama_lengkap", "nama_panggilan", "jenis_kelamin", "tempat_lahir", "tanggal_lahir", "nik", "agama", "kewarganegaraan"]}>
         <Baris>
           <IsianTeks field="nama_lengkap" label="Nama lengkap" />
-          <IsianTeks field="nama_panggilan" label="Nama panggilan" />
+          <IsianTeks field="nama_panggilan" label="Nama panggilan" bersihkan={tanpaSpasi} />
         </Baris>
         {tampil("jenis_kelamin") ? (
           <Controller
@@ -34,26 +34,17 @@ export function LangkahDataAnak({ tambahan }: { tambahan?: ReactNode }) {
         <Baris>
           <IsianTeks field="tempat_lahir" label="Tempat lahir" />
           <IsianTeks field="tanggal_lahir" label="Tanggal lahir" type="date" max={hariIniJakarta()} />
-          <IsianTeks field="nik" label="NIK anak" inputMode="numeric" maxLength={16} deskripsi="16 angka, tertulis di Kartu Keluarga." />
+          <IsianTeks field="nik" label="NIK anak" inputMode="numeric" maxLength={16} bersihkan={hanyaAngka} deskripsi="16 angka, tertulis di Kartu Keluarga." />
           <IsianPilih field="agama" label="Agama" opsi={OPSI_AGAMA} kosong="Pilih agama" />
           <IsianPilih field="kewarganegaraan" label="Kewarganegaraan" opsi={OPSI_KEWARGANEGARAAN} kosong="Pilih kewarganegaraan" />
         </Baris>
       </KelompokIsian>
       <KelompokIsian
         judul="Keluarga"
-        field={["anak_ke", "jumlah_saudara_kandung", "jumlah_saudara_tiri", "jumlah_saudara_angkat", "status_yatim_piatu", "bahasa_sehari_hari", "asal_sekolah"]}
+        field={["anak_ke", "jumlah_saudara_kandung", "jumlah_saudara_tiri", "jumlah_saudara_angkat", "bahasa_sehari_hari", "asal_sekolah"]}
       >
-        <Baris>
+        <div className="grid gap-4 sm:grid-cols-4">
           <IsianTeks field="anak_ke" label="Anak ke-" inputMode="numeric" maxLength={2} />
-          <IsianPilih
-            field="status_yatim_piatu"
-            label="Status yatim/piatu"
-            opsi={OPSI_STATUS_YATIM_PIATU}
-            kosong="Pilih status"
-            deskripsi="Orang tua yang sudah meninggal cukup diisi namanya."
-          />
-        </Baris>
-        <div className="grid gap-4 sm:grid-cols-3">
           <IsianTeks field="jumlah_saudara_kandung" label="Saudara kandung" inputMode="numeric" maxLength={2} />
           <IsianTeks field="jumlah_saudara_tiri" label="Saudara tiri" inputMode="numeric" maxLength={2} />
           <IsianTeks field="jumlah_saudara_angkat" label="Saudara angkat" inputMode="numeric" maxLength={2} />

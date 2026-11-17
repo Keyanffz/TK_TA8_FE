@@ -51,6 +51,7 @@ Website publik dan dashboard sistem informasi TK Tarbiyatul Athfal 8 (TK Muslima
 | NIS murid diisi Kepala Sekolah: halaman Murid Menunggu NIS (tabel dan Excel), isi/ubah NIS di detail murid, NIS kosong tampil "-" (branch `fe/nis-manual`; backend `be/nis-manual`) | Selesai, di-merge (PR #41; backend #34); lint, typecheck, build, `check:slop`, dicek di browser bawaan app dengan backend dan database uji (lihat Changelog) |
 | Formulir data murid sesuai formulir resmi sekolah (branch `fe/formulir-murid`; backend `be/formulir-murid`) | Selesai, menunggu review. Lint, typecheck, build, `check:slop` bersih; belum dicek di browser (dicek pemilik repo) |
 | Perbaikan dua temuan sedang review tampilan 17 November (branch `fe/perbaikan-review-tampilan`) | Selesai, menunggu review. Kepala detail murid di layar 1280px tidak lagi menimpa nama (kolom nama diberi `basis-64`); kartu daftar murid di mobile menaruh badge di baris sendiri supaya nama dan NIS tidak terpotong. Lint, typecheck, `check:slop` bersih; dicek di Chrome headless 390px dan 1280px. 12 temuan kecil lain belum dikerjakan (lihat `~/review-tk/2026-11-17/RINGKASAN.md`) |
+| Revisi tampilan formulir pendaftaran murid baru: nama panggilan satu kata, NIK hanya angka, keadaan ayah dan ibu di langkah Orang Tua (status yatim/piatu tidak ditanyakan lagi), latar halaman daftar (branch `fe/revisi-formulir-ppdb`) | Selesai, menunggu review. Lint, typecheck, build, `check:slop` bersih; belum dicek di browser. Kewarganegaraan sebagai teks bebas belum dikerjakan, menunggu perubahan backend (lihat "Keputusan revisi formulir pendaftaran") |
 
 Mode mock tidak dipakai: `api.json` final dari backend sudah tersedia sejak Fase 1, jadi semua request memakai backend asli dan tipe hasil generate. Tidak ada endpoint mock.
 
@@ -557,6 +558,19 @@ Sumber: uji browser menyeluruh 14 November 2026 di `main`. Hanya empat temuan ut
 6. Label status pendaftaran `diverifikasi` menjadi "Data diverifikasi" dan tombolnya "Data Sudah Dicek", karena verifikasi sekarang berarti data formulir dicek; berkas dicentang terpisah.
 7. Daftar pendaftar tidak lagi menampilkan nama orang tua dan nomor HP (tidak ada di bentuk daftar backend); kolomnya diganti tanggal lahir dan jalur pendaftar (akun wali atau tanpa akun).
 
+## Keputusan revisi formulir pendaftaran (menunggu review)
+
+Revisi dari pemilik repo setelah melihat formulir PPDB (17 November).
+
+1. **Nama panggilan** satu kata: spasi dibuang saat diketik atau ditempel (`IsianTeks` punya prop `bersihkan`), dan skema menolak spasi dengan pesan "Nama panggilan satu kata, tanpa spasi.". Murid lama yang nama panggilannya berspasi harus diperbaiki saat diubah.
+2. **NIK** tetap string 16 angka (bukan number, supaya angka nol di depan tidak hilang), tetapi huruf dan simbol tidak bisa masuk karena dibuang lewat `bersihkan`.
+3. **Status yatim/piatu tidak ditanyakan** di langkah Data Anak dan tidak tampil di ringkasan. Backend masih meminta `status_yatim_piatu` (wajib di PPDB), jadi nilainya dihitung `statusDariKeadaan()` dari pilihan "Masih hidup" atau "Sudah meninggal" untuk ayah dan ibu di langkah Orang Tua. Form baru dimulai dengan `tidak`; kalau salah satu dipilih meninggal, bagian itu hanya meminta nama. Pesan "menurut status yatim/piatu" dihapus. Data lama yang statusnya kosong memunculkan pilihan itu di halaman Lengkapi Data wali, berlabel "Keadaan ayah dan ibu".
+4. **Latar halaman daftar**: blok formulir memakai latar `primary-soft` (hijau muda) dengan tepi bergelombang `JudulHalaman` disamakan lewat prop `warnaTepi`, dan formulir ada di kartu putih dengan garis atas hijau. Sebelumnya formulir langsung di atas krem `--background`. Halaman lain tidak berubah. Perubahan ini belum dilihat di browser.
+5. **Hapus Data Wali** dipindah ke atas bagian Wali (sebelumnya di bawah formulir yang panjang, jadi tidak terlihat) dengan gaya outline, dan sekarang juga mengosongkan isian wali, menghapus error wali, serta mengosongkan kontak utama kalau menunjuk wali.
+6. **Kontak utama kosong**: kotak pesan panjang diganti satu baris teks "Pilihan muncul setelah ada nomor HP yang diisi."; kontak utama tetap wajib.
+7. **Draf isian PPDB tersimpan di browser** (`ppdb/draf-pendaftaran.ts`, dipakai `FormPendaftaran`): kalau halaman dimuat ulang saat jaringan putus atau tab tertutup, isian dan langkah terakhir dipulihkan. Disimpan di `localStorage` perangkat pengisi, tidak dikirim ke server. NIK dan centang pernyataan sengaja tidak ikut disimpan (perangkat bisa dipakai bersama; pernyataan harus dicentang sadar). Dibuang saat pendaftaran terkirim atau "Mulai dari awal", dan kedaluwarsa 7 hari setelah isian terakhir diubah. Kunci per formulir dan per akun (`publik`, `wali-<id akun>`). Tanpa akses `localStorage` (mode privat) formulir tetap jalan tanpa draf. Belum diuji di browser.
+8. **Belum dikerjakan: kewarganegaraan sebagai teks bebas.** Pemilik repo memilih kolom teks biasa (ketik "Indonesia" atau nama negara) tanpa dropdown. Backend sekarang hanya menerima enum `wni`/`wna` (kolom `string(3)`, validasi `Rule::enum`, kolom import Excel), jadi FE tidak bisa mengirim teks bebas tanpa perubahan backend. Dropdown WNI/WNA tetap dipakai sampai kontraknya berubah.
+
 ## Keputusan NIS murid diisi Kepala Sekolah (menunggu review)
 
 Keputusan pemilik repo (analisis 16 November): NIS diisi Kepala Sekolah dengan format bebas, akun wali dibuat saat NIS diisi, username ikut berubah saat NIS diubah. Kontrak di `docs/kontrak-api-fitur-baru.md` bagian 5. Yang diputuskan saat pengerjaan FE:
@@ -791,6 +805,17 @@ Tempat deploy belum ditentukan. Syarat yang sudah pasti:
 6. **Masuk dengan Google**: `NEXT_PUBLIC_GOOGLE_CLIENT_ID` diisi sebelum `npm run build`, dan origin FE produksi (misalnya `https://tkta8.sch.id`) didaftarkan di Authorized JavaScript origins Client ID itu di Google Cloud Console. Backend memakai Client ID yang sama di `GOOGLE_CLIENT_ID`.
 
 ## Changelog
+
+### Revisi formulir pendaftaran murid baru (branch `fe/revisi-formulir-ppdb`, dari `main`)
+
+- `formulir-murid/kolom-formulir.tsx`: `IsianTeks` menerima `bersihkan`; `hanyaAngka` dan `tanpaSpasi` diekspor.
+- `formulir-murid/langkah-data-anak.tsx`: nama panggilan `tanpaSpasi`, NIK `hanyaAngka`, pertanyaan status yatim/piatu dihapus, "Anak ke-" satu baris dengan jumlah saudara.
+- `formulir-murid/form-orang-tua.tsx`: pilihan "Masih hidup" / "Sudah meninggal" untuk ayah dan ibu; pesan yatim/piatu dihapus.
+- `ppdb/draf-pendaftaran.ts` (baru): hook draf isian PPDB. `ppdb/form-pendaftaran.tsx`: prop `kunciDraf`, banner "Isian sebelumnya dipulihkan" dengan tombol Mulai dari awal. `daftar-ppdb-publik.tsx`, `daftar-ppdb-wali.tsx` (prop `idAkun`), `dashboard/(halaman)/ppdb/daftar/page.tsx`: meneruskan kunci.
+- `formulir-murid/langkah-orang-tua.tsx`: tombol Hapus Data Wali di atas bagian Wali dan mengosongkan isian wali, teks kontak utama kosong diringkas.
+- `formulir-murid/skema.ts`: regex nama panggilan, `statusDariKeadaan()`. `isian.ts`: status awal `tidak`. `label-field.ts`: field `status_yatim_piatu` pindah ke langkah Orang Tua dengan label "Keadaan ayah dan ibu". `ringkasan-formulir.tsx`: baris status yatim/piatu dihapus.
+- `lib/constants/formulir.ts`: `LABEL_STATUS_YATIM_PIATU` dan `OPSI_STATUS_YATIM_PIATU` dihapus (tidak terpakai lagi).
+- `shared/judul-halaman.tsx`: prop `warnaTepi`. `app/(public)/ppdb/daftar/page.tsx` dan `ppdb/daftar-ppdb-publik.tsx`: latar hijau muda dan kartu formulir.
 
 ### Formulir data murid sesuai formulir resmi sekolah (branch `fe/formulir-murid`, dari `main`)
 

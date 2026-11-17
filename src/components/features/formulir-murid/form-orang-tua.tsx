@@ -1,10 +1,10 @@
 "use client";
 
-import { useWatch } from "react-hook-form";
+import { Controller, useWatch } from "react-hook-form";
 
 import { Baris, IsianPilih, IsianTeks, KelompokIsian, useIsianFormulir, useTampil, type FieldFormulir } from "@/components/features/formulir-murid/kolom-formulir";
-import { sudahMeninggal } from "@/components/features/formulir-murid/skema";
-import { KotakPesan } from "@/components/shared/kotak-pesan";
+import { statusDariKeadaan, sudahMeninggal } from "@/components/features/formulir-murid/skema";
+import { KolomRadio } from "@/components/shared/kolom-radio";
 import {
   OPSI_AGAMA,
   OPSI_HUBUNGAN_WALI,
@@ -23,9 +23,14 @@ const ISIAN = [
   "pendidikan_terakhir", "pekerjaan", "pekerjaan_lainnya", "penghasilan", "alamat_rumah", "alamat_kantor", "no_hp",
 ] as const;
 
+const OPSI_KEADAAN = [
+  { nilai: "hidup", label: "Masih hidup" },
+  { nilai: "meninggal", label: "Sudah meninggal" },
+] as const;
+
 /** Isian satu orang (ayah, ibu, atau wali). Ayah atau ibu yang sudah meninggal cukup diisi nama. */
 export function FormOrangTua({ peran }: { peran: Hubungan }) {
-  const { control, register } = useIsianFormulir();
+  const { control, register, getValues, setValue, getFieldState, formState } = useIsianFormulir();
   const tampil = useTampil();
   const [statusYatimPiatu, pekerjaan, hubungan, alamatSama] = useWatch({
     control,
@@ -34,17 +39,37 @@ export function FormOrangTua({ peran }: { peran: Hubungan }) {
   const f = (kolom: (typeof ISIAN)[number]): FieldFormulir => `${peran}.${kolom}`;
   const sebutan = peran === "wali" ? "wali" : peran;
   const meninggal = sudahMeninggal(peran, statusYatimPiatu);
+  const tampilKeadaan = peran !== "wali" && tampil("status_yatim_piatu");
 
   // Orang tua yang sudah meninggal hanya punya isian nama; kalau nama itu tidak ditampilkan, bagian ini tidak perlu.
-  if (meninggal && !tampil(f("nama"))) return null;
+  if (meninggal && !tampil(f("nama")) && !tampilKeadaan) return null;
+
+  const ubahKeadaan = (pilihan: (typeof OPSI_KEADAAN)[number]["nilai"]) => {
+    const status = getValues("status_yatim_piatu");
+    const ayah = peran === "ayah" ? pilihan === "meninggal" : sudahMeninggal("ayah", status);
+    const ibu = peran === "ibu" ? pilihan === "meninggal" : sudahMeninggal("ibu", status);
+    setValue("status_yatim_piatu", statusDariKeadaan(ayah, ibu), { shouldDirty: true, shouldValidate: true });
+  };
 
   return (
-    <KelompokIsian judul={LABEL_PERAN_ORANG_TUA[peran]} field={ISIAN.map(f)}>
+    <KelompokIsian judul={LABEL_PERAN_ORANG_TUA[peran]} field={tampilKeadaan ? [...ISIAN.map(f), "status_yatim_piatu"] : ISIAN.map(f)}>
+      {tampilKeadaan ? (
+        <Controller
+          control={control}
+          name="status_yatim_piatu"
+          render={() => (
+            <KolomRadio
+              label={`Keadaan ${sebutan}`}
+              opsi={OPSI_KEADAAN}
+              nilai={statusYatimPiatu === "" ? undefined : meninggal ? "meninggal" : "hidup"}
+              onUbah={ubahKeadaan}
+              error={getFieldState("status_yatim_piatu", formState).error?.message}
+            />
+          )}
+        />
+      ) : null}
       {meninggal ? (
-        <>
-          <KotakPesan nada="proses">{LABEL_PERAN_ORANG_TUA[peran]} sudah meninggal menurut status yatim/piatu, jadi cukup isi namanya.</KotakPesan>
-          <IsianTeks field={f("nama")} label={`Nama ${sebutan}`} />
-        </>
+        <IsianTeks field={f("nama")} label={`Nama ${sebutan}`} />
       ) : (
         <>
           <Baris>

@@ -9,7 +9,6 @@ import {
   LABEL_PENDIDIKAN,
   LABEL_PENGHASILAN,
   LABEL_STATUS_ORANG_TUA,
-  LABEL_STATUS_YATIM_PIATU,
 } from "@/lib/constants/formulir";
 import { LABEL_JENIS_KELAMIN, LABEL_PERAN_ORANG_TUA } from "@/lib/constants/label";
 import { formatTanggal } from "@/lib/format";
@@ -93,7 +92,6 @@ export function RingkasanFormulir({ isian, tampilkanNik, keLangkah, dataSekolah 
           ["Kewarganegaraan", pilihan(isian.kewarganegaraan, LABEL_KEWARGANEGARAAN)],
           ["Anak ke-", isian.anak_ke],
           ["Saudara kandung, tiri, angkat", gabung(isian.jumlah_saudara_kandung, isian.jumlah_saudara_tiri, isian.jumlah_saudara_angkat)],
-          ["Status yatim/piatu", pilihan(isian.status_yatim_piatu, LABEL_STATUS_YATIM_PIATU)],
           ["Bahasa sehari-hari", isian.bahasa_sehari_hari],
           ["Asal sekolah", isian.asal_sekolah],
           ["Alamat", gabung(isian.alamat, isian.desa_kelurahan, isian.kecamatan, isian.kabupaten_kota, isian.provinsi)],

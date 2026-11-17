@@ -22,7 +22,7 @@ const LABEL_ANAK: Record<string, string> = {
   agama: "Agama",
   kewarganegaraan: "Kewarganegaraan",
   anak_ke: "Anak ke-",
-  status_yatim_piatu: "Status yatim/piatu",
+  status_yatim_piatu: "Keadaan ayah dan ibu",
   kontak_utama: "Kontak utama",
 };
 
@@ -53,7 +53,7 @@ function isKolomOrangTua(kolom: string): kolom is keyof IsianOrangTua {
 export function fieldKurang(field: string): { label: string; langkah: number } {
   const [peran, kolom] = field.split(".");
   if (kolom && isKolomOrangTua(kolom)) return { label: `${LABEL_ORANG_TUA[kolom]} ${peran}`, langkah: LANGKAH.orangTua };
-  return { label: LABEL_ANAK[field] ?? field, langkah: field === "kontak_utama" ? LANGKAH.orangTua : LANGKAH.dataAnak };
+  return { label: LABEL_ANAK[field] ?? field, langkah: field === "kontak_utama" || field === "status_yatim_piatu" ? LANGKAH.orangTua : LANGKAH.dataAnak };
 }
 
 type FieldIsian = Path<IsianFormulir>;
@@ -67,11 +67,11 @@ const KOLOM_ORANG_TUA = [
 export const FIELD_LANGKAH_FORMULIR: readonly (readonly FieldIsian[])[] = [
   [
     "nama_lengkap", "nama_panggilan", "jenis_kelamin", "tempat_lahir", "tanggal_lahir", "nik", "agama", "kewarganegaraan", "anak_ke",
-    "jumlah_saudara_kandung", "jumlah_saudara_tiri", "jumlah_saudara_angkat", "status_yatim_piatu", "bahasa_sehari_hari", "asal_sekolah",
+    "jumlah_saudara_kandung", "jumlah_saudara_tiri", "jumlah_saudara_angkat", "bahasa_sehari_hari", "asal_sekolah",
     "alamat", "desa_kelurahan", "kecamatan", "kabupaten_kota", "provinsi", "jarak_rumah_km",
   ],
   ["golongan_darah", "tinggi_badan", "berat_badan", "imunisasi", "imunisasi_lainnya", "riwayat_penyakit", "ciri_khusus"],
-  ["ayah", "ibu", "wali", "kontak_utama"],
+  ["status_yatim_piatu", "ayah", "ibu", "wali", "kontak_utama"],
   [],
 ];
 

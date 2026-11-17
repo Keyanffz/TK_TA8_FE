@@ -4,7 +4,12 @@ import { TaburanBintang, type PosisiBintang } from "@/components/shared/ornamen/
 import { PolaGeometri } from "@/components/shared/ornamen/pola-geometri";
 import { TepiBergelombang } from "@/components/shared/ornamen/tepi-bergelombang";
 
-type JudulHalamanProps = { judul: string; deskripsi?: ReactNode };
+type JudulHalamanProps = {
+  judul: string;
+  deskripsi?: ReactNode;
+  /** Warna tepi bergelombang, samakan dengan latar blok di bawahnya. */
+  warnaTepi?: string;
+};
 
 const BINTANG_JUDUL: readonly PosisiBintang[] = [
   { x: 82, y: 22, ukuran: 14, gerak: "kelip", tunda: 0 },
@@ -13,7 +18,7 @@ const BINTANG_JUDUL: readonly PosisiBintang[] = [
 ];
 
 /** Kepala halaman publik selain landing: pita hijau dengan tepi bergelombang. */
-export function JudulHalaman({ judul, deskripsi }: JudulHalamanProps) {
+export function JudulHalaman({ judul, deskripsi, warnaTepi = "text-background" }: JudulHalamanProps) {
   return (
     <div className="relative isolate overflow-hidden bg-primary text-primary-foreground">
       <PolaGeometri className="-z-10 text-primary-foreground/[0.07]" />
@@ -22,7 +27,7 @@ export function JudulHalaman({ judul, deskripsi }: JudulHalamanProps) {
         <h1 className="gerak-masuk-naik text-xl font-extrabold md:text-2xl">{judul}</h1>
         {deskripsi ? <div className="mt-3 max-w-prose text-primary-foreground/95">{deskripsi}</div> : null}
       </div>
-      <TepiBergelombang className="text-background" />
+      <TepiBergelombang className={warnaTepi} />
     </div>
   );
 }
