@@ -65,6 +65,7 @@ export function DaftarPpdbPublik() {
   return (
     <div className="rounded-xl border border-border border-t-4 border-t-primary bg-card p-5 shadow-md sm:p-8">
       <FormPendaftaran
+        kunciDraf="publik"
         kirim={async (nilai) => {
           const { data } = await ambilData(api.POST("/public/pendaftaran", { body: keBodyPendaftaran(nilai, false) }));
           return { pendaftaran: data, tanggalLahir: formatTanggal(nilai.tanggal_lahir) };

@@ -2,7 +2,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { Controller, FormProvider, useForm } from "react-hook-form";
 import { toast } from "sonner";
 
@@ -13,6 +13,7 @@ import { LangkahOrangTua } from "@/components/features/formulir-murid/langkah-or
 import { RingkasanFormulir } from "@/components/features/formulir-murid/ringkasan-formulir";
 import { WizardFormulir } from "@/components/features/formulir-murid/wizard-formulir";
 import { BerkasDibawa } from "@/components/features/ppdb/berkas-dibawa";
+import { useDrafPendaftaran } from "@/components/features/ppdb/draf-pendaftaran";
 import {
   buatSkemaPendaftaran,
   nilaiAwalPendaftaran,
@@ -21,6 +22,7 @@ import {
 } from "@/components/features/ppdb/skema-pendaftaran";
 import { KolomRadio } from "@/components/shared/kolom-radio";
 import { KotakPesan } from "@/components/shared/kotak-pesan";
+import { Button } from "@/components/ui/button";
 import { FieldError } from "@/components/ui/field";
 import { ApiError, pesanError, terapkanErrorValidasi } from "@/lib/api/errors";
 import { LABEL_TINGKAT, OPSI_HUBUNGAN } from "@/lib/constants/label";
@@ -29,6 +31,8 @@ const OPSI_TINGKAT = (["A", "B"] as const).map((nilai) => ({ nilai, label: LABEL
 const FIELD_TAMBAHAN = [["tingkat_tujuan"], [], ["hubungan"], ["pernyataan"]] as const;
 
 type FormPendaftaranProps<T> = {
+  /** Kunci draf isian di browser: satu per formulir dan per akun. */
+  kunciDraf: string;
   kirim: (nilai: NilaiPendaftaran) => Promise<T>;
   onBerhasil: (hasil: T) => void;
   /** Wali yang login: ada pertanyaan "Anda sebagai", nomor HP akunnya diisikan ke orang tua yang dipilih. */
@@ -39,16 +43,23 @@ type FormPendaftaranProps<T> = {
  * Form PPDB 4 langkah (A2.16), dipakai halaman publik (tanpa login) dan dashboard wali (kakak/adik). Tiap langkah
  * diperiksa sebelum lanjut; error dari backend membawa pengguna kembali ke langkah yang salah.
  */
-export function FormPendaftaran<T>({ kirim, onBerhasil, akun }: FormPendaftaranProps<T>) {
+export function FormPendaftaran<T>({ kunciDraf, kirim, onBerhasil, akun }: FormPendaftaranProps<T>) {
   const [langkah, setLangkah] = useState<number>(LANGKAH.dataAnak);
   const [pesanGagal, setPesanGagal] = useState<string | null>(null);
+  const [dipulihkan, setDipulihkan] = useState(false);
   const skema = useMemo(() => buatSkemaPendaftaran(akun !== undefined), [akun]);
+  const nilaiAwal = useMemo(() => nilaiAwalPendaftaran(akun?.alamat ?? ""), [akun?.alamat]);
   const form = useForm<MasukanPendaftaran, unknown, NilaiPendaftaran>({
     resolver: zodResolver(skema),
-    defaultValues: nilaiAwalPendaftaran(akun?.alamat ?? ""),
+    defaultValues: nilaiAwal,
     shouldUnregister: false,
   });
   const { errors } = form.formState;
+  const onPulih = useCallback((langkahDraf: number) => {
+    setLangkah(langkahDraf);
+    setDipulihkan(true);
+  }, []);
+  const { hapusDraf, mulaiDariAwal } = useDrafPendaftaran({ form, langkah, onPulih, kunci: kunciDraf, nilaiAwal });
 
   const keLangkahError = () => {
     const tujuan = langkahDenganError((field) => form.getFieldState(field).invalid, FIELD_TAMBAHAN);
@@ -57,7 +68,10 @@ export function FormPendaftaran<T>({ kirim, onBerhasil, akun }: FormPendaftaranP
 
   const mutation = useMutation({
     mutationFn: kirim,
-    onSuccess: onBerhasil,
+    onSuccess: (hasil) => {
+      hapusDraf();
+      onBerhasil(hasil);
+    },
     onError: (error) => {
       if (terapkanErrorValidasi(error, form.setError, [...SEMUA_FIELD_FORMULIR, "tingkat_tujuan", "hubungan", "pernyataan"])) {
         keLangkahError();
@@ -82,6 +96,23 @@ export function FormPendaftaran<T>({ kirim, onBerhasil, akun }: FormPendaftaranP
 
   return (
     <FormProvider {...form}>
+      {dipulihkan ? (
+        <div className="mb-5 flex flex-wrap items-center justify-between gap-x-4 gap-y-1 rounded-lg bg-highlight-soft py-1 pr-1 pl-4 text-sm">
+          <p>Isian sebelumnya dipulihkan. NIK perlu diisi lagi.</p>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              mulaiDariAwal();
+              setLangkah(LANGKAH.dataAnak);
+              setDipulihkan(false);
+            }}
+          >
+            Mulai dari awal
+          </Button>
+        </div>
+      ) : null}
       <WizardFormulir
         langkah={langkah}
         onPindah={setLangkah}

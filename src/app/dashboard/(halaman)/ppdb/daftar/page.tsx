@@ -19,7 +19,7 @@ export default async function DaftarPpdbWaliPage() {
         deskripsi={ppdb.tahun_ajaran ? `Pendaftaran murid baru Tahun Ajaran ${ppdb.tahun_ajaran.nama}.` : undefined}
       />
       <div className="rounded-xl border border-border bg-card p-5 shadow-sm sm:p-6">
-        <DaftarPpdbWali noHp={user.no_hp ?? ""} alamat={user.wali_murid?.alamat ?? ""} />
+        <DaftarPpdbWali idAkun={user.id} noHp={user.no_hp ?? ""} alamat={user.wali_murid?.alamat ?? ""} />
       </div>
     </div>
   );

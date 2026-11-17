@@ -11,12 +11,13 @@ import { api } from "@/lib/api/client";
 import { queryKeys } from "@/lib/api/query-keys";
 
 /** Kakak/adik didaftarkan wali yang masuk; kalau diterima, langsung tertaut ke akun ini (A2.3). */
-export function DaftarPpdbWali({ noHp, alamat }: { noHp: string; alamat: string }) {
+export function DaftarPpdbWali({ idAkun, noHp, alamat }: { idAkun: number; noHp: string; alamat: string }) {
   const router = useRouter();
   const queryClient = useQueryClient();
 
   return (
     <FormPendaftaran
+      kunciDraf={`wali-${idAkun}`}
       akun={{ noHp, alamat }}
       kirim={async (nilai) => (await ambilData(api.POST("/pendaftaran", { body: keBodyPendaftaran(nilai, true) }))).data}
       onBerhasil={async (pendaftaran) => {
