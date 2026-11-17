@@ -35,7 +35,7 @@ export const skemaOrangTua = z.object({
 
 export const isianFormulir = {
   nama_lengkap: z.string().trim().min(1, "Nama lengkap wajib diisi.").max(255, "Nama terlalu panjang."),
-  nama_panggilan: z.string().trim().min(1, "Nama panggilan wajib diisi.").max(50, "Maksimal 50 karakter."),
+  nama_panggilan: z.string().trim().min(1, "Nama panggilan wajib diisi.").max(50, "Maksimal 50 karakter.").regex(/^\S+$/, "Nama panggilan satu kata, tanpa spasi."),
   jenis_kelamin: z.enum(NILAI_ENUM.JenisKelamin, { error: "Pilih jenis kelamin." }),
   tempat_lahir: z.string().trim().min(1, "Tempat lahir wajib diisi.").max(100, "Maksimal 100 karakter."),
   tanggal_lahir: z.string().min(1, "Tanggal lahir wajib diisi.").refine((nilai) => nilai < hariIniJakarta(), "Tanggal lahir harus sebelum hari ini."),
@@ -84,6 +84,13 @@ export function sudahMeninggal(peran: Hubungan, status: StatusYatimPiatu | ""): 
   return false;
 }
 
+/** Status yatim/piatu tidak ditanyakan; backend tetap memintanya, jadi dihitung dari keadaan ayah dan ibu. */
+export function statusDariKeadaan(ayahMeninggal: boolean, ibuMeninggal: boolean): StatusYatimPiatu {
+  if (ayahMeninggal && ibuMeninggal) return "yatim_piatu";
+  if (ayahMeninggal) return "yatim";
+  return ibuMeninggal ? "piatu" : "tidak";
+}
+
 /** Orang yang bisa dipilih sebagai kontak utama: datanya ada, masih hidup, dan punya nomor HP. */
 export function kontakTersedia(isian: Kontak): Hubungan[] {
   return NILAI_ENUM.Hubungan.filter((peran) => {
@@ -100,7 +107,7 @@ const WAJIB_ANAK = [
   ["provinsi", "Provinsi wajib diisi."],
   ["kewarganegaraan", "Pilih kewarganegaraan."],
   ["anak_ke", "Anak ke- wajib diisi."],
-  ["status_yatim_piatu", "Pilih status yatim/piatu."],
+  ["status_yatim_piatu", "Pilih apakah ayah dan ibu masih hidup."],
 ] as const satisfies readonly (readonly [keyof IsianFormulir, string])[];
 
 const WAJIB_ORANG_TUA = [

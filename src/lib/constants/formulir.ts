@@ -8,18 +8,10 @@ import type {
   PendidikanTerakhir,
   Penghasilan,
   StatusOrangTua,
-  StatusYatimPiatu,
 } from "@/types/domain";
 import { NILAI_ENUM } from "@/types/enum-api";
 
 export const LABEL_KEWARGANEGARAAN: Record<Kewarganegaraan, string> = { wni: "WNI", wna: "WNA" };
-
-export const LABEL_STATUS_YATIM_PIATU: Record<StatusYatimPiatu, string> = {
-  tidak: "Tidak",
-  yatim: "Yatim (ayah sudah meninggal)",
-  piatu: "Piatu (ibu sudah meninggal)",
-  yatim_piatu: "Yatim piatu (ayah dan ibu sudah meninggal)",
-};
 
 export const LABEL_GOLONGAN_DARAH: Record<GolonganDarah, string> = { A: "A", B: "B", AB: "AB", O: "O", tidak_tahu: "Tidak tahu" };
 
@@ -87,7 +79,6 @@ function opsi<T extends string>(nilai: readonly T[], label: Record<T, string>): 
 /** Pilihan dropdown formulir data murid; nilainya dari enum api.json (`gen:api`), label dari konstanta di atas. */
 export const OPSI_AGAMA: Opsi<Agama>[] = NILAI_ENUM.Agama.map((nilai) => ({ nilai, label: nilai }));
 export const OPSI_KEWARGANEGARAAN = opsi(NILAI_ENUM.Kewarganegaraan, LABEL_KEWARGANEGARAAN);
-export const OPSI_STATUS_YATIM_PIATU = opsi(NILAI_ENUM.StatusYatimPiatu, LABEL_STATUS_YATIM_PIATU);
 export const OPSI_GOLONGAN_DARAH = opsi(NILAI_ENUM.GolonganDarah, LABEL_GOLONGAN_DARAH);
 export const OPSI_IMUNISASI = opsi(NILAI_ENUM.Imunisasi, LABEL_IMUNISASI);
 export const OPSI_STATUS_ORANG_TUA = opsi(NILAI_ENUM.StatusOrangTua, LABEL_STATUS_ORANG_TUA);

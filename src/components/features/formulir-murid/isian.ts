@@ -41,7 +41,10 @@ export const ORANG_TUA_KOSONG: IsianOrangTua = {
   no_hp: "",
 };
 
-/** Nilai awal form baru. Jenis kelamin sengaja tanpa nilai supaya pengisi memilihnya sendiri. */
+/**
+ * Nilai awal form baru. Jenis kelamin sengaja tanpa nilai supaya pengisi memilihnya sendiri. Status yatim/piatu
+ * "tidak" karena ayah dan ibu awalnya dianggap masih hidup; langkah Orang Tua yang mengubahnya.
+ */
 export const FORMULIR_KOSONG: Omit<IsianFormulir, "jenis_kelamin"> = {
   nama_lengkap: "",
   nama_panggilan: "",
@@ -60,7 +63,7 @@ export const FORMULIR_KOSONG: Omit<IsianFormulir, "jenis_kelamin"> = {
   jumlah_saudara_kandung: "0",
   jumlah_saudara_tiri: "0",
   jumlah_saudara_angkat: "0",
-  status_yatim_piatu: "",
+  status_yatim_piatu: "tidak",
   bahasa_sehari_hari: "",
   jarak_rumah_km: "",
   golongan_darah: "",

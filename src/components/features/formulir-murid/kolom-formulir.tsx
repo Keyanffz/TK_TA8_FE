@@ -25,14 +25,34 @@ function usePesanError(field: FieldFormulir) {
   return getFieldState(field, formState).error?.message;
 }
 
-type IsianTeksProps = Omit<ComponentProps<typeof KolomTeks>, "error" | "name"> & { field: FieldFormulir };
+export const hanyaAngka = (nilai: string) => nilai.replace(/\D/g, "");
+export const tanpaSpasi = (nilai: string) => nilai.replace(/\s/g, "");
 
-export function IsianTeks({ field, ...props }: IsianTeksProps) {
+type IsianTeksProps = Omit<ComponentProps<typeof KolomTeks>, "error" | "name"> & {
+  field: FieldFormulir;
+  /** Membersihkan isian saat diketik atau ditempel, sebelum masuk ke form. */
+  bersihkan?: (nilai: string) => string;
+};
+
+export function IsianTeks({ field, bersihkan, ...props }: IsianTeksProps) {
   const { register } = useIsianFormulir();
   const error = usePesanError(field);
   const tampil = useTampil();
   if (!tampil(field)) return null;
-  return <KolomTeks autoComplete="off" error={error} {...props} {...register(field)} />;
+  const daftar = register(field);
+  return (
+    <KolomTeks
+      autoComplete="off"
+      error={error}
+      {...props}
+      {...daftar}
+      onChange={(event) => {
+        const bersih = bersihkan?.(event.target.value);
+        if (bersih !== undefined && bersih !== event.target.value) event.target.value = bersih;
+        return daftar.onChange(event);
+      }}
+    />
+  );
 }
 
 export function IsianArea({ field, ...props }: Omit<ComponentProps<typeof KolomArea>, "error" | "name"> & { field: FieldFormulir }) {
