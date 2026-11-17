@@ -48,7 +48,7 @@ function BuktiPendaftaran({ pendaftaran, tanggalLahir }: Hasil) {
         </div>
       </dl>
       <BerkasDibawa className="mt-4" />
-      <p className="mt-4 text-sm text-muted-foreground">Sekolah menghubungi Anda lewat nomor HP yang diisi.</p>
+      <p className="mt-4 text-sm text-muted-foreground">Sekolah menghubungi kontak utama lewat nomor HP yang diisi.</p>
       <Link href={urlStatus} className={buttonVariants({ size: "lg", className: "mt-6" })}>
         Cek Status Pendaftaran
       </Link>
@@ -65,7 +65,7 @@ export function DaftarPpdbPublik() {
   return (
     <FormPendaftaran
       kirim={async (nilai) => {
-        const { data } = await ambilData(api.POST("/public/pendaftaran", { body: keBodyPendaftaran(nilai) }));
+        const { data } = await ambilData(api.POST("/public/pendaftaran", { body: keBodyPendaftaran(nilai, false) }));
         return { pendaftaran: data, tanggalLahir: formatTanggal(nilai.tanggal_lahir) };
       }}
       onBerhasil={(baru) => {

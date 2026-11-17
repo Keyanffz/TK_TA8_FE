@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { berkasBelumDiterima } from "@/components/features/formulir-murid/berkas-fisik";
 import { KolomPilih } from "@/components/shared/kolom-teks";
 import { KotakPesan } from "@/components/shared/kotak-pesan";
 import { Button } from "@/components/ui/button";
@@ -16,6 +17,7 @@ import type { PendaftaranDetail } from "@/types/domain";
 /**
  * Terima pendaftaran dengan kelas opsional (A7 `POST /pendaftaran/{id}/terima`). Pilihan kelas hanya
  * kelas di tahun ajaran tujuan; kelas dengan kelompok yang sama didahulukan, kelas penuh tidak bisa dipilih.
+ * Berkas yang belum dicentang hanya diberi peringatan, tidak menahan penerimaan.
  */
 export function DialogTerima({ pendaftaran }: { pendaftaran: PendaftaranDetail }) {
   const [terbuka, setTerbuka] = useState(false);
@@ -23,6 +25,7 @@ export function DialogTerima({ pendaftaran }: { pendaftaran: PendaftaranDetail }
   const [galat, setGalat] = useState<string | null>(null);
   const kelas = useDaftarKelas(pendaftaran.tahun_ajaran.id);
   const terima = useTerimaPendaftaran(pendaftaran.id);
+  const belumDiterima = berkasBelumDiterima(pendaftaran.berkas);
   const pilihan = [...(kelas.data ?? [])].sort(
     (a, b) => Number(b.tingkat === pendaftaran.tingkat_tujuan) - Number(a.tingkat === pendaftaran.tingkat_tujuan),
   );
@@ -57,9 +60,15 @@ export function DialogTerima({ pendaftaran }: { pendaftaran: PendaftaranDetail }
             Data murid dibuat tanpa NIS untuk Tahun Ajaran {pendaftaran.tahun_ajaran.nama}.{" "}
             {pendaftaran.wali
               ? `Murid langsung tertaut ke akun ${pendaftaran.wali.nama}.`
-              : "Akun wali dibuat setelah Anda mengisi NIS murid ini, memakai hubungan dan nomor HP dari formulir."}
+              : "Akun wali dibuat setelah Anda mengisi NIS murid ini, memakai nama dan nomor HP kontak utama dari formulir."}
           </DialogDescription>
         </DialogHeader>
+        {belumDiterima.length > 0 ? (
+          <KotakPesan nada="menunggu" judul="Berkas belum lengkap">
+            {belumDiterima.join(" dan ")} belum dicentang diterima. Pendaftar tetap bisa diterima; centang berkasnya di halaman murid setelah
+            berkas dibawa ke sekolah.
+          </KotakPesan>
+        ) : null}
         <KolomPilih
           label="Kelas (opsional)"
           deskripsi="Kosongkan kalau kelas ditentukan nanti di menu Kelas."

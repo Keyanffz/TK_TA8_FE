@@ -7,8 +7,9 @@ import type { PendaftaranPublik, StatusPendaftaran } from "@/types/domain";
 
 const PESAN_STATUS: Record<Exclude<StatusPendaftaran, "ditolak">, string> = {
   diajukan: "Formulir sudah masuk. Bawa akta kelahiran, Kartu Keluarga, dan pas foto anak ke sekolah untuk diperiksa.",
-  diverifikasi: "Berkas sudah diperiksa sekolah. Tunggu keputusan akhir.",
+  diverifikasi: "Data formulir sudah diperiksa sekolah. Tunggu keputusan akhir.",
   diterima: "Selamat, pendaftaran diterima. Silakan datang ke sekolah untuk daftar ulang dan menerima kartu akun.",
+  mengundurkan_diri: "Pendaftaran ini dicatat mengundurkan diri. Hubungi sekolah kalau ingin mendaftar lagi.",
 };
 
 export function HasilStatusPpdb({ pendaftaran }: { pendaftaran: PendaftaranPublik }) {

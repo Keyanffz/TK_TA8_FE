@@ -11,17 +11,20 @@ import { StatusBadge } from "@/components/shared/status-badge";
 import { TabelData } from "@/components/shared/tabel-data";
 import { buttonVariants } from "@/components/ui/button";
 import { useDaftarPendaftaran } from "@/lib/api/ppdb";
-import { LABEL_STATUS_PENDAFTARAN, LABEL_TINGKAT } from "@/lib/constants/label";
+import { LABEL_HUBUNGAN, LABEL_STATUS_PENDAFTARAN, LABEL_TINGKAT } from "@/lib/constants/label";
 import { NADA_STATUS_PENDAFTARAN } from "@/lib/constants/status";
 import { formatTanggal } from "@/lib/format";
 import type { Pendaftaran } from "@/types/domain";
 
-const TAB = ["diajukan", "diverifikasi", "diterima", "ditolak", "semua"] as const;
-const LABEL_TAB = { diajukan: "Baru", diverifikasi: "Berkas OK", diterima: "Diterima", ditolak: "Ditolak", semua: "Semua" } as const;
-
-function orangTua(pendaftaran: Pendaftaran): string {
-  return [pendaftaran.nama_ayah, pendaftaran.nama_ibu].filter(Boolean).join(" & ") || "-";
-}
+const TAB = ["diajukan", "diverifikasi", "diterima", "ditolak", "mengundurkan_diri", "semua"] as const;
+const LABEL_TAB = {
+  diajukan: "Baru",
+  diverifikasi: "Diverifikasi",
+  diterima: "Diterima",
+  ditolak: "Ditolak",
+  mengundurkan_diri: "Mengundurkan diri",
+  semua: "Semua",
+} as const;
 
 const KOLOM: ColumnDef<Pendaftaran>[] = [
   {
@@ -37,8 +40,8 @@ const KOLOM: ColumnDef<Pendaftaran>[] = [
     ),
   },
   { id: "tingkat", header: "Kelompok", cell: ({ row }) => LABEL_TINGKAT[row.original.tingkat_tujuan] },
-  { id: "ortu", header: "Orang tua", cell: ({ row }) => orangTua(row.original) },
-  { id: "hp", header: "Nomor HP", cell: ({ row }) => <span className="tabular-nums">{row.original.no_hp}</span> },
+  { id: "lahir", header: "Tanggal lahir", cell: ({ row }) => formatTanggal(row.original.tanggal_lahir) },
+  { id: "jalur", header: "Pendaftar", cell: ({ row }) => (row.original.hubungan ? `Akun wali (${LABEL_HUBUNGAN[row.original.hubungan].toLowerCase()})` : "Tanpa akun") },
   { id: "daftar", header: "Mendaftar", cell: ({ row }) => (row.original.created_at ? formatTanggal(row.original.created_at) : "-") },
   {
     id: "status",
@@ -56,7 +59,10 @@ const KOLOM: ColumnDef<Pendaftaran>[] = [
   },
 ];
 
-/** Pendaftar PPDB per status (Kepala Sekolah). Tab "Baru" = diajukan, belum diperiksa. */
+/**
+ * Pendaftar PPDB per status (Kepala Sekolah). Tab "Baru" = diajukan, belum diperiksa. Tab "Semua" tidak memuat
+ * pendaftar yang mengundurkan diri (backend menyembunyikannya tanpa saringan status); mereka ada di tab sendiri.
+ */
 export function DaftarPendaftar() {
   const [tab, setTab] = useQueryState("status", parseAsStringLiteral(TAB).withDefault("diajukan"));
   const [cari, setCari] = useQueryState("cari", parseAsString.withDefault(""));
@@ -119,7 +125,7 @@ export function DaftarPendaftar() {
               <StatusBadge nada={NADA_STATUS_PENDAFTARAN[item.status]}>{LABEL_STATUS_PENDAFTARAN[item.status]}</StatusBadge>
             </span>
             <span className="text-sm text-muted-foreground">
-              {LABEL_TINGKAT[item.tingkat_tujuan]} · {orangTua(item)} · <span className="tabular-nums">{item.no_hp}</span>
+              {LABEL_TINGKAT[item.tingkat_tujuan]} · Lahir {formatTanggal(item.tanggal_lahir)}
             </span>
           </Link>
         )}
