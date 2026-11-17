@@ -5,6 +5,7 @@ import ts from "typescript";
 
 const specPath = process.env.API_SPEC_PATH;
 const OUTPUT = "src/types/api.d.ts";
+const OUTPUT_ENUM = "src/types/enum-api.ts";
 
 if (!specPath) {
   console.error(
@@ -30,11 +31,31 @@ function transform(schemaObject) {
   return bolehNull ? ts.factory.createUnionTypeNode([BLOB, NULL]) : BLOB;
 }
 
+// Nilai enum di components.schemas untuk pilihan dropdown. Opsi `enumValues` openapi-typescript tidak dipakai
+// karena ikut membuat ratusan konstanta kode error per endpoint, dan api.d.ts tidak boleh berisi nilai runtime.
+function berkasEnum(spek) {
+  const daftar = Object.entries(spek.components?.schemas ?? {}).filter(([, skema]) => Array.isArray(skema.enum));
+  const isi = daftar.map(([nama, skema]) => `  ${nama}: ${JSON.stringify(skema.enum)},`).join("\n");
+  const nama = daftar.map(([nama]) => JSON.stringify(nama)).join(" | ");
+  return [
+    "// Dibuat `npm run gen:api` dari enum di components.schemas api.json backend. Jangan diedit manual.",
+    'import type { components } from "@/types/api";',
+    "",
+    'type Skema = components["schemas"];',
+    "",
+    "export const NILAI_ENUM = {",
+    isi,
+    `} as const satisfies { readonly [Nama in ${nama}]: readonly Skema[Nama][] };`,
+    "",
+  ].join("\n");
+}
+
 try {
-  const sumber = isUrl ? new URL(specPath) : readFileSync(specPath, "utf8");
+  const sumber = isUrl ? await (await fetch(specPath)).text() : readFileSync(specPath, "utf8");
   const ast = await openapiTS(sumber, { transform });
   writeFileSync(OUTPUT, COMMENT_HEADER + astToString(ast));
-  process.stdout.write(`${specPath} → ${OUTPUT}\n`);
+  writeFileSync(OUTPUT_ENUM, berkasEnum(JSON.parse(sumber)));
+  process.stdout.write(`${specPath} → ${OUTPUT}, ${OUTPUT_ENUM}\n`);
 } catch (penyebab) {
   console.error(`openapi-typescript gagal: ${penyebab instanceof Error ? penyebab.message : String(penyebab)}`);
   process.exit(1);

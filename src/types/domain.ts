@@ -32,6 +32,16 @@ export type StatusAbsensiMurid = Schemas["StatusAbsensiMurid"];
 export type ModulIzin = Schemas["ModulIzin"];
 export type LevelIzin = Schemas["LevelIzin"];
 export type PresetIzin = Schemas["PresetIzin"];
+export type Agama = Schemas["Agama"];
+export type Kewarganegaraan = Schemas["Kewarganegaraan"];
+export type StatusYatimPiatu = Schemas["StatusYatimPiatu"];
+export type GolonganDarah = Schemas["GolonganDarah"];
+export type Imunisasi = Schemas["Imunisasi"];
+export type StatusOrangTua = Schemas["StatusOrangTua"];
+export type HubunganWali = Schemas["HubunganWali"];
+export type PendidikanTerakhir = Schemas["PendidikanTerakhir"];
+export type Pekerjaan = Schemas["Pekerjaan"];
+export type Penghasilan = Schemas["Penghasilan"];
 
 // A5 punya StatusKelasMurid, tetapi api.json tidak mengekspornya sebagai skema tersendiri.
 export type StatusKelasMurid = "aktif" | "naik" | "tinggal" | "lulus" | "keluar";
@@ -68,6 +78,9 @@ export type ElemenPenilaian = Schemas["ElemenPenilaianResource"];
 export type Pendaftaran = Schemas["PendaftaranResource"];
 export type PendaftaranDetail = Schemas["PendaftaranDetailResource"];
 export type PendaftaranPublik = Schemas["PendaftaranPublikResource"];
+/** Isian ayah, ibu, atau wali dari formulir data murid (`orang_tua` di detail murid dan pendaftaran). */
+export type OrangTua = Schemas["OrangTuaResource"];
+export type BerkasFisik = Schemas["BerkasFisikResource"];
 export type Absensi = Schemas["AbsensiResource"];
 export type AksesAbsenSusulan = Schemas["AksesAbsenSusulanResource"];
 export type RiwayatStatusMurid = MuridDetail["riwayat_status"][number];

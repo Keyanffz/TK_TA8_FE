@@ -47,6 +47,7 @@ export const NADA_STATUS_PENDAFTARAN: Record<StatusPendaftaran, NadaStatus> = {
   diverifikasi: "proses",
   diterima: "sukses",
   ditolak: "bahaya",
+  mengundurkan_diri: "netral",
 };
 
 export const NADA_STATUS_AKUN: Record<StatusAkun, NadaStatus> = {
