@@ -18,6 +18,8 @@ type DialogKonfirmasiProps = {
   berbahaya?: boolean;
   /** Minta alasan (wajib diisi), misalnya tolak pendaftaran PPDB atau batalkan tagihan. */
   labelAlasan?: string;
+  /** Alasan boleh dikosongkan, misalnya pendaftar mengundurkan diri. */
+  alasanOpsional?: boolean;
   onKonfirmasi: (alasan: string) => Promise<unknown>;
 };
 
@@ -25,7 +27,7 @@ type DialogKonfirmasiProps = {
  * Konfirmasi sebelum aksi yang sulit dibatalkan (B2: ConfirmDialog). Error dari
  * backend ditampilkan di dalam dialog supaya pengguna tahu kenapa aksi gagal.
  */
-export function DialogKonfirmasi({ pemicu, judul, deskripsi, labelAksi, berbahaya, labelAlasan, onKonfirmasi }: DialogKonfirmasiProps) {
+export function DialogKonfirmasi({ pemicu, judul, deskripsi, labelAksi, berbahaya, labelAlasan, alasanOpsional, onKonfirmasi }: DialogKonfirmasiProps) {
   const idAlasan = useId();
   const [terbuka, setTerbuka] = useState(false);
   const [alasan, setAlasan] = useState("");
@@ -43,7 +45,7 @@ export function DialogKonfirmasi({ pemicu, judul, deskripsi, labelAksi, berbahay
   };
 
   const jalankan = async () => {
-    if (labelAlasan && alasan.trim() === "") {
+    if (labelAlasan && !alasanOpsional && alasan.trim() === "") {
       setGalatAlasan(`${labelAlasan} wajib diisi.`);
       return;
     }
