@@ -61,7 +61,7 @@ export function DetailMurid({ id, bisaKelola, bisaKelolaWali, bisaIsiNis, tagiha
         <section className="rounded-xl border border-border bg-card p-5 shadow-sm">
           <div className="flex flex-wrap items-center gap-4">
             <FotoProfil nama={murid.nama_lengkap} url={murid.foto_url} ukuran={80} className="size-20 text-xl" />
-            <div className="min-w-0 flex-1">
+            <div className="min-w-0 flex-1 basis-64">
               <h1 className="font-heading text-xl leading-tight font-extrabold">{murid.nama_lengkap}</h1>
               <p className="text-muted-foreground">
                 {murid.nama_panggilan}

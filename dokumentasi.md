@@ -50,6 +50,7 @@ Website publik dan dashboard sistem informasi TK Tarbiyatul Athfal 8 (TK Muslima
 | Pratinjau dan foto kamera absensi dicerminkan (branch `fe/update-kamera`) | Selesai, di-merge (PR #40); lint, typecheck, build, `check:slop`, absen masuk diuji di Chrome dengan kamera tiruan dan backend asli; belum diuji di HP sungguhan |
 | NIS murid diisi Kepala Sekolah: halaman Murid Menunggu NIS (tabel dan Excel), isi/ubah NIS di detail murid, NIS kosong tampil "-" (branch `fe/nis-manual`; backend `be/nis-manual`) | Selesai, di-merge (PR #41; backend #34); lint, typecheck, build, `check:slop`, dicek di browser bawaan app dengan backend dan database uji (lihat Changelog) |
 | Formulir data murid sesuai formulir resmi sekolah (branch `fe/formulir-murid`; backend `be/formulir-murid`) | Selesai, menunggu review. Lint, typecheck, build, `check:slop` bersih; belum dicek di browser (dicek pemilik repo) |
+| Perbaikan dua temuan sedang review tampilan 17 November (branch `fe/perbaikan-review-tampilan`) | Selesai, menunggu review. Kepala detail murid di layar 1280px tidak lagi menimpa nama (kolom nama diberi `basis-64`); kartu daftar murid di mobile menaruh badge di baris sendiri supaya nama dan NIS tidak terpotong. Lint, typecheck, `check:slop` bersih; dicek di Chrome headless 390px dan 1280px. 12 temuan kecil lain belum dikerjakan (lihat `~/review-tk/2026-11-17/RINGKASAN.md`) |
 
 Mode mock tidak dipakai: `api.json` final dari backend sudah tersedia sejak Fase 1, jadi semua request memakai backend asli dan tipe hasil generate. Tidak ada endpoint mock.
 
