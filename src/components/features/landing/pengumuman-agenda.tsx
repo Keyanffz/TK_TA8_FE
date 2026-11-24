@@ -22,16 +22,7 @@ export function BagianPengumumanAgenda({ pengumuman, agenda }: PengumumanAgendaP
     <section aria-label="Pengumuman dan agenda">
       <div className="mx-auto grid max-w-6xl gap-14 px-4 py-16 sm:px-6 md:grid-cols-[1.2fr_1fr] md:py-24">
         <div>
-          <JudulBagian
-            id="judul-pengumuman"
-            judul="Pengumuman"
-            aksi={
-              <Link href="/pengumuman" className="group inline-flex items-center gap-1 font-heading font-bold text-primary-strong hover:underline">
-                Semua pengumuman
-                <ArrowRight aria-hidden="true" className="size-4 transition-transform duration-200 group-hover:translate-x-1" />
-              </Link>
-            }
-          />
+          <JudulBagian id="judul-pengumuman" judul="Pengumuman" />
           {pengumuman.length === 0 ? (
             <p className="text-muted-foreground">Belum ada pengumuman untuk umum.</p>
           ) : (
@@ -58,6 +49,10 @@ export function BagianPengumumanAgenda({ pengumuman, agenda }: PengumumanAgendaP
               ))}
             </Muncul>
           )}
+          <Link href="/pengumuman" className="group mt-6 inline-flex min-h-11 items-center gap-1 font-heading font-bold text-primary-strong hover:underline">
+            Semua pengumuman
+            <ArrowRight aria-hidden="true" className="size-4 panah-melesat" />
+          </Link>
         </div>
 
         <div>
