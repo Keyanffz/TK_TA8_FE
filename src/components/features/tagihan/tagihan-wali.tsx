@@ -30,8 +30,8 @@ function KartuTagihanWali({ tagihan }: { tagihan: Tagihan }) {
     <Link
       href={`/dashboard/tagihan/${tagihan.id}`}
       className={cn(
-        "angkat flex min-h-20 items-center gap-3 rounded-xl border-2 bg-card p-4 shadow-sm",
-        terlambat ? "border-destructive" : terbuka ? "border-primary" : "border-border",
+        "kartu-tautan flex min-h-20 items-center gap-3 rounded-xl border-2 bg-card p-4 shadow-sm",
+        terlambat ? "border-destructive [--warna-sorot:var(--color-destructive)]" : terbuka ? "border-primary" : "border-border",
       )}
     >
       <span className="min-w-0 flex-1">

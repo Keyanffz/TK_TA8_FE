@@ -69,7 +69,7 @@ export function PitaPpdb({ tahunAjaran, tanggalTutup, kuota, sisaKuota }: PitaPp
             className="group inline-flex items-center gap-1 rounded-md bg-primary-deep px-4 py-3 font-heading text-sm font-bold text-primary-foreground"
           >
             Lihat Info PPDB
-            <ArrowRight aria-hidden="true" className="size-4 transition-transform duration-200 group-hover:translate-x-1" />
+            <ArrowRight aria-hidden="true" className="size-4 panah-melesat" />
           </Link>
         </div>
       </Muncul>

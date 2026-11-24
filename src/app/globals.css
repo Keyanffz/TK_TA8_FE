@@ -240,16 +240,50 @@
     scrollbar-color: color-mix(in oklab, currentColor 45%, transparent) transparent;
   }
 
-  /* Umpan balik hover yang cepat, tetap ada walau gerak dekoratif dimatikan. */
-  .angkat {
+  /* Kartu yang bisa disentuh tidak naik atau bergeser. Kartu sedikit mengecil saat ditekan (satu-satunya umpan
+     balik di HP yang tidak punya hover), dan di desktop isinya yang bereaksi sesuai jenis kartu:
+     - kartu-tautan: garis --warna-sorot tumbuh di tepi bawah seperti digaris spidol.
+     - kartu-foto: foto cetak yang miring menjadi lurus dan fotonya mendekat di dalam bingkai. Di galeri landing
+       yang berjalan, seluruh kartu ikut maju dan membesar di atas foto sebelahnya. */
+  .kartu-tautan,
+  .kartu-foto {
     transition:
-      transform 220ms cubic-bezier(0.34, 1.56, 0.64, 1),
-      rotate 220ms cubic-bezier(0.34, 1.56, 0.64, 1),
-      box-shadow 220ms ease-out;
+      scale 150ms ease-out,
+      rotate 300ms cubic-bezier(0.34, 1.56, 0.64, 1),
+      box-shadow 200ms ease-out;
   }
-  .angkat:hover {
-    transform: translateY(-4px) rotate(var(--miring-hover, -0.6deg));
-    box-shadow: var(--shadow-md);
+  :is(a, button).kartu-tautan:active,
+  :is(a, button).kartu-foto:active {
+    scale: 0.98;
+  }
+  .kartu-tautan {
+    position: relative;
+    overflow: hidden;
+  }
+  .kartu-tautan::after {
+    content: "";
+    position: absolute;
+    inset: auto 0 0;
+    height: 4px;
+    background: var(--warna-sorot, var(--color-primary));
+    scale: 0 1;
+    transform-origin: left;
+    transition: scale 320ms cubic-bezier(0.22, 1, 0.36, 1);
+    pointer-events: none;
+  }
+  .kartu-tautan:focus-visible::after {
+    scale: 1 1;
+  }
+  .kartu-foto img {
+    transition: scale 600ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  @media (hover: hover) {
+    .kartu-tautan:hover::after {
+      scale: 1 1;
+    }
+    .kartu-foto:hover {
+      box-shadow: var(--shadow-md);
+    }
   }
 
   [data-muncul] > :nth-child(2) { --i: 1; }
@@ -281,6 +315,43 @@
   .gerak-ayun {
     transform-origin: top center;
     animation: ayun var(--durasi, 3.6s) ease-in-out var(--tunda, 0s) infinite;
+  }
+  @media (hover: hover) {
+    .kartu-foto:hover img {
+      scale: 1.07;
+    }
+    .jalur-galeri > li:hover {
+      z-index: 1;
+    }
+    .jalur-galeri .kartu-foto:hover {
+      scale: 1.15;
+    }
+  }
+  .kartu-foto:focus-visible img {
+    scale: 1.07;
+  }
+  /* Panah di tautan "lihat semua" melesat keluar ke kanan lalu masuk lagi dari kiri, sekali tiap disentuh. */
+  .group:is(:hover, :focus-visible) .panah-melesat {
+    animation: melesat 460ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  /* Galeri landing berjalan terus ke kiri dan berhenti saat disentuh kursor atau difokus, supaya foto bisa diklik. */
+  .jalur-galeri {
+    animation: jalan-galeri var(--durasi, 60s) linear infinite;
+  }
+  .jalur-galeri .kartu-foto {
+    transition:
+      scale 380ms cubic-bezier(0.34, 1.4, 0.64, 1),
+      rotate 300ms cubic-bezier(0.34, 1.56, 0.64, 1),
+      box-shadow 200ms ease-out;
+  }
+  .jalur-galeri .kartu-foto:focus-visible {
+    scale: 1.15;
+  }
+  .jalur-galeri > li:focus-within {
+    z-index: 1;
+  }
+  .jalur-galeri:is(:hover, :focus-within) {
+    animation-play-state: paused;
   }
   .putar-saat-hover {
     transition: rotate 600ms cubic-bezier(0.34, 1.56, 0.64, 1);
@@ -421,6 +492,29 @@
   }
   50% {
     rotate: 4deg;
+  }
+}
+@keyframes melesat {
+  0% {
+    translate: 0 0;
+    opacity: 1;
+  }
+  45% {
+    translate: 0.75em 0;
+    opacity: 0;
+  }
+  46% {
+    translate: -0.75em 0;
+    opacity: 0;
+  }
+  100% {
+    translate: 0 0;
+    opacity: 1;
+  }
+}
+@keyframes jalan-galeri {
+  to {
+    translate: -50% 0;
   }
 }
 @keyframes lompat {

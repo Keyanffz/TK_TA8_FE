@@ -102,7 +102,7 @@ export function KartuTagihan({ namaAnak, tagihan, totalBelumBayar }: KartuTagiha
         <div className="mt-4 flex flex-col gap-2 sm:flex-row">
           <Link href="/dashboard/tagihan" className={buttonVariants({ size: "lg", variant: adaTerlambat ? "destructive" : "default", className: "group" })}>
             Lihat Tagihan
-            <ArrowRight aria-hidden="true" className="transition-transform duration-200 group-hover:translate-x-1" />
+            <ArrowRight aria-hidden="true" className="panah-melesat" />
           </Link>
           <Link href="/dashboard/pembayaran" className={buttonVariants({ size: "lg", variant: "outline" })}>
             Riwayat Pembayaran

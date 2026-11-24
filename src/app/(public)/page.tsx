@@ -10,25 +10,26 @@ import { BagianProfil } from "@/components/features/landing/profil-sekolah";
 import { BagianProgram } from "@/components/features/landing/program";
 import {
   ambilAgendaMendatang,
-  ambilDaftarGaleri,
   ambilDaftarPengumuman,
+  ambilFotoGaleriTerbaru,
   ambilGuruPublik,
   ambilPpdbPublik,
   ambilProfilSekolah,
 } from "@/lib/api/publik";
 
 const JUMLAH_PENGUMUMAN = 3;
-const JUMLAH_ALBUM = 5;
+const JUMLAH_ALBUM = 6;
+const MAKS_FOTO_GALERI = 16;
 const JUMLAH_AGENDA = 4;
 const JABATAN_KEPALA_SEKOLAH = "Kepala Sekolah";
 
 export default async function LandingPage() {
-  const [profil, guru, ppdb, pengumuman, galeri, agenda] = await Promise.all([
+  const [profil, guru, ppdb, pengumuman, fotoGaleri, agenda] = await Promise.all([
     ambilProfilSekolah(),
     ambilGuruPublik(),
     ambilPpdbPublik(),
     ambilDaftarPengumuman(1, JUMLAH_PENGUMUMAN),
-    ambilDaftarGaleri(1, JUMLAH_ALBUM),
+    ambilFotoGaleriTerbaru(JUMLAH_ALBUM, MAKS_FOTO_GALERI),
     ambilAgendaMendatang(JUMLAH_AGENDA),
   ]);
   const kepalaSekolah = guru.find((orang) => orang.jabatan === JABATAN_KEPALA_SEKOLAH) ?? null;
@@ -50,7 +51,7 @@ export default async function LandingPage() {
       {profil.keunggulan.length > 0 ? <BagianKeunggulan keunggulan={profil.keunggulan} /> : null}
       {profil.fasilitas.length > 0 ? <BagianFasilitas fasilitas={profil.fasilitas} /> : null}
       {adaGuruBerfoto ? <BagianGuru guru={guru} /> : null}
-      {galeri.data.length > 0 ? <GaleriTerbaru album={galeri.data} /> : null}
+      {fotoGaleri.length > 0 ? <GaleriTerbaru foto={fotoGaleri} /> : null}
       <BagianPengumumanAgenda pengumuman={pengumuman.data} agenda={agenda} />
       <BagianKontak profil={profil} />
     </>

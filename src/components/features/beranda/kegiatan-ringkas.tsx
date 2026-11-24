@@ -32,8 +32,8 @@ export function KegiatanRingkas({ kegiatan, beranda, tampilkanKelas = false }: K
           <li key={item.id} className="w-56 shrink-0 snap-start sm:w-auto">
             <Link
               href={`${beranda}/kegiatan/${item.id}`}
-              className="angkat flex h-full flex-col rounded-md border border-border bg-card p-2 shadow-sm rotate-(--miring) hover:rotate-0"
-              style={{ "--miring": KEMIRINGAN[indeks % KEMIRINGAN.length], "--miring-hover": "0deg" } as CSSProperties}
+              className="kartu-foto flex h-full flex-col rounded-md border border-border bg-card p-2 shadow-sm rotate-(--miring) hover:rotate-0"
+              style={{ "--miring": KEMIRINGAN[indeks % KEMIRINGAN.length] } as CSSProperties}
             >
               <span className="relative block aspect-[4/3] overflow-hidden rounded-sm bg-primary-soft">
                 {foto ? (

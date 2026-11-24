@@ -41,7 +41,7 @@ export function PerluTindakan({ tertunda }: { tertunda: Tertunda }) {
               <Link
                 href={href}
                 className={cn(
-                  "angkat group flex h-full flex-col rounded-xl p-4 shadow-sm",
+                  "kartu-tautan group flex h-full flex-col rounded-xl p-4 shadow-sm",
                   ada ? "bg-highlight text-highlight-foreground" : "bg-card text-muted-foreground",
                 )}
               >
@@ -51,7 +51,7 @@ export function PerluTindakan({ tertunda }: { tertunda: Tertunda }) {
                 </span>
                 <span className="mt-2 flex flex-1 items-end gap-1 text-sm font-bold">
                   {label}
-                  <ArrowRight aria-hidden="true" className="ml-auto size-4 shrink-0 transition-transform duration-200 group-hover:translate-x-1" />
+                  <ArrowRight aria-hidden="true" className="ml-auto size-4 shrink-0 panah-melesat" />
                 </span>
               </Link>
             </li>
