@@ -115,7 +115,11 @@ export function FormPendaftaran<T>({ kunciDraf, kirim, onBerhasil, akun }: FormP
       ) : null}
       <WizardFormulir
         langkah={langkah}
-        onPindah={setLangkah}
+        onPindah={(tujuan) => {
+          // Pesan pemulihan cukup terlihat di langkah pertama yang dibuka; setelah pindah langkah tidak perlu lagi.
+          setDipulihkan(false);
+          setLangkah(tujuan);
+        }}
         periksaLangkah={() => form.trigger([...FIELD_LANGKAH_FORMULIR[langkah], ...FIELD_TAMBAHAN[langkah]], { shouldFocus: true })}
         onKirim={() => void kirimForm()}
         memproses={mutation.isPending}
