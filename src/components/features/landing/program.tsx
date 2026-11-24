@@ -7,8 +7,8 @@ import type { ItemBerikon } from "@/lib/api/pengaturan";
 import { IKON_CMS } from "@/lib/constants/ikon-cms";
 import { cn } from "@/lib/utils";
 
-// Kartu program bergantian hijau dan kuning, sedikit miring seperti kartu
-// yang ditempel di papan kelas; lurus dan terangkat saat disentuh.
+// Kartu program bergantian hijau dan kuning, sedikit miring seperti kartu yang
+// ditempel di papan kelas. Kartu ini bukan tautan, jadi tidak diberi efek hover.
 const GAYA_KARTU = [
   { kelas: "bg-primary text-primary-foreground", perisai: "text-highlight", ikon: "text-highlight-foreground", miring: "-1.2deg" },
   { kelas: "bg-highlight text-highlight-foreground", perisai: "text-primary", ikon: "text-primary-foreground", miring: "1.2deg" },
@@ -26,12 +26,12 @@ export function BagianProgram({ program }: { program: ItemBerikon[] }) {
             return (
               <article
                 key={item.judul}
-                className={cn("angkat group flex gap-5 rounded-xl p-6 rotate-(--miring) hover:rotate-0 md:p-8", gaya.kelas)}
-                style={{ "--miring": gaya.miring, "--miring-hover": "0deg" } as CSSProperties}
+                className={cn("flex gap-5 rounded-xl p-6 rotate-(--miring) md:p-8", gaya.kelas)}
+                style={{ "--miring": gaya.miring } as CSSProperties}
               >
                 {Ikon ? (
                   <span className="relative flex size-16 shrink-0 items-center justify-center">
-                    <BentukPerisai className={cn("absolute inset-0 transition-[rotate] duration-500 group-hover:rotate-45", gaya.perisai)} />
+                    <BentukPerisai className={cn("absolute inset-0", gaya.perisai)} />
                     <Ikon aria-hidden="true" className={cn("relative size-7", gaya.ikon)} strokeWidth={2} />
                   </span>
                 ) : null}

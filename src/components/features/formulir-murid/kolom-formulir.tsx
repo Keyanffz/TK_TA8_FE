@@ -27,6 +27,7 @@ function usePesanError(field: FieldFormulir) {
 
 export const hanyaAngka = (nilai: string) => nilai.replace(/\D/g, "");
 export const tanpaSpasi = (nilai: string) => nilai.replace(/\s/g, "");
+export const angkaDesimal = (nilai: string) => nilai.replace(/[^\d.,]/g, "");
 
 type IsianTeksProps = Omit<ComponentProps<typeof KolomTeks>, "error" | "name"> & {
   field: FieldFormulir;

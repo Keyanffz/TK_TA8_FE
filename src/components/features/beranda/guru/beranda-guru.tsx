@@ -78,7 +78,7 @@ function KelasSaya({ data }: { data: DashboardGuru }) {
         <li key={kelas.id} className="gerak-masuk" style={{ "--i": indeks + 2 } as CSSProperties}>
           <Link
             href={`/mudarris/kelas/${kelas.id}`}
-            className="angkat group flex h-full flex-col rounded-xl bg-card p-4 text-foreground shadow-sm"
+            className="kartu-tautan group flex h-full flex-col rounded-xl bg-card p-4 text-foreground shadow-sm"
           >
             <span className="font-heading text-lg font-extrabold text-primary-strong">{kelas.nama}</span>
             <span className="mt-2 flex items-center gap-2 text-sm text-muted-foreground">

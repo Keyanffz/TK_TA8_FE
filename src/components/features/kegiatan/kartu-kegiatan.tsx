@@ -25,8 +25,8 @@ export function KartuKegiatan({ kegiatan, indeks, tampilkanKelas, beranda }: Kar
   return (
     <Link
       href={`${beranda}/kegiatan/${kegiatan.id}`}
-      className="angkat flex h-full flex-col rounded-lg border border-border bg-card p-3 shadow-sm rotate-(--miring) hover:rotate-0"
-      style={{ "--miring": KEMIRINGAN[indeks % KEMIRINGAN.length], "--miring-hover": "0deg" } as CSSProperties}
+      className="kartu-foto flex h-full flex-col rounded-lg border border-border bg-card p-3 shadow-sm rotate-(--miring) hover:rotate-0"
+      style={{ "--miring": KEMIRINGAN[indeks % KEMIRINGAN.length] } as CSSProperties}
     >
       <span className="grid grid-cols-3 gap-1.5">
         <span className={`relative block overflow-hidden rounded-sm bg-primary-soft ${kecil.length > 0 ? "col-span-2 aspect-[4/3]" : "col-span-3 aspect-[16/9]"}`}>

@@ -23,7 +23,7 @@ function KartuKelas({ kelas, bisaKelola }: { kelas: Kelas; bisaKelola: boolean }
   const persen = Math.min(100, Math.round((kelas.jumlah_murid / kelas.kapasitas) * 100));
 
   return (
-    <div className="angkat flex h-full flex-col gap-3 rounded-xl border border-border bg-card p-5 shadow-sm">
+    <div className="flex h-full flex-col gap-3 rounded-xl border border-border bg-card p-5 shadow-sm">
       <div className="flex items-start justify-between gap-2">
         <div>
           <Link href={`/mudarris/kelas/${kelas.id}`} className="font-heading text-lg font-extrabold hover:underline">

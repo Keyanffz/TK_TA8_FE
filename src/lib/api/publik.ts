@@ -105,6 +105,17 @@ export async function ambilDetailGaleri(slug: string) {
   return hasil?.data ?? null;
 }
 
+/** Foto dari album publik terbaru untuk galeri berjalan di landing; tiap foto membawa judul dan slug albumnya. */
+export async function ambilFotoGaleriTerbaru(jumlahAlbum: number, maksFoto: number) {
+  const { data: album } = await ambilDaftarGaleri(1, jumlahAlbum);
+  const detail = await Promise.all(album.map((item) => ambilDetailGaleri(item.slug)));
+  return detail
+    .flatMap((isi) => (isi ? (isi.foto ?? []).map((foto) => ({ ...foto, album: { judul: isi.judul, slug: isi.slug } })) : []))
+    .slice(0, maksFoto);
+}
+
+export type FotoGaleriTerbaru = Awaited<ReturnType<typeof ambilFotoGaleriTerbaru>>[number];
+
 async function ambilAgendaBulan(bulan: string): Promise<Agenda[]> {
   const { data } = await ambil(
     "/public/agenda",

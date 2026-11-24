@@ -23,7 +23,7 @@ export function PanelBeranda({ judul, tautan, className, children }: PanelBerand
             className="group inline-flex min-h-11 items-center gap-1 font-heading text-sm font-bold text-primary-strong hover:underline"
           >
             {tautan.label}
-            <ArrowRight aria-hidden="true" className="size-4 transition-transform duration-200 group-hover:translate-x-1" />
+            <ArrowRight aria-hidden="true" className="size-4 panah-melesat" />
           </Link>
         ) : null}
       </div>

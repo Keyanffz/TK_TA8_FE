@@ -58,7 +58,7 @@ export function LangkahOrangTua({ awal }: { awal?: ReactNode }) {
       ) : null}
       <KelompokIsian judul="Kontak utama" keterangan="Nama dan nomor HP orang ini dipakai untuk akun wali murid yang dibuat sekolah." field={["kontak_utama"]}>
         {tersedia.length === 0 ? (
-          <p className="text-sm text-muted-foreground">Pilihan muncul setelah ada nomor HP yang diisi.</p>
+          <p className="text-sm font-bold">Isi dulu nomor HP ayah, ibu, atau wali di atas. Pilihan kontak utama muncul setelah itu.</p>
         ) : (
           <Controller
             control={control}

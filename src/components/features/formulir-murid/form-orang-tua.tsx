@@ -2,7 +2,7 @@
 
 import { Controller, useWatch } from "react-hook-form";
 
-import { Baris, IsianPilih, IsianTeks, KelompokIsian, useIsianFormulir, useTampil, type FieldFormulir } from "@/components/features/formulir-murid/kolom-formulir";
+import { Baris, hanyaAngka, IsianPilih, IsianTeks, KelompokIsian, useIsianFormulir, useTampil, type FieldFormulir } from "@/components/features/formulir-murid/kolom-formulir";
 import { statusDariKeadaan, sudahMeninggal } from "@/components/features/formulir-murid/skema";
 import { KolomRadio } from "@/components/shared/kolom-radio";
 import {
@@ -69,7 +69,7 @@ export function FormOrangTua({ peran }: { peran: Hubungan }) {
         />
       ) : null}
       {meninggal ? (
-        <IsianTeks field={f("nama")} label={`Nama ${sebutan}`} />
+        <IsianTeks field={f("nama")} label={`Nama ${sebutan}`} placeholder="Sesuai Kartu Keluarga" />
       ) : (
         <>
           <Baris>
@@ -78,15 +78,15 @@ export function FormOrangTua({ peran }: { peran: Hubungan }) {
             ) : (
               <IsianPilih field={f("status")} label={`Status ${sebutan}`} opsi={OPSI_STATUS_ORANG_TUA} kosong="Pilih status" />
             )}
-            {peran === "wali" && hubungan === "lainnya" ? <IsianTeks field={f("hubungan_lainnya")} label="Tulis hubungannya" /> : null}
-            <IsianTeks field={f("nama")} label={`Nama ${sebutan}`} />
-            <IsianTeks field={f("tempat_lahir")} label="Tempat lahir" />
+            {peran === "wali" && hubungan === "lainnya" ? <IsianTeks field={f("hubungan_lainnya")} label="Tulis hubungannya" placeholder="Misalnya kakak sepupu" /> : null}
+            <IsianTeks field={f("nama")} label={`Nama ${sebutan}`} placeholder="Sesuai Kartu Keluarga" />
+            <IsianTeks field={f("tempat_lahir")} label="Tempat lahir" placeholder="Misalnya Semarang" />
             <IsianTeks field={f("tanggal_lahir")} label="Tanggal lahir" type="date" max={hariIniJakarta()} />
             <IsianPilih field={f("agama")} label="Agama" opsi={OPSI_AGAMA} kosong="Pilih agama" />
             <IsianPilih field={f("kewarganegaraan")} label="Kewarganegaraan" opsi={OPSI_KEWARGANEGARAAN} kosong="Pilih kewarganegaraan" />
             <IsianPilih field={f("pendidikan_terakhir")} label="Pendidikan terakhir" opsi={OPSI_PENDIDIKAN} kosong="Pilih pendidikan" />
             <IsianPilih field={f("pekerjaan")} label="Pekerjaan" opsi={OPSI_PEKERJAAN} kosong="Pilih pekerjaan" />
-            {pekerjaan === "lainnya" ? <IsianTeks field={f("pekerjaan_lainnya")} label="Tulis pekerjaannya" /> : null}
+            {pekerjaan === "lainnya" ? <IsianTeks field={f("pekerjaan_lainnya")} label="Tulis pekerjaannya" placeholder="Misalnya penjahit" /> : null}
             <IsianPilih field={f("penghasilan")} label="Penghasilan per bulan (opsional)" opsi={OPSI_PENGHASILAN} kosong="Pilih rentang" />
             <IsianTeks
               field={f("no_hp")}
@@ -94,6 +94,8 @@ export function FormOrangTua({ peran }: { peran: Hubungan }) {
               type="tel"
               inputMode="numeric"
               placeholder="08xxxxxxxxxx"
+              maxLength={15}
+              bersihkan={hanyaAngka}
               deskripsi="Boleh kosong, tetapi minimal satu nomor HP ayah, ibu, atau wali harus diisi."
             />
           </Baris>
@@ -103,8 +105,8 @@ export function FormOrangTua({ peran }: { peran: Hubungan }) {
               Alamat rumah sama dengan alamat anak
             </label>
           ) : null}
-          {alamatSama ? null : <IsianTeks field={f("alamat_rumah")} label="Alamat rumah" />}
-          <IsianTeks field={f("alamat_kantor")} label="Alamat kantor (opsional)" />
+          {alamatSama ? null : <IsianTeks field={f("alamat_rumah")} label="Alamat rumah" placeholder="Misalnya Jl. Pandanaran No. 5, RT 02/RW 04" />}
+          <IsianTeks field={f("alamat_kantor")} label="Alamat kantor (opsional)" placeholder="Nama dan alamat tempat kerja" />
         </>
       )}
     </KelompokIsian>

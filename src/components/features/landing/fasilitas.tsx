@@ -11,7 +11,7 @@ export function BagianFasilitas({ fasilitas }: { fasilitas: ItemFasilitas[] }) {
         <JudulBagian id="judul-fasilitas" judul="Fasilitas" />
         <Muncul efek="jatuh" className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
           {fasilitas.map((item) => (
-            <figure key={item.nama} className="angkat rounded-lg border border-border bg-card p-3 shadow-sm">
+            <figure key={item.nama} className="kartu-foto rounded-lg border border-border bg-card p-3 shadow-sm">
               <div className="relative aspect-[4/3] overflow-hidden rounded-md bg-primary-soft">
                 {item.gambar_url ? (
                   <Image

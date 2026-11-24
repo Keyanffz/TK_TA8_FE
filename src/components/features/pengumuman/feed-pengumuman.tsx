@@ -77,7 +77,7 @@ export function FeedPengumuman({ penulis, beranda }: { penulis: boolean; beranda
                 <Link
                   href={`${beranda}/pengumuman/${item.id}`}
                   className={cn(
-                    "angkat flex flex-col gap-2 rounded-xl border bg-card p-4 shadow-sm sm:p-5",
+                    "kartu-tautan flex flex-col gap-2 rounded-xl border bg-card p-4 shadow-sm sm:p-5",
                     item.is_pinned ? "border-highlight-strong border-l-4" : "border-border",
                   )}
                 >
