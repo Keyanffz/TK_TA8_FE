@@ -59,7 +59,7 @@ export const isianFormulir = {
   golongan_darah: pilihan(NILAI_ENUM.GolonganDarah),
   riwayat_penyakit: teks(1000),
   tinggi_badan: angka(/^(\d{2,3}([.,]\d)?)?$/, "Isi sentimeter, misalnya 105."),
-  berat_badan: angka(/^(\d{1,3}([.,]\d)?)?$/, "Isi kilogram, misalnya 17,5."),
+  berat_badan: angka(/^(\d{1,3}([.,]\d)?)?$/, "Isi kilogram, misalnya 17."),
   imunisasi: z.array(z.enum(NILAI_ENUM.Imunisasi)),
   imunisasi_lainnya: teks(255),
   ciri_khusus: teks(1000),
